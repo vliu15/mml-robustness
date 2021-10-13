@@ -1,0 +1,19 @@
+# A default yaml that populates `exp` with per-experiment configs
+defaults:
+    - _self_
+    - exp: resnet50_celeba.yaml
+    - override hydra/job_logging: disabled
+    - override hydra/hydra_logging: default
+
+# These fields will be populated at runtime, depending on the model / training setup specified
+exp:
+    dataset:
+        use_text: null
+        use_spect: null
+        use_audio: null
+
+# Disable hydra creation of directories
+hydra:
+    output_subdir: null
+    run:
+        dir: .

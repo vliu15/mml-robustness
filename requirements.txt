@@ -1,0 +1,14 @@
+hydra-core
+isort==5.9.3
+numpy>=1.17.0
+omegaconf
+pandas
+pillow
+pylint==2.11.0
+tabulate
+tensorboard
+toml==0.10.2
+torch>=1.8.0
+torchvision>=0.9.0
+tqdm
+yapf==0.31.0
