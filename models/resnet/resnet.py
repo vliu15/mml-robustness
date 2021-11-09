@@ -74,7 +74,7 @@ class ResNet(ClassificationModel):
                     y_subgroup = y_task[(g_task == i).nonzero(as_tuple=True)[0]].cpu()
 
                     if logits_subgroup.shape[0] == 0:
-                        output_dict[subgroup_metric_name] = 0
+                        output_dict[subgroup_metric_name] = torch.tensor(0)
                         output_dict[subgroup_count_name] = 0
                     else:
                         subgroup_accuracy = ((logits_subgroup > 0.0) == y_subgroup.bool()).float().mean()
@@ -83,7 +83,6 @@ class ResNet(ClassificationModel):
                         output_dict[subgroup_metric_name] = subgroup_accuracy
                         output_dict[subgroup_count_name] = logits_subgroup.shape[0]
 
-        raise ValueError('test')
         output_dict['loss'] = loss
         return output_dict
 

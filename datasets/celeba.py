@@ -59,6 +59,7 @@ class CelebA(Dataset):
         self.attr_names = list(attr.columns)
         ## for task labels x subgroup labels
 
+
         if len(self.task_labels) == 0:
             self.task_labels = self.attr_names
             self.task_label_indices = np.arange(len(self.attr_names))

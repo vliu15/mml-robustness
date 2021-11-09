@@ -196,15 +196,16 @@ def train(
                                 
                                 if "avg" in key:
                                     val_stats[key] += out_dict[key].item() * val_dataloader.batch_size
-                                if "count" in key:
+                                elif "count" in key:
                                     pass
                                 else:
+                                    print(key)
                                     past_acc = val_stats[key] 
                                     count_key = key + "_count" 
                                     past_count = val_stats[count_key] 
                                 
-                                    updated_acc =  (past_acc*past_count + out_dict[key].item()*out_dict[count_key].item()) / (past_count + out_dict[count_key].item())
-                                    val_stats[count_key] += out_dict[count_key].item()
+                                    updated_acc =  (past_acc*past_count + out_dict[key].item()*out_dict[count_key]) / (past_count + out_dict[count_key])
+                                    val_stats[count_key] += out_dict[count_key]
                                     val_stats[key] = updated_acc
 
                     ema.swap()
