@@ -204,7 +204,10 @@ def train(
                                     count_key = key + "_count" 
                                     past_count = val_stats[count_key] 
                                 
-                                    updated_acc =  (past_acc*past_count + out_dict[key].item()*out_dict[count_key]) / (past_count + out_dict[count_key])
+                                    if (past_count + out_dict[count_key]) != 0:
+                                        updated_acc =  (past_acc*past_count + out_dict[key].item()*out_dict[count_key]) / (past_count + out_dict[count_key])
+                                    else:
+                                        updated_acc = 0.0
                                     val_stats[count_key] += out_dict[count_key]
                                     val_stats[key] = updated_acc
 
