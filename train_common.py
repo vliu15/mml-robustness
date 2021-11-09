@@ -193,19 +193,21 @@ def train(
                                 val_stats[key] += out_dict[key].item() * val_dataloader.batch_size
 
                             if key.startswith("metric"):
-                                
+
                                 if "avg" in key:
                                     val_stats[key] += out_dict[key].item() * val_dataloader.batch_size
                                 elif "count" in key:
                                     pass
                                 else:
                                     print(key)
-                                    past_acc = val_stats[key] 
-                                    count_key = key + "_count" 
-                                    past_count = val_stats[count_key] 
-                                
+                                    past_acc = val_stats[key]
+                                    count_key = key + "_count"
+                                    past_count = val_stats[count_key]
+
                                     if (past_count + out_dict[count_key]) != 0:
-                                        updated_acc =  (past_acc*past_count + out_dict[key].item()*out_dict[count_key]) / (past_count + out_dict[count_key])
+                                        updated_acc = (past_acc * past_count + out_dict[key].item() * out_dict[count_key]) / (
+                                            past_count + out_dict[count_key]
+                                        )
                                     else:
                                         updated_acc = 0.0
                                     val_stats[count_key] += out_dict[count_key]

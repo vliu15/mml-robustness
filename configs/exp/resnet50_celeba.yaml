@@ -12,9 +12,9 @@ dataset:
     num_classes: &num_classes 40
     is_multiclass: &is_multiclass false
 
-    task_labels: ["Young", "Goatee"]
+    task_labels: ["Male"]
     subgroup_labels: True
-    subgroup_attributes: {"Young": ["No_Beard", "Gray_Hair"], "Goatee": ["No_Beard", "Gray_Hair"] } #mapping of task label to it's spurrious attributes
+    subgroup_attributes: {"Male": ["Wearing_Earrings"]} #mapping of task label to it's spurrious attributes
 
 model:
     name: resnet50
@@ -28,6 +28,7 @@ model:
     width_per_group: 64
     replace_stride_with_dilation: null
     norm_layer: null
+    pretrained: true 
 
 optimizer:
     name: sgd
@@ -48,4 +49,4 @@ train:
     eval_every_n_epochs: 1
     log_dir: ./logs/resnet50
     grad_clip_norm: null
-    fp16: true # false
+    fp16: true

@@ -1,12 +1,12 @@
+import itertools
 import os
 
+import numpy as np
 import pandas
 import torch
 import torchvision.transforms as transforms
 from PIL import Image
 from torch.utils.data import Dataset
-import numpy as np
-import itertools
 
 
 class CelebA(Dataset):
@@ -16,7 +16,7 @@ class CelebA(Dataset):
         super().__init__()
         self.root = os.path.join(config.dataset.root, "celeba")
 
-        self.task_labels = config.dataset.task_labels 
+        self.task_labels = config.dataset.task_labels
         self.subgroup_labels = config.dataset.subgroup_labels
         self.subgroup_attributes = config.dataset.subgroup_attributes
         # Transforms taken from https://github.com/kohpangwei/group_DRO/blob/master/data/celebA_dataset.py
@@ -59,14 +59,12 @@ class CelebA(Dataset):
         self.attr_names = list(attr.columns)
         ## for task labels x subgroup labels
 
-
         if len(self.task_labels) == 0:
             self.task_labels = self.attr_names
             self.task_label_indices = np.arange(len(self.attr_names))
 
         else:
             self.task_label_indices = np.array([self.attr_names.index(tl) for tl in self.task_labels])
-                
 
         if self.subgroup_labels:
 
@@ -77,7 +75,6 @@ class CelebA(Dataset):
             if len(self.subgroup_attributes.keys()) != len(self.task_labels):
                 raise ValueError("Not enough task labels in subgroups attributes")
 
-
             for key in self.subgroup_attributes.keys():
                 if key not in self.task_labels:
                     raise ValueError("Incorrectly denoted task label")
@@ -87,12 +84,11 @@ class CelebA(Dataset):
 
                 subgroup_len = len(self.subgroup_attributes[key])
                 combinations = list(itertools.product([0, 1], repeat=subgroup_len + 1))
-                comb_group_label =  {combinations[i]:i for i in range(len(combinations))}
+                comb_group_label = {combinations[i]: i for i in range(len(combinations))}
                 self.subgroup_combinations[key] = comb_group_label
-                
-            
+
             for ind_attrr in self.attr:
-                
+
                 group_label = []
                 for key in self.task_comb_indices.keys():
                     indices = self.task_comb_indices[key]
@@ -100,7 +96,6 @@ class CelebA(Dataset):
                     group_label.append(self.subgroup_combinations[key][tup_to_group_label])
 
                 self.subgroups.append(group_label)
-    
 
             self.subgroups = torch.tensor(self.subgroups)
 
