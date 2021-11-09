@@ -48,7 +48,14 @@ def main(config):
 
     logger.info(f"[{device}] Initialized all modules")
 
-    train(
+    if config.train.name == "jtt":
+        from train_jtt import train_jtt
+        train_fn = train_jtt
+    else:
+        train_fn = train
+        logger.info(f"[{device}] Falling back to default train loop")
+
+    train_fn(
         global_step=global_step,
         epoch=epoch,
         config=config,
