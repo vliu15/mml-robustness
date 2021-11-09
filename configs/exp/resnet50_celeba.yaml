@@ -1,7 +1,7 @@
 seed: 420
 
 dataloader:
-    batch_size: 128
+    batch_size: 64
     num_workers: 0
 
 dataset:
@@ -12,9 +12,14 @@ dataset:
     num_classes: &num_classes 40
     is_multiclass: &is_multiclass false
 
+    task_labels: ["Young", "Goatee"]
+    subgroup_labels: True
+    subgroup_attributes: {"Young": ["No_Beard", "Gray_Hair"], "Goatee": ["No_Beard", "Gray_Hair"] } #mapping of task label to it's spurrious attributes
+
 model:
     name: resnet50
     num_classes: *num_classes
+    num_tasks: 2
     is_multiclass: *is_multiclass
 
     # Defaults for ResNet
@@ -43,4 +48,4 @@ train:
     eval_every_n_epochs: 1
     log_dir: ./logs/resnet50
     grad_clip_norm: null
-    fp16: false
+    fp16: true # false

@@ -10,10 +10,11 @@ class ResNet(ClassificationModel):
 
     def __init__(self, config, block, layers):
         super().__init__()
+        self.config = config
         self.resnet = _ResNet(
             block=block,
             layers=layers,
-            num_classes=config.model.num_classes,
+            num_classes=config.model.num_tasks,
             zero_init_residual=config.model.zero_init_residual,
             groups=config.model.groups,
             width_per_group=config.model.width_per_group,
@@ -22,21 +23,64 @@ class ResNet(ClassificationModel):
         )
         self.is_multiclass = config.model.is_multiclass
 
+    ### can only support binary in this setting due to no seperate linear layer per task
     def forward(self, x, y):
         logits = self.resnet(x)
-        if self.is_multiclass:
-            loss = F.cross_entropy(logits, y)
-            with torch.no_grad():
-                accuracy = (logits.argmax(-1) == y).mean()
-        else:
-            loss = F.binary_cross_entropy_with_logits(logits, y)
-            with torch.no_grad():
-                accuracy = ((logits > 0.5) == y.bool()).float().mean()
+        
+        ## loop over columns in logits 
+        output_dict = {}
+        loss = 0
 
-        return {
-            "loss": loss,
-            "metric_acc": accuracy,
-        }
+        task_labels = self.config.dataset.task_labels if len(self.config.dataset.task_labels) != 0 else [i for i in range(40)]
+        for col, name in zip(range(logits.shape[1]), task_labels):
+            task_logits = logits[:, col]
+            y_task = y[:,col]
+            task_loss = F.binary_cross_entropy_with_logits(task_logits, y_task)
+            loss += task_loss
+            with torch.no_grad():
+                accuracy = ((task_logits > 0.0) == y_task.bool()).float().mean()
+                metric_name = f"metric_task_{name}_acc"
+                output_dict[metric_name] = accuracy
+
+        output_dict['loss'] = loss
+        return output_dict
+    ### can only support binary in this setting due to no seperate linear layer per task
+    def forward_subgroup(self, x, y, g):
+        logits = self.resnet(x)
+
+        logits = self.resnet(x)
+        
+        ## loop over columns in logits 
+        output_dict = {}
+        loss = 0
+
+        task_labels = self.config.dataset.task_labels if len(self.config.dataset.task_labels) != 0 else [i for i in range(40)]
+        for col, name in zip(range(logits.shape[1]), task_labels):
+            task_logits = logits[:, col]
+            y_task = y[:,col]
+            task_loss = F.binary_cross_entropy_with_logits(task_logits, y_task)
+            loss += task_loss
+            with torch.no_grad():
+                avg_accuracy = ((task_logits > 0.0) == y_task.bool()).float().mean()
+                avg_metric_name = f"metric_task_{name}_avg_acc"
+                output_dict[avg_metric_name] = avg_accuracy
+
+                for i in range( 2**(len(self.config.dataset.subgroup_attributes[name]) + 1)  ):
+                    
+                    
+                    logits_subgroup = task_logits[(g == i).nonzero(as_tuple=True)[0]]
+                    y_subgroup = y_task[(g == i).nonzero(as_tuple=True)[0]]
+
+                    subgroup_accuracy = ((logits_subgroup > 0.0) == y_subgroup.bool()).float().mean()
+                    subgroup_metric_name = f"metric_task_{name}_subgroup_{i}_acc"
+                    subgroup_count_name = f"metric_task_{name}_subgroup_{i}_acc_count"
+                    output_dict[subgroup_metric_name] = subgroup_accuracy
+                    output_dict[subgroup_count_name] = logits_subgroup.shape[0]
+
+        output_dict['loss'] = loss
+        return output_dict
+
+        
 
 
 class ResNet50(ResNet):
