@@ -39,9 +39,10 @@ class ResNet(ClassificationModel):
             loss += task_loss
             with torch.no_grad():
                 accuracy = ((task_logits > 0.0) == y_task.bool()).float().mean()
-                metric_name = f"metric_task_{name}_acc"
+                metric_name = f"metric_task_{name}_avg_acc"
                 output_dict[metric_name] = accuracy
 
+        
         output_dict['loss'] = loss
         return output_dict
     ### can only support binary in this setting due to no seperate linear layer per task
@@ -58,6 +59,7 @@ class ResNet(ClassificationModel):
         for col, name in zip(range(logits.shape[1]), task_labels):
             task_logits = logits[:, col]
             y_task = y[:,col]
+            g_task = g[:, col]
             task_loss = F.binary_cross_entropy_with_logits(task_logits, y_task)
             loss += task_loss
             with torch.no_grad():
@@ -68,15 +70,20 @@ class ResNet(ClassificationModel):
                 for i in range( 2**(len(self.config.dataset.subgroup_attributes[name]) + 1)  ):
                     
                     
-                    logits_subgroup = task_logits[(g == i).nonzero(as_tuple=True)[0]]
-                    y_subgroup = y_task[(g == i).nonzero(as_tuple=True)[0]]
+                    logits_subgroup = task_logits[(g_task == i).nonzero(as_tuple=True)[0]].cpu()
+                    y_subgroup = y_task[(g_task == i).nonzero(as_tuple=True)[0]].cpu()
 
-                    subgroup_accuracy = ((logits_subgroup > 0.0) == y_subgroup.bool()).float().mean()
-                    subgroup_metric_name = f"metric_task_{name}_subgroup_{i}_acc"
-                    subgroup_count_name = f"metric_task_{name}_subgroup_{i}_acc_count"
-                    output_dict[subgroup_metric_name] = subgroup_accuracy
-                    output_dict[subgroup_count_name] = logits_subgroup.shape[0]
+                    if logits_subgroup.shape[0] == 0:
+                        output_dict[subgroup_metric_name] = 0
+                        output_dict[subgroup_count_name] = 0
+                    else:
+                        subgroup_accuracy = ((logits_subgroup > 0.0) == y_subgroup.bool()).float().mean()
+                        subgroup_metric_name = f"metric_task_{name}_subgroup_{i}_acc"
+                        subgroup_count_name = f"metric_task_{name}_subgroup_{i}_acc_count"
+                        output_dict[subgroup_metric_name] = subgroup_accuracy
+                        output_dict[subgroup_count_name] = logits_subgroup.shape[0]
 
+        raise ValueError('test')
         output_dict['loss'] = loss
         return output_dict
 

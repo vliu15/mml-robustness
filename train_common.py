@@ -207,7 +207,6 @@ def train(
                                     val_stats[count_key] += out_dict[count_key].item()
                                     val_stats[key] = updated_acc
 
-
                     ema.swap()
 
                 # Log losses/metrics
