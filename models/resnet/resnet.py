@@ -20,22 +20,30 @@ class ResNet(ClassificationModel):
             replace_stride_with_dilation=config.model.replace_stride_with_dilation,
             norm_layer=config.model.norm_layer,
         )
-        self.is_multiclass = config.model.is_multiclass
+
+        if config.model.pretrained:
+            from torchvision.models.utils import load_state_dict_from_url
+            state_dict = load_state_dict_from_url("https://download.pytorch.org/models/resnet50-0676ba61.pth", progress=True)
+            # NOTE(vliu15): throw out the fc weights since these are linear projections to ImageNet classes
+            state_dict.pop("fc.weight")
+            state_dict.pop("fc.bias")
+            self.resnet.load_state_dict(state_dict, strict=False)
+            print("Downloaded and loaded pretrained ResNet-50")
 
     def forward(self, x, y):
+        # Forward pass
         logits = self.resnet(x)
-        if self.is_multiclass:
-            loss = F.cross_entropy(logits, y)
-            with torch.no_grad():
-                accuracy = (logits.argmax(-1) == y).mean()
-        else:
-            loss = F.binary_cross_entropy_with_logits(logits, y)
-            with torch.no_grad():
-                accuracy = ((logits > 0.5) == y.bool()).float().mean()
+
+        # BCE loss and accuracy
+        loss = F.binary_cross_entropy_with_logits(logits, y)
+        with torch.no_grad():
+            probs = torch.sigmoid(logits)
+            accuracy = ((probs > 0.5) == y.bool()).float().mean()
 
         return {
             "loss": loss,
             "metric_acc": accuracy,
+            "yh": probs,
         }
 
 

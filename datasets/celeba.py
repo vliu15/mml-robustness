@@ -57,7 +57,10 @@ class CelebA(Dataset):
         image = Image.open(os.path.join(self.root, "img_align_celeba", self.filename[index]))
         image = self.transform(image)
         label = self.attr[index, :]
-        return image, label.to(image.dtype)
+
+        # NOTE(vliu15): index 9 corresponds to blonde hair attribute
+        label = label[9:10]
+        return index, image, label.to(image.dtype)
 
     def __len__(self):
         return len(self.attr)
