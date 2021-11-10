@@ -7,7 +7,6 @@ import torch.nn as nn
 from omegaconf import DictConfig
 from tqdm import tqdm
 
-from train_common import train
 from utils.init_modules import (
     init_logdir,
     init_model,
@@ -49,9 +48,9 @@ def main(config):
 def evaluate(config: DictConfig, model: nn.Module, test_dataloader: torch.utils.data.DataLoader, device: str):
 
     test_stats = defaultdict(float)
-    for batch_idx, batch in tqdm(enumerate(test_dataloader), total=len(test_dataloader.dataset)):
+    for batch in tqdm(test_dataloader, total=len(test_dataloader.dataset)):
         with torch.no_grad():
-
+            
             batch = [b.to(device) if b is not None else None for b in batch]
             if config.dataset.subgroup_labels:
                 out_dict = model.supervised_step_subgroup(batch)

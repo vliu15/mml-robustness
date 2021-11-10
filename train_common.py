@@ -2,7 +2,6 @@
 
 import logging
 from collections import defaultdict
-from os import utime
 
 import torch
 import torch.distributed as distributed
