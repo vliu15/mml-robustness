@@ -21,7 +21,15 @@ class ResNet(ClassificationModel):
             replace_stride_with_dilation=config.model.replace_stride_with_dilation,
             norm_layer=config.model.norm_layer,
         )
-        self.is_multiclass = config.model.is_multiclass
+
+        if config.model.pretrained:
+            from torchvision.models.utils import load_state_dict_from_url
+            state_dict = load_state_dict_from_url("https://download.pytorch.org/models/resnet50-0676ba61.pth", progress=True)
+            # NOTE(vliu15): throw out the fc weights since these are linear projections to ImageNet classes
+            state_dict.pop("fc.weight")
+            state_dict.pop("fc.bias")
+            self.resnet.load_state_dict(state_dict, strict=False)
+            print("Downloaded and loaded pretrained ResNet-50")
 
         if config.model.pretrained:
             from torchvision.models.utils import load_state_dict_from_url
@@ -34,6 +42,7 @@ class ResNet(ClassificationModel):
 
     ### can only support binary in this setting due to no seperate linear layer per task
     def forward(self, x, y):
+        # Forward pass
         logits = self.resnet(x)
 
         ## loop over columns in logits
@@ -93,6 +102,7 @@ class ResNet(ClassificationModel):
 
         output_dict['loss'] = loss
         return output_dict
+
 
 
 class ResNet50(ResNet):

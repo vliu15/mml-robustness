@@ -1,6 +1,7 @@
 """Contains the entire train function for both train.py and train_ddp.py."""
 
 import logging
+import os
 from collections import defaultdict
 
 import torch
@@ -13,6 +14,11 @@ from utils.train_utils import get_top_level_summary, save_checkpoint
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def to_device(batch, device):
+    """Puts a batch onto the specified device"""
+    return [b.to(device) for b in batch if isinstance(b, torch.Tensor)]
 
 
 def train(
@@ -29,6 +35,7 @@ def train(
     writer: torch.utils.tensorboard.SummaryWriter,
     device: str,
     rank: int = 0,
+    exp: str = "",
 ) -> None:
     """
     Trains the model. A few rules of thumb:
@@ -41,12 +48,15 @@ def train(
         epoch: starting epoch in training
         config: dict config that specifies all training parameters
         ema: module to optionally track exponential moving average of weights
-        optimizer: optimier to optimize the loss with
+        optimizer: optimizer to perform gradient descent on the loss
         scheduler: scheduler to optionally scale the optimizer learning rates
         writer: (tensorboard) logger to track spectrograms, audio samples, and losses
         device: string name of device to put this training process on
         rank: index that the device corresponds to with (respect to the world size)
+        exp: any string prefix to organize logs
     """
+    # Strip "/" so we can use this to prefix logs
+    exp = exp.strip("/")
 
     # Handy function for synchronizing processes in multi-gpu training
     def barrier():
@@ -77,7 +87,7 @@ def train(
                     desc=f"Epoch {epoch} [train]",
                     disable=(rank != 0),
             ):
-                batch = [b.to(device) if b is not None else None for b in batch]
+                batch = to_device(batch, device)
                 optimizer.zero_grad()
 
                 # Mixed precision: O1 forward pass, scale/clip gradients, schedule LR when no gradient overflow
@@ -147,9 +157,9 @@ def train(
                         for key in train_stats.keys():
                             train_stats[key] /= config.train.log_every_n_steps
                             if key.startswith("loss"):
-                                writer.add_scalar(f"loss/train_{key}", train_stats[key], global_step)
+                                writer.add_scalar(os.path.join(exp, "loss", f"train_{key}"), train_stats[key], global_step)
                             elif key.startswith("metric"):
-                                writer.add_scalar(f"metric/train_{key}", train_stats[key], global_step)
+                                writer.add_scalar(os.path.join(exp, "metric", f"train_{key}"), train_stats[key], global_step)
                         postfix = dict(**train_stats, lr=optimizer.param_groups[0]["lr"])
                         pbar.set_postfix(postfix)
                         train_stats = defaultdict(float)
@@ -178,7 +188,7 @@ def train(
                             leave=False,
                             desc=f"Epoch {epoch} [val]",
                     ):
-                        batch = [b.to(device) if b is not None else None for b in batch]
+                        batch = to_device(batch, device)
                         with torch.cuda.amp.autocast(enabled=config.train.fp16):
                             if config.dataset.subgroup_labels:
                                 out_dict = model.supervised_step_subgroup(batch)
@@ -215,12 +225,15 @@ def train(
                 # Log losses/metrics
                 for key in val_stats.keys():
                     if key.startswith("loss"):
-                        writer.add_scalar(f"loss/val_{key}", val_stats[key] / len(val_dataloader.dataset), epoch)
+                        writer.add_scalar(
+                            os.path.join(exp, "loss", f"val_{key}"), val_stats[key] / len(val_dataloader.dataset), epoch
+                        )
                     elif key.startswith("metric"):
                         if "avg" in key:
                             writer.add_scalar(f"metric/val_{key}", val_stats[key] / len(val_dataloader.dataset), epoch)
                         else:
                             writer.add_scalar(f"metric/val_{key}", val_stats[key], epoch)
+
 
                 # Add additional post-evaluation logging here (i.e. images, audio, text)
                 pass
@@ -229,3 +242,7 @@ def train(
             epoch += 1
             pbar.update(1)
             barrier()
+
+    # Save last checkpoint
+    if rank == 0:
+        save_checkpoint(config, global_step, epoch, model, ema, optimizer, scheduler)

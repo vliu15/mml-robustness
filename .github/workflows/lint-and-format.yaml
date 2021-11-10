@@ -27,5 +27,5 @@ jobs:
     - name: Lint with yapf (version 0.31.0)
       run: |
         pylint *
-        yapf --recursive --verbose --diff --exclude data/ --exclude logs/ .
-        isort . -c --skip data/ --skip logs/
+        yapf --recursive --verbose --diff .
+        isort . -c

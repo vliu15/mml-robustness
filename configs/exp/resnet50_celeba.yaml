@@ -2,15 +2,14 @@ seed: 420
 
 dataloader:
     batch_size: 128
-    num_workers: 0
+    num_workers: 12
 
 dataset:
     name: celeba
     root: ./data
 
     target_resolution: [224, 224]
-    num_classes: &num_classes 40
-    is_multiclass: &is_multiclass false
+    num_classes: &num_classes 1
 
     task_labels: ["Blond_Hair"]
     subgroup_labels: False
@@ -18,9 +17,10 @@ dataset:
 
 model:
     name: resnet50
+    pretrained: true
     num_classes: *num_classes
-    num_tasks: 2
-    is_multiclass: *is_multiclass
+    num_tasks: 1
+
 
     # Defaults for ResNet
     zero_init_residual: False
@@ -41,6 +41,9 @@ scheduler:
     warmup_steps: 1000
 
 train:
+    name: jtt
+    lambda_up: 50
+
     n_gpus: -1
     total_epochs: 15
     load_ckpt: null
