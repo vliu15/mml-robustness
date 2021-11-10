@@ -23,7 +23,7 @@ class CelebA(Dataset):
         orig_w = 178
         orig_h = 218
         orig_min_dim = min(orig_w, orig_h)
-        if train:
+        if split == 'train':
             self.transform = transforms.Compose(
                 [
                     transforms.RandomResizedCrop(
@@ -105,7 +105,7 @@ class CelebA(Dataset):
 
             self.subgroups = torch.tensor(self.subgroups)
 
-            if train:
+            if split == 'train':
                 print(self.subgroup_attributes)
                 print(self.subgroup_combinations)
                 print(f'Count of subgroups: {torch.bincount(self.subgroups.squeeze(dim=1))}')

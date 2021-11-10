@@ -1,7 +1,7 @@
 seed: 420
 
 dataloader:
-    batch_size: 64
+    batch_size: 128
     num_workers: 0
 
 dataset:
@@ -13,7 +13,7 @@ dataset:
     is_multiclass: &is_multiclass false
 
     task_labels: ["Blond_Hair"]
-    subgroup_labels: True
+    subgroup_labels: False
     subgroup_attributes: {"Blond_Hair": ["Male"]} #mapping of task label to it's spurrious attributes
 
 model:
@@ -42,16 +42,16 @@ scheduler:
 
 train:
     n_gpus: -1
-    total_steps: 100000
+    total_epochs: 15
     load_ckpt: null
-    ckpt_every_n_steps: 10000
+    ckpt_every_n_epochs: 2
     log_every_n_steps: 5
     eval_every_n_epochs: 1
-    log_dir: ./logs/resnet50
+    log_dir: ./logs/erm_baseline_jtt
     grad_clip_norm: null
     fp16: true
 
 test:
     load_ckpt: null
-    results_dir: ./logs/
+    results_dir: ./logs/erm_baseline_jtt/results
     size: 19962

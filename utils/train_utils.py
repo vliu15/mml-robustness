@@ -74,7 +74,7 @@ def save_checkpoint(
     optimizer: torch.optim.Optimizer,
     scheduler: torch.optim.lr_scheduler._LRScheduler,
 ) -> None:
-    ckpt_path = os.path.join(config.train.log_dir, "ckpts", f"ckpt.{global_step}.pt")
+    ckpt_path = os.path.join(config.train.log_dir, "ckpts", f"ckpt.{epoch}.pt")
     ema.swap()
     torch.save(
         {

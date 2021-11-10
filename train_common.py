@@ -67,7 +67,7 @@ def train(
     # Train
     postfix = {}
     train_stats = defaultdict(float)
-    with tqdm(initial=global_step, total=config.train.total_steps, desc="Global step", postfix=postfix) as pbar:
+    with tqdm(initial=epoch, total=config.train.total_epochs, desc="Global epoch", postfix=postfix) as pbar:
 
         while True:
             model.train()
@@ -157,12 +157,12 @@ def train(
                         logger.debug(dict(**postfix, STEP=global_step, EPOCH=epoch))
 
                     # Checkpoint
-                    if global_step % config.train.ckpt_every_n_steps == 0:
+                    if epoch % config.train.ckpt_every_n_epochs == 0:
                         save_checkpoint(config, global_step, epoch, model, ema, optimizer, scheduler)
-                    pbar.update(1)
+                    
 
                 # Check if training is done
-                if global_step >= config.train.total_steps:
+                if epoch >= config.train.total_epochs:
                     return
 
             # [Rank 0] Run evaluation with EMA, save ground truth and predictions for comparison
@@ -229,4 +229,5 @@ def train(
 
             # End-of-epoch logistics
             epoch += 1
+            pbar.update(1)
             barrier()
