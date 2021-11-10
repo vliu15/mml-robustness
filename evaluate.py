@@ -1,5 +1,4 @@
 import json
-import logging
 from collections import defaultdict
 
 import hydra
@@ -10,12 +9,8 @@ from tqdm import tqdm
 
 from train_common import train
 from utils.init_modules import (
-    init_dataloaders,
-    init_ema,
     init_logdir,
     init_model,
-    init_optimizer,
-    init_scheduler,
     init_test_dataloader,
 )
 from utils.train_utils import seed_all_rng
