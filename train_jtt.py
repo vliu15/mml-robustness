@@ -1,18 +1,21 @@
 """Contains the entire train function for both train.py and train_ddp.py."""
 
 import logging
+import os
+import pickle
 
 import torch
 import torch.nn as nn
 from omegaconf import DictConfig
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from models.base import ClassificationModel
 from train_common import to_device, train
-from utils.init_modules import init_ema, init_optimizer, init_scheduler
+from utils.init_modules import init_ema, init_logdir, init_model, init_optimizer, init_scheduler
 
-logging.basicConfig(level=logging.INFO)
-logger = (__name__)
+logging.config.fileConfig("logger.conf")
+logger = logging.getLogger(__name__)
 
 
 class UpsampledDataset(torch.utils.data.Dataset):
@@ -116,25 +119,32 @@ def train_jtt(
     # Stage 1 #
     ###########
 
-    # 1. Train f_id on D via ERM for T steps
-    train(
-        global_step=global_step,
-        epoch=epoch,
-        config=config,
-        model=model,
-        ema=ema,
-        optimizer=optimizer,
-        scheduler=scheduler,
-        train_dataloader=train_dataloader,
-        val_dataloader=val_dataloader,
-        writer=writer,
-        device=device,
-        rank=rank,
-        exp="stage 1",
-    )
+    if hasattr(config.train, "jtt_error_set") and config.train.jtt_error_set:
+        with open(os.path.join(config.train.log_dir, "jtt_error_set.pkl"), "rb") as f:
+            error_indices = pickle.load(f)
+        logger.info(f"Loaded JTT error set. Error rate: {100 * len(error_indices) / len(train_dataloader.dataset):.4f}")
 
-    # 2. Construct the error set E of training examples misclassified by f_id
-    error_indices = construct_error_set(model, train_dataloader, device, task=0)
+    else:
+        # 1. Train f_id on D via ERM for T steps
+        train(
+            global_step=global_step,
+            epoch=epoch,
+            config=config,
+            model=model,
+            ema=ema,
+            optimizer=optimizer,
+            scheduler=scheduler,
+            train_dataloader=train_dataloader,
+            val_dataloader=val_dataloader,
+            writer=writer,
+            device=device,
+            rank=rank,
+        )
+
+        # 2. Construct the error set E of training examples misclassified by f_id
+        error_indices = construct_error_set(model, train_dataloader, device, task=0)
+        with open(os.path.join(config.train.log_dir, "jtt_error_set.pkl"), "wb") as f:
+            pickle.dump(error_indices, f)
 
     ###########
     # Stage 2 #
@@ -155,11 +165,16 @@ def train_jtt(
     )
 
     # 4. Train final model f_final on D_up via ERM
-    epochs = 10
-    config.train.total_epochs = epochs
+    config.train.total_epochs = config.train.stage_2_total_epochs
+    config.train.log_dir = os.path.join(config.train.log_dir, "stage_2")  # create new logdir
+    init_logdir(config)
+
+    writer = SummaryWriter(config.train.log_dir)
+    model = init_model(config).to(device)
     ema = init_ema(config, model)  # re-init model EMA
     optimizer = init_optimizer(config, model)  # re-init optimizer
     scheduler = init_scheduler(config, optimizer)  # re-init scheduler
+
     train(
         global_step=0,
         epoch=0,
@@ -173,5 +188,4 @@ def train_jtt(
         writer=writer,
         device=device,
         rank=rank,
-        exp="stage 2",
     )

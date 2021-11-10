@@ -2,7 +2,7 @@ seed: 420
 
 dataloader:
     batch_size: 128
-    num_workers: 12
+    num_workers: 8
 
 dataset:
     name: celeba
@@ -11,11 +11,25 @@ dataset:
     target_resolution: [224, 224]
     num_classes: &num_classes 1
 
-    task_labels: ["Blond_Hair"]
     subgroup_labels: true
+
+    ## GROUP 1
+    task_labels: ["Blond_Hair"]
     subgroup_attributes: {
         "Blond_Hair": ["Male"]
-    }  # mapping of task label to it's spurious attributes
+    }
+
+    ## GROUP 2
+    # task_labels: ["Pointy_Nose"]
+    # subgroup_attributes: {
+    #     "Pointy_Nose": ["Blond_Hair"]
+    # }
+
+    ## GROUP 3
+    # task_labels: ["Bald"]
+    # subgroup_attributes: {
+    #     "Bald": ["Attractive"]
+    # }
 
 model:
     name: resnet50
@@ -40,20 +54,22 @@ train:
     name: jtt  # one of [erm, jtt]
 
     # jtt hyperparams
-    lambda_up: 50
+    lambda_up: 20
+    stage_2_total_epochs: 20
+    jtt_error_set: null
     # ###
 
     n_gpus: -1
-    total_epochs: 15
+    total_epochs: 1
     load_ckpt: null
     ckpt_every_n_epochs: 1
     log_every_n_steps: 5
     eval_every_n_epochs: 1
-    log_dir: ./logs/jtt_subgroups
+    log_dir: ./logs/jtt_subgroup_1
     grad_clip_norm: null
     fp16: true
 
 test:
     load_ckpt: null
-    results_dir: ./logs/jtt_subgroups/results
+    results_dir: ./logs/jtt_subgroup_1/results
     size: 19962
