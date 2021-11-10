@@ -12,7 +12,7 @@ from train_common import to_device, train
 from utils.init_modules import init_ema, init_optimizer, init_scheduler
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = (__name__)
 
 
 class UpsampledDataset(torch.utils.data.Dataset):
@@ -55,6 +55,7 @@ def construct_error_set(
     model: nn.Module,
     train_dataloader: torch.utils.data.DataLoader,
     device: str,
+    task: int = 0,
 ):
     """Constructs the error set of training examples after initial ERM training"""
     model.eval()
@@ -66,12 +67,12 @@ def construct_error_set(
     with tqdm(total=len(train_dataloader), desc="Constructing error set", postfix={"error rate": "0/0"}) as pbar:
         for batch in train_dataloader:
             batch = to_device(batch, device)
-            out_dict = model.supervised_step(batch)
+            output_dict = model.inference_step(batch)
 
             # NOTE(vliu15): since yh could contain multiple binary predictions per batch example,
             # let's just take the first one to keep things simple and consistent with JTT
-            yh = (out_dict["yh"][:, 0] > 0.5).float()
-            y = out_dict["y"][:, 0]
+            yh = (output_dict["yh"][:, task] > 0).float()
+            y = output_dict["y"][:, task]
 
             errors = (yh != y)
             global_indices += batch[0][errors].cpu().tolist()
@@ -133,7 +134,7 @@ def train_jtt(
     )
 
     # 2. Construct the error set E of training examples misclassified by f_id
-    error_indices = construct_error_set(model, train_dataloader, device)
+    error_indices = construct_error_set(model, train_dataloader, device, task=0)
 
     ###########
     # Stage 2 #

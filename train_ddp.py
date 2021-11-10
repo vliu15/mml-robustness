@@ -11,7 +11,7 @@ from train_common import train
 from utils.init_modules import init_ddp_dataloaders, init_ddp_model, init_ema, init_logdir, init_optimizer, init_scheduler
 from utils.train_utils import seed_all_rng
 
-logging.basicConfig(level=logging.INFO)
+logging.config.fileConfig("logger.conf")
 logger = logging.getLogger(__name__)
 
 

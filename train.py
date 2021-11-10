@@ -4,11 +4,10 @@ import hydra
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-from train_common import train
 from utils.init_modules import init_dataloaders, init_ema, init_logdir, init_model, init_optimizer, init_scheduler
 from utils.train_utils import seed_all_rng
 
-logging.basicConfig(level=logging.INFO)
+logging.config.fileConfig("logger.conf")
 logger = logging.getLogger(__name__)
 
 
@@ -48,12 +47,15 @@ def main(config):
 
     logger.info(f"[{device}] Initialized all modules")
 
+    train_fn = None
     if config.train.name == "jtt":
         from train_jtt import train_jtt
         train_fn = train_jtt
-    else:
+    elif config.train.name == "erm":
+        from train_common import train
         train_fn = train
-        logger.info(f"[{device}] Falling back to default train loop")
+    else:
+        raise ValueError(f"Unrecognized train.name: {config.train.name}")
 
     train_fn(
         global_step=global_step,

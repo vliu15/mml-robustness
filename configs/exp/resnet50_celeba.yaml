@@ -12,8 +12,10 @@ dataset:
     num_classes: &num_classes 1
 
     task_labels: ["Blond_Hair"]
-    subgroup_labels: False
-    subgroup_attributes: {"Blond_Hair": ["Male"]} #mapping of task label to it's spurrious attributes
+    subgroup_labels: true
+    subgroup_attributes: {
+        "Blond_Hair": ["Male"]
+    }  # mapping of task label to it's spurious attributes
 
 model:
     name: resnet50
@@ -21,14 +23,12 @@ model:
     num_classes: *num_classes
     num_tasks: 1
 
-
     # Defaults for ResNet
     zero_init_residual: False
     groups: 1
     width_per_group: 64
     replace_stride_with_dilation: null
     norm_layer: null
-    pretrained: true 
 
 optimizer:
     name: sgd
@@ -36,13 +36,12 @@ optimizer:
     weight_decay: 0.0001
     momentum: 0.9
 
-scheduler:
-    name: linear
-    warmup_steps: 1000
-
 train:
-    name: jtt
+    name: jtt  # one of [erm, jtt]
+
+    # jtt hyperparams
     lambda_up: 50
+    # ###
 
     n_gpus: -1
     total_epochs: 15
@@ -50,11 +49,11 @@ train:
     ckpt_every_n_epochs: 1
     log_every_n_steps: 5
     eval_every_n_epochs: 1
-    log_dir: ./logs/erm_baseline_jtt
+    log_dir: ./logs/jtt_subgroups
     grad_clip_norm: null
     fp16: true
 
 test:
     load_ckpt: null
-    results_dir: ./logs/erm_baseline_jtt/results
+    results_dir: ./logs/jtt_subgroups/results
     size: 19962

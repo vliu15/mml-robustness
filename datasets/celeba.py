@@ -1,4 +1,5 @@
 import itertools
+import logging
 import os
 
 import numpy as np
@@ -7,6 +8,9 @@ import torch
 import torchvision.transforms as transforms
 from PIL import Image
 from torch.utils.data import Dataset
+
+logging.config.fileConfig("logger.conf")
+logger = logging.getLogger(__name__)
 
 
 class CelebA(Dataset):
@@ -68,12 +72,10 @@ class CelebA(Dataset):
         if len(self.task_labels) == 0:
             self.task_labels = self.attr_names
             self.task_label_indices = np.arange(len(self.attr_names))
-
         else:
             self.task_label_indices = np.array([self.attr_names.index(tl) for tl in self.task_labels])
 
         if self.subgroup_labels:
-
             self.subgroup_combinations = {}
             self.task_comb_indices = {}
             self.subgroups = []
@@ -93,12 +95,11 @@ class CelebA(Dataset):
                 comb_group_label = {combinations[i]: i for i in range(len(combinations))}
                 self.subgroup_combinations[key] = comb_group_label
 
-            for ind_attrr in self.attr:
-
+            for ind_attr in self.attr:
                 group_label = []
                 for key in self.task_comb_indices.keys():
                     indices = self.task_comb_indices[key]
-                    tup_to_group_label = tuple(ind_attrr[indices].tolist())
+                    tup_to_group_label = tuple(ind_attr[indices].tolist())
                     group_label.append(self.subgroup_combinations[key][tup_to_group_label])
 
                 self.subgroups.append(group_label)
@@ -106,19 +107,20 @@ class CelebA(Dataset):
             self.subgroups = torch.tensor(self.subgroups)
 
             if split == 'train':
-                print(self.subgroup_attributes)
-                print(self.subgroup_combinations)
-                print(f'Count of subgroups: {torch.bincount(self.subgroups.squeeze(dim=1))}')
+                logger.info(f"Subgroup attributes  : {self.subgroup_attributes}")
+                logger.info(f"Subgroup combinations: {self.subgroup_combinations}")
+                logger.info(f'Subgroup counts      : {torch.bincount(self.subgroups.squeeze(dim=1)).tolist()}')
 
     def __getitem__(self, index):
         image = Image.open(os.path.join(self.root, "img_align_celeba", self.filename[index]))
         image = self.transform(image)
         label = self.attr[index, self.task_label_indices]
+
         if self.subgroup_labels:
             subgroup_label = self.subgroups[index]
             return index, image, label.to(image.dtype), subgroup_label.to(image.dtype)
         else:
-            return index, image, label.to(image.dtype)
+            return index, image, label.to(image.dtype), 0  # dummy group (everything is group 0)
 
     def __len__(self):
         return len(self.attr)

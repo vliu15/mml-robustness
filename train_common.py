@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 from utils.train_utils import get_top_level_summary, save_checkpoint
 
-logging.basicConfig(level=logging.INFO)
+logging.config.fileConfig("logger.conf")
 logger = logging.getLogger(__name__)
 
 
@@ -76,6 +76,7 @@ def train(
     # Train
     postfix = {}
     train_stats = defaultdict(float)
+    val_stats_to_pbar = defaultdict(float)
     with tqdm(initial=epoch, total=config.train.total_epochs, desc="Global epoch", postfix=postfix) as pbar:
 
         while True:
@@ -93,11 +94,7 @@ def train(
                 # Mixed precision: O1 forward pass, scale/clip gradients, schedule LR when no gradient overflow
                 if config.train.fp16:
                     with torch.cuda.amp.autocast():
-
-                        if config.dataset.subgroup_labels:
-                            out_dict = model.supervised_step_subgroup(batch)
-                        else:
-                            out_dict = model.supervised_step(batch)
+                        out_dict = model.supervised_step(batch, subgroup=config.dataset.subgroup_labels)
                         loss = out_dict["loss"]
                         scaler.scale(loss).backward()
                         # Optionally apply gradient clipping
@@ -117,10 +114,7 @@ def train(
 
                 # Full precision: O0 forward pass with optional gradient clipping, schedule LR
                 else:
-                    if config.dataset.subgroup_labels:
-                        out_dict = model.supervised_step_subgroup(batch)
-                    else:
-                        out_dict = model.supervised_step(batch)
+                    out_dict = model.supervised_step(batch, subgroup=config.dataset.subgroup_labels)
                     loss = out_dict["loss"]
                     if torch.isnan(loss):
                         logger.info(
@@ -148,9 +142,9 @@ def train(
                 if rank == 0:
                     # Update loss average
                     for key in out_dict.keys():
-                        if key.startswith("loss") or key.startswith("metric"):
-                            if 'count' not in key:
-                                train_stats[key] += out_dict[key].item()
+                        if key.startswith("loss") or (key.startswith("metric") and
+                                                      "avg" in key):  # only want avg accuracies here
+                            train_stats[key] += out_dict[key].item()
 
                     # Log losses/metrics and update progress bars
                     if global_step % config.train.log_every_n_steps == 0:
@@ -158,9 +152,11 @@ def train(
                             train_stats[key] /= config.train.log_every_n_steps
                             if key.startswith("loss"):
                                 writer.add_scalar(os.path.join(exp, "loss", f"train_{key}"), train_stats[key], global_step)
-                            elif key.startswith("metric"):
-                                writer.add_scalar(os.path.join(exp, "metric", f"train_{key}"), train_stats[key], global_step)
-                        postfix = dict(**train_stats, lr=optimizer.param_groups[0]["lr"])
+                            elif key.startswith("metric") and "avg" in key:
+                                writer.add_scalar(
+                                    os.path.join(exp, "metric", f"train_{key[7:]}"), train_stats[key], global_step
+                                )
+                        postfix = dict(**train_stats, **val_stats_to_pbar, lr=optimizer.param_groups[0]["lr"])
                         pbar.set_postfix(postfix)
                         train_stats = defaultdict(float)
                         logger.debug(dict(**postfix, STEP=global_step, EPOCH=epoch))
@@ -174,8 +170,6 @@ def train(
                     return
 
             # [Rank 0] Run evaluation with EMA, save ground truth and predictions for comparison
-
-            ## update on logging metrics
             if rank == 0 and epoch % config.train.eval_every_n_epochs == 0:
                 val_stats = defaultdict(float)
 
@@ -190,35 +184,17 @@ def train(
                     ):
                         batch = to_device(batch, device)
                         with torch.cuda.amp.autocast(enabled=config.train.fp16):
-                            if config.dataset.subgroup_labels:
-                                out_dict = model.supervised_step_subgroup(batch)
-                            else:
-                                out_dict = model.supervised_step(batch)
+                            out_dict = model.supervised_step(batch, subgroup=config.dataset.subgroup_labels)
 
                         # Accumulate losses/metrics
                         for key in out_dict.keys():
                             if key.startswith("loss"):
-                                val_stats[key] += out_dict[key].item() * val_dataloader.batch_size
-
-                            if key.startswith("metric"):
-
+                                val_stats[key] += out_dict[key].item() * batch[0].shape[0]
+                            elif key.startswith("metric"):
                                 if "avg" in key:
-                                    val_stats[key] += out_dict[key].item() * val_dataloader.batch_size
-                                elif "count" in key:
-                                    pass
-                                else:
-                                    past_acc = val_stats[key]
-                                    count_key = key + "_count"
-                                    past_count = val_stats[count_key]
-
-                                    if (past_count + out_dict[count_key]) != 0:
-                                        updated_acc = (past_acc * past_count + out_dict[key].item() * out_dict[count_key]) / (
-                                            past_count + out_dict[count_key]
-                                        )
-                                    else:
-                                        updated_acc = 0.0
-                                    val_stats[count_key] += out_dict[count_key]
-                                    val_stats[key] = updated_acc
+                                    val_stats[key] += out_dict[key].item() * batch[0].shape[0]
+                                elif "counts" in key:
+                                    val_stats[key] += out_dict[key]
 
                     ema.swap()
 
@@ -230,9 +206,13 @@ def train(
                         )
                     elif key.startswith("metric"):
                         if "avg" in key:
-                            writer.add_scalar(f"metric/val_{key}", val_stats[key] / len(val_dataloader.dataset), epoch)
-                        else:
-                            writer.add_scalar(f"metric/val_{key}", val_stats[key], epoch)
+                            avg = val_stats[key] / len(val_dataloader.dataset)
+                            writer.add_scalar(os.path.join(exp, "metric", f"val_{key[7:]}"), avg, epoch)
+                            val_stats_to_pbar[f"val_{key[7:]}"] = avg
+                        elif "counts" in key:
+                            accuracy = val_stats[key][0] / val_stats[key][1]
+                            writer.add_scalar(os.path.join(exp, "metric", f"val_{key[7:]}"), accuracy, epoch)
+                            val_stats_to_pbar[f"val_{key[7:-6]}_acc"] = accuracy
 
                 # Add additional post-evaluation logging here (i.e. images, audio, text)
                 pass

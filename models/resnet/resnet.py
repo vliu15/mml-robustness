@@ -1,8 +1,14 @@
+import logging
+
+import numpy as np
 import torch
 import torch.nn.functional as F
 
 from models.base import ClassificationModel
 from models.resnet.modules import Bottleneck, ResNet as _ResNet
+
+logging.config.fileConfig("logger.conf")
+logger = logging.getLogger(__name__)
 
 
 class ResNet(ClassificationModel):
@@ -29,81 +35,73 @@ class ResNet(ClassificationModel):
             state_dict.pop("fc.weight")
             state_dict.pop("fc.bias")
             self.resnet.load_state_dict(state_dict, strict=False)
-            print("Downloaded and loaded pretrained ResNet-50")
+            logging.info("Downloaded and loaded pretrained ResNet-50")
 
-        if config.model.pretrained:
-            from torchvision.models.utils import load_state_dict_from_url
-            state_dict = load_state_dict_from_url("https://download.pytorch.org/models/resnet50-0676ba61.pth", progress=True)
-            # NOTE(vliu15): throw out the fc weights since these are linear projections to ImageNet classes
-            state_dict.pop("fc.weight")
-            state_dict.pop("fc.bias")
-            self.resnet.load_state_dict(state_dict, strict=False)
-            print("Downloaded and loaded pretrained ResNet-50")
+    def predict(self, x):
+        return self.resnet(x)
 
     ### can only support binary in this setting due to no seperate linear layer per task
     def forward(self, x, y):
         # Forward pass
         logits = self.resnet(x)
+        loss = F.binary_cross_entropy_with_logits(logits, y, reduction="none")
 
         ## loop over columns in logits
         output_dict = {}
-        loss = 0
-
         task_labels = self.config.dataset.task_labels if len(self.config.dataset.task_labels) != 0 else [i for i in range(40)]
         for col, name in zip(range(logits.shape[1]), task_labels):
             task_logits = logits[:, col]
             y_task = y[:, col]
-            task_loss = F.binary_cross_entropy_with_logits(task_logits, y_task)
-            loss += task_loss
-            with torch.no_grad():
+            task_loss = loss[:, col].mean()
+            output_dict[f"loss_{name}"] = task_loss
 
+            with torch.no_grad():
                 accuracy = ((task_logits > 0.0) == y_task.bool()).float().mean()
                 ## in the case of jtt only one task and hence:
-                output_dict['yh'] = torch.sigmoid(task_logits)
-                metric_name = f"metric_task_{name}_avg_acc"
-                output_dict[metric_name] = accuracy
+                output_dict[f"metric_{name}_avg_acc"] = accuracy
 
-        output_dict['loss'] = loss
+        output_dict["loss"] = loss.mean()
+        output_dict["yh"] = logits.detach()
         return output_dict
 
     ### can only support binary in this setting due to no seperate linear layer per task
     def forward_subgroup(self, x, y, g):
         logits = self.resnet(x)
-
-        logits = self.resnet(x)
+        loss = F.binary_cross_entropy_with_logits(logits, y, reduction="none")
 
         ## loop over columns in logits
         output_dict = {}
-        loss = 0
-
         task_labels = self.config.dataset.task_labels if len(self.config.dataset.task_labels) != 0 else [i for i in range(40)]
         for col, name in zip(range(logits.shape[1]), task_labels):
             task_logits = logits[:, col]
             y_task = y[:, col]
             g_task = g[:, col]
-            task_loss = F.binary_cross_entropy_with_logits(task_logits, y_task)
-            loss += task_loss
+            task_loss = loss[:, col]
+            output_dict[f"loss_{name}"] = task_loss.mean()
+
             with torch.no_grad():
                 avg_accuracy = ((task_logits > 0.0) == y_task.bool()).float().mean()
-                avg_metric_name = f"metric_task_{name}_avg_acc"
-                output_dict[avg_metric_name] = avg_accuracy
+                output_dict[f"metric_{name}_avg_acc"] = avg_accuracy
 
-                for i in range(2**(len(self.config.dataset.subgroup_attributes[name]) + 1)):
+                # Only run this in eval since we don't log batch metrics in training
+                # since not all subgroups are guaranteed to be present
+                if not self.training:
+                    for i in range(2**(len(self.config.dataset.subgroup_attributes[name]) + 1)):
+                        logits_subgroup = task_logits[(g_task == i).nonzero(as_tuple=True)[0]]
+                        y_subgroup = y_task[(g_task == i).nonzero(as_tuple=True)[0]]
 
-                    logits_subgroup = task_logits[(g_task == i).nonzero(as_tuple=True)[0]].cpu()
-                    y_subgroup = y_task[(g_task == i).nonzero(as_tuple=True)[0]].cpu()
+                        # Store accuracy components as counts in the format [correct, total] in numpy arrays so they can be easily added
+                        subgroup_counts_key = f"metric_{name}_g{i}_counts"
+                        if logits_subgroup.shape[0] == 0:
+                            output_dict[subgroup_counts_key] = np.array([0, 0], dtype=np.float32)
+                        else:
+                            num_correct = ((logits_subgroup > 0.0) == y_subgroup.bool()).float().sum().item()
+                            output_dict[subgroup_counts_key] = np.array(
+                                [num_correct, logits_subgroup.shape[0]], dtype=np.float32
+                            )
 
-                    if logits_subgroup.shape[0] == 0:
-                        output_dict[subgroup_metric_name] = torch.tensor(0)
-                        output_dict[subgroup_count_name] = 0
-                    else:
-                        subgroup_accuracy = ((logits_subgroup > 0.0) == y_subgroup.bool()).float().mean()
-                        subgroup_metric_name = f"metric_task_{name}_subgroup_{i}_acc"
-                        subgroup_count_name = f"metric_task_{name}_subgroup_{i}_acc_count"
-                        output_dict[subgroup_metric_name] = subgroup_accuracy
-                        output_dict[subgroup_count_name] = logits_subgroup.shape[0]
-
-        output_dict['loss'] = loss
+        output_dict["loss"] = loss.mean()  # NOTE(vliu15) all tasks are weighted equally here
+        output_dict["yh"] = logits.detach()
         return output_dict
 
 
