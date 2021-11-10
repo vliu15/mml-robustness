@@ -110,7 +110,6 @@ class CelebA(Dataset):
                 print(self.subgroup_combinations)
                 print(f'Count of subgroups: {torch.bincount(self.subgroups.squeeze(dim=1))}')
 
-
     def __getitem__(self, index):
         image = Image.open(os.path.join(self.root, "img_align_celeba", self.filename[index]))
         image = self.transform(image)

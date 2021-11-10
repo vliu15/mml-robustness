@@ -36,7 +36,7 @@ def init_datasets(config):
 
 def init_dataloaders(config):
     train_dataset, val_dataset = init_datasets(config)
-    
+
     from torch.utils.data import DataLoader
     return (
         DataLoader(
@@ -55,6 +55,7 @@ def init_dataloaders(config):
         ),
     )
 
+
 def init_test_dataset(config):
     if config.dataset.name == "celeba":
         from datasets.celeba import CelebA
@@ -67,15 +68,16 @@ def init_test_dataset(config):
 
 def init_test_dataloader(config):
     test_dataset = init_test_dataset(config)
-    
+
     from torch.utils.data import DataLoader
     return DataLoader(
-            test_dataset,
-            batch_size=config.dataloader.batch_size,
-            num_workers=config.dataloader.num_workers,
-            shuffle=True,
-            pin_memory=True,
-        )
+        test_dataset,
+        batch_size=config.dataloader.batch_size,
+        num_workers=config.dataloader.num_workers,
+        shuffle=True,
+        pin_memory=True,
+    )
+
 
 def init_ddp_dataloaders(config, rank, world_size):
     train_dataset, val_dataset = init_datasets(config)

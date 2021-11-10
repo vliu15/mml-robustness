@@ -159,7 +159,6 @@ def train(
                     # Checkpoint
                     if epoch % config.train.ckpt_every_n_epochs == 0:
                         save_checkpoint(config, global_step, epoch, model, ema, optimizer, scheduler)
-                    
 
                 # Check if training is done
                 if epoch >= config.train.total_epochs:
