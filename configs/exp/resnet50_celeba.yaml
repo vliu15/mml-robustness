@@ -11,10 +11,16 @@ dataset:
     target_resolution: [224, 224]
     num_classes: &num_classes 1
 
+    task_labels: ["Blond_Hair"]
+    subgroup_labels: False
+    subgroup_attributes: {"Blond_Hair": ["Male"]} #mapping of task label to it's spurrious attributes
+
 model:
     name: resnet50
     pretrained: true
     num_classes: *num_classes
+    num_tasks: 1
+
 
     # Defaults for ResNet
     zero_init_residual: False
@@ -22,6 +28,7 @@ model:
     width_per_group: 64
     replace_stride_with_dilation: null
     norm_layer: null
+    pretrained: true 
 
 optimizer:
     name: sgd
@@ -38,11 +45,16 @@ train:
     lambda_up: 50
 
     n_gpus: -1
-    total_steps: 31661  # ceil(202600 / 128) * 20 + 1
+    total_epochs: 15
     load_ckpt: null
-    ckpt_every_n_steps: 10000
+    ckpt_every_n_epochs: 1
     log_every_n_steps: 5
     eval_every_n_epochs: 1
-    log_dir: ./logs/resnet50
+    log_dir: ./logs/erm_baseline_jtt
     grad_clip_norm: null
-    fp16: false
+    fp16: true
+
+test:
+    load_ckpt: null
+    results_dir: ./logs/erm_baseline_jtt/results
+    size: 19962

@@ -31,11 +31,12 @@ def init_datasets(config):
     else:
         raise ValueError(f"Didn't recognize dataset name {config.dataset.name}")
 
-    return dataset(config, train=True), dataset(config, train=False)
+    return dataset(config, split='train'), dataset(config, split='val')
 
 
 def init_dataloaders(config):
     train_dataset, val_dataset = init_datasets(config)
+
     from torch.utils.data import DataLoader
     return (
         DataLoader(
@@ -52,6 +53,29 @@ def init_dataloaders(config):
             shuffle=False,
             pin_memory=True,
         ),
+    )
+
+
+def init_test_dataset(config):
+    if config.dataset.name == "celeba":
+        from datasets.celeba import CelebA
+        dataset = CelebA
+    else:
+        raise ValueError(f"Didn't recognize dataset name {config.dataset.name}")
+
+    return dataset(config, split='test')
+
+
+def init_test_dataloader(config):
+    test_dataset = init_test_dataset(config)
+
+    from torch.utils.data import DataLoader
+    return DataLoader(
+        test_dataset,
+        batch_size=config.dataloader.batch_size,
+        num_workers=config.dataloader.num_workers,
+        shuffle=True,
+        pin_memory=True,
     )
 
 

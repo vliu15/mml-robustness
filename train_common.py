@@ -76,7 +76,7 @@ def train(
     # Train
     postfix = {}
     train_stats = defaultdict(float)
-    with tqdm(initial=global_step, total=config.train.total_steps, desc="Global step", postfix=postfix) as pbar:
+    with tqdm(initial=epoch, total=config.train.total_epochs, desc="Global epoch", postfix=postfix) as pbar:
 
         while True:
             model.train()
@@ -93,7 +93,11 @@ def train(
                 # Mixed precision: O1 forward pass, scale/clip gradients, schedule LR when no gradient overflow
                 if config.train.fp16:
                     with torch.cuda.amp.autocast():
-                        out_dict = model.supervised_step(batch)
+
+                        if config.dataset.subgroup_labels:
+                            out_dict = model.supervised_step_subgroup(batch)
+                        else:
+                            out_dict = model.supervised_step(batch)
                         loss = out_dict["loss"]
                         scaler.scale(loss).backward()
                         # Optionally apply gradient clipping
@@ -113,7 +117,10 @@ def train(
 
                 # Full precision: O0 forward pass with optional gradient clipping, schedule LR
                 else:
-                    out_dict = model.supervised_step(batch)
+                    if config.dataset.subgroup_labels:
+                        out_dict = model.supervised_step_subgroup(batch)
+                    else:
+                        out_dict = model.supervised_step(batch)
                     loss = out_dict["loss"]
                     if torch.isnan(loss):
                         logger.info(
@@ -142,7 +149,8 @@ def train(
                     # Update loss average
                     for key in out_dict.keys():
                         if key.startswith("loss") or key.startswith("metric"):
-                            train_stats[key] += out_dict[key].item()
+                            if 'count' not in key:
+                                train_stats[key] += out_dict[key].item()
 
                     # Log losses/metrics and update progress bars
                     if global_step % config.train.log_every_n_steps == 0:
@@ -158,15 +166,16 @@ def train(
                         logger.debug(dict(**postfix, STEP=global_step, EPOCH=epoch))
 
                     # Checkpoint
-                    if global_step % config.train.ckpt_every_n_steps == 0:
+                    if epoch % config.train.ckpt_every_n_epochs == 0:
                         save_checkpoint(config, global_step, epoch, model, ema, optimizer, scheduler)
-                    pbar.update(1)
 
                 # Check if training is done
-                if global_step >= config.train.total_steps:
+                if epoch >= config.train.total_epochs:
                     return
 
             # [Rank 0] Run evaluation with EMA, save ground truth and predictions for comparison
+
+            ## update on logging metrics
             if rank == 0 and epoch % config.train.eval_every_n_epochs == 0:
                 val_stats = defaultdict(float)
 
@@ -181,12 +190,36 @@ def train(
                     ):
                         batch = to_device(batch, device)
                         with torch.cuda.amp.autocast(enabled=config.train.fp16):
-                            out_dict = model.supervised_step(batch)
+                            if config.dataset.subgroup_labels:
+                                out_dict = model.supervised_step_subgroup(batch)
+                            else:
+                                out_dict = model.supervised_step(batch)
 
                         # Accumulate losses/metrics
                         for key in out_dict.keys():
-                            if key.startswith("loss") or key.startswith("metric"):
+                            if key.startswith("loss"):
                                 val_stats[key] += out_dict[key].item() * val_dataloader.batch_size
+
+                            if key.startswith("metric"):
+
+                                if "avg" in key:
+                                    val_stats[key] += out_dict[key].item() * val_dataloader.batch_size
+                                elif "count" in key:
+                                    pass
+                                else:
+                                    past_acc = val_stats[key]
+                                    count_key = key + "_count"
+                                    past_count = val_stats[count_key]
+
+                                    if (past_count + out_dict[count_key]) != 0:
+                                        updated_acc = (past_acc * past_count + out_dict[key].item() * out_dict[count_key]) / (
+                                            past_count + out_dict[count_key]
+                                        )
+                                    else:
+                                        updated_acc = 0.0
+                                    val_stats[count_key] += out_dict[count_key]
+                                    val_stats[key] = updated_acc
+
                     ema.swap()
 
                 # Log losses/metrics
@@ -196,15 +229,17 @@ def train(
                             os.path.join(exp, "loss", f"val_{key}"), val_stats[key] / len(val_dataloader.dataset), epoch
                         )
                     elif key.startswith("metric"):
-                        writer.add_scalar(
-                            os.path.join(exp, "metric", f"val_{key}"), val_stats[key] / len(val_dataloader.dataset), epoch
-                        )
+                        if "avg" in key:
+                            writer.add_scalar(f"metric/val_{key}", val_stats[key] / len(val_dataloader.dataset), epoch)
+                        else:
+                            writer.add_scalar(f"metric/val_{key}", val_stats[key], epoch)
 
                 # Add additional post-evaluation logging here (i.e. images, audio, text)
                 pass
 
             # End-of-epoch logistics
             epoch += 1
+            pbar.update(1)
             barrier()
 
     # Save last checkpoint

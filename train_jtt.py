@@ -155,7 +155,7 @@ def train_jtt(
 
     # 4. Train final model f_final on D_up via ERM
     epochs = 10
-    config.train.total_steps = epochs * len(train_dataloader)
+    config.train.total_epochs = epochs
     ema = init_ema(config, model)  # re-init model EMA
     optimizer = init_optimizer(config, model)  # re-init optimizer
     scheduler = init_scheduler(config, optimizer)  # re-init scheduler
