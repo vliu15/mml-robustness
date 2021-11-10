@@ -56,7 +56,10 @@ class ResNet(ClassificationModel):
             task_loss = F.binary_cross_entropy_with_logits(task_logits, y_task)
             loss += task_loss
             with torch.no_grad():
+
                 accuracy = ((task_logits > 0.0) == y_task.bool()).float().mean()
+                ## in the case of jtt only one task and hence:
+                output_dict['yh'] = torch.sigmoid(task_logits)
                 metric_name = f"metric_task_{name}_avg_acc"
                 output_dict[metric_name] = accuracy
 
@@ -102,7 +105,6 @@ class ResNet(ClassificationModel):
 
         output_dict['loss'] = loss
         return output_dict
-
 
 
 class ResNet50(ResNet):

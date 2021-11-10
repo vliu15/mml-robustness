@@ -11,7 +11,7 @@ class ClassificationModel(nn.Module):
         return out_dict
 
     def supervised_step_subgroup(self, batch):
-        x, y, g = batch
+        _, x, y, g = batch
         out_dict = self.forward_subgroup(x, y, g)
         out_dict["y"] = y
         return out_dict

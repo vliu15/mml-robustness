@@ -120,6 +120,5 @@ class CelebA(Dataset):
         else:
             return index, image, label.to(image.dtype)
 
-
     def __len__(self):
         return len(self.attr)

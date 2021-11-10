@@ -234,7 +234,6 @@ def train(
                         else:
                             writer.add_scalar(f"metric/val_{key}", val_stats[key], epoch)
 
-
                 # Add additional post-evaluation logging here (i.e. images, audio, text)
                 pass
 
