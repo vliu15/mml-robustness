@@ -199,7 +199,6 @@ def train(
                                 elif "count" in key:
                                     pass
                                 else:
-                                    print(key)
                                     past_acc = val_stats[key]
                                     count_key = key + "_count"
                                     past_count = val_stats[count_key]

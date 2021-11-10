@@ -12,9 +12,9 @@ dataset:
     num_classes: &num_classes 40
     is_multiclass: &is_multiclass false
 
-    task_labels: ["Male"]
+    task_labels: ["Blond_Hair"]
     subgroup_labels: True
-    subgroup_attributes: {"Male": ["Wearing_Earrings"]} #mapping of task label to it's spurrious attributes
+    subgroup_attributes: {"Blond_Hair": ["Male"]} #mapping of task label to it's spurrious attributes
 
 model:
     name: resnet50
@@ -50,3 +50,8 @@ train:
     log_dir: ./logs/resnet50
     grad_clip_norm: null
     fp16: true
+
+test:
+    load_ckpt: null
+    results_dir: ./logs/
+    size: 19962

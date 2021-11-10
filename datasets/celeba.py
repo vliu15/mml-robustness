@@ -12,7 +12,7 @@ from torch.utils.data import Dataset
 class CelebA(Dataset):
     """Wrapper around CelebA dataset for implementing additional functionality"""
 
-    def __init__(self, config, train: bool = True):
+    def __init__(self, config, split: str = 'train'):
         super().__init__()
         self.root = os.path.join(config.dataset.root, "celeba")
 
@@ -51,7 +51,13 @@ class CelebA(Dataset):
         )
         attr = pandas.read_csv(os.path.join(self.root, "list_attr_celeba.txt"), delim_whitespace=True, header=1)
 
-        mask = (splits[1] == (0 if train else 1))
+        if split == 'train':
+            marker = 0
+        elif split == 'val':
+            marker = 1
+        else:
+            marker = 2
+        mask = (splits[1] == marker)
 
         self.filename = splits[mask].index.values
         self.attr = torch.as_tensor(attr[mask].values)
@@ -102,6 +108,8 @@ class CelebA(Dataset):
             if train:
                 print(self.subgroup_attributes)
                 print(self.subgroup_combinations)
+                print(f'Count of subgroups: {torch.bincount(self.subgroups.squeeze(dim=1))}')
+
 
     def __getitem__(self, index):
         image = Image.open(os.path.join(self.root, "img_align_celeba", self.filename[index]))
