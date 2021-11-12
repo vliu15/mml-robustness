@@ -2,12 +2,13 @@ seed: 420
 
 dataloader:
     batch_size: 128
-    num_workers: 8
+    num_workers: 0
 
 dataset:
     name: celeba
     root: ./data
 
+    data_augmentation: false
     target_resolution: [224, 224]
     num_classes: &num_classes 1
 
@@ -54,8 +55,9 @@ train:
     name: jtt  # one of [erm, jtt]
 
     # jtt hyperparams
-    lambda_up: 20
-    stage_2_total_epochs: 20
+    lambda_up: 50
+    stage_2_total_epochs: 50
+    stage_2_load_ckpt: null
     jtt_error_set: null
     # ###
 
@@ -70,6 +72,5 @@ train:
     fp16: true
 
 test:
-    load_ckpt: null
-    results_dir: ./logs/jtt_subgroup_1/results
-    size: 19962
+    load_ckpt: ./logs/jtt_subgroup_1/stage_2/ckpts/ckpt.1.pt
+    results_dir: ./logs/jtt_subgroup_1/stage_2/results

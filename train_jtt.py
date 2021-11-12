@@ -46,8 +46,8 @@ class UpsampledDataset(torch.utils.data.Dataset):
             return self.dataset.__getitem__(index)
 
         # Otherwise shift to start at 0 and take modulo wrt self.upsample_indices
-        index -= len(self.dataset)
-        return self.dataset.__getitem__(index % len(self.upsample_indices))
+        upsample_index = (index - len(self.dataset)) % len(self.upsample_indices)
+        return self.dataset.__getitem__(upsample_index)
 
     def __len__(self):
         return len(self.dataset) + (self.lambda_up - 1) * len(self.upsample_indices)
@@ -67,7 +67,7 @@ def construct_error_set(
     postfix = {"error rate": "0 / 0"}
 
     total_errors, total_examples = 0, 0
-    with tqdm(total=len(train_dataloader), desc="Constructing error set", postfix={"error rate": "0/0"}) as pbar:
+    with tqdm(total=len(train_dataloader), desc="Constructing error set", postfix=postfix) as pbar:
         for batch in train_dataloader:
             batch = to_device(batch, device)
             output_dict = model.inference_step(batch)
@@ -122,7 +122,7 @@ def train_jtt(
     if hasattr(config.train, "jtt_error_set") and config.train.jtt_error_set:
         with open(os.path.join(config.train.log_dir, "jtt_error_set.pkl"), "rb") as f:
             error_indices = pickle.load(f)
-        logger.info(f"Loaded JTT error set. Error rate: {100 * len(error_indices) / len(train_dataloader.dataset):.4f}")
+        logger.info(f"Loaded JTT error set. Error rate: {100 * len(error_indices) / len(train_dataloader.dataset):.4f}%")
 
     else:
         # 1. Train f_id on D via ERM for T steps
@@ -169,15 +169,28 @@ def train_jtt(
     config.train.log_dir = os.path.join(config.train.log_dir, "stage_2")  # create new logdir
     init_logdir(config)
 
+    writer.close()
     writer = SummaryWriter(config.train.log_dir)
     model = init_model(config).to(device)
     ema = init_ema(config, model)  # re-init model EMA
     optimizer = init_optimizer(config, model)  # re-init optimizer
     scheduler = init_scheduler(config, optimizer)  # re-init scheduler
 
+    if config.train.stage_2_load_ckpt:
+        ckpt = torch.load(config.train.stage_2_load_ckpt, map_location=device)
+        model.load_state_dict(ckpt["model"])
+        optimizer.load_state_dict(ckpt["optim"])
+        scheduler.load_state_dict(ckpt["sched"])
+        ema.load_state_dict(ckpt["ema"])
+        global_step = ckpt["step"] + 1
+        epoch = ckpt["epoch"] + 1
+    else:
+        global_step = 0
+        epoch = 0
+
     train(
-        global_step=0,
-        epoch=0,
+        global_step=global_step,
+        epoch=epoch,
         config=config,
         model=model,
         ema=ema,

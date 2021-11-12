@@ -72,16 +72,16 @@ class ResNet(ClassificationModel):
         ## loop over columns in logits
         output_dict = {}
         task_labels = self.config.dataset.task_labels if len(self.config.dataset.task_labels) != 0 else [i for i in range(40)]
-        for col, name in zip(range(logits.shape[1]), task_labels):
-            task_logits = logits[:, col]
-            y_task = y[:, col]
-            g_task = g[:, col]
-            task_loss = loss[:, col]
-            output_dict[f"loss_{name}"] = task_loss.mean()
 
-            with torch.no_grad():
-                avg_accuracy = ((task_logits > 0.0) == y_task.bool()).float().mean()
-                output_dict[f"metric_{name}_avg_acc"] = avg_accuracy
+        with torch.no_grad():
+            for col, name in zip(range(logits.shape[1]), task_labels):
+                task_logits = logits[:, col]
+                y_task = y[:, col]
+                g_task = g[:, col]
+                task_loss = loss[:, col]
+                output_dict[f"loss_{name}"] = task_loss.mean()
+
+                output_dict[f"metric_{name}_avg_acc"] = ((task_logits > 0.0) == y_task.bool()).float().mean()
 
                 # Only run this in eval since we don't log batch metrics in training
                 # since not all subgroups are guaranteed to be present

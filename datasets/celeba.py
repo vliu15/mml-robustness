@@ -27,28 +27,28 @@ class CelebA(Dataset):
         orig_w = 178
         orig_h = 218
         orig_min_dim = min(orig_w, orig_h)
-        # if split == 'train':
-        #     self.transform = transforms.Compose(
-        #         [
-        #             transforms.RandomResizedCrop(
-        #                 config.dataset.target_resolution,
-        #                 scale=(0.7, 1.0),
-        #                 ratio=(1.0, 1.3333333333333333),
-        #             ),
-        #             transforms.RandomHorizontalFlip(),
-        #             transforms.ToTensor(),
-        #             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-        #         ]
-        #     )
-        # else:
-        self.transform = transforms.Compose(
-            [
-                transforms.CenterCrop(orig_min_dim),
-                transforms.Resize(config.dataset.target_resolution),
-                transforms.ToTensor(),
-                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-            ]
-        )
+        if split == 'train' and config.dataset.data_augmentation:
+            self.transform = transforms.Compose(
+                [
+                    transforms.RandomResizedCrop(
+                        config.dataset.target_resolution,
+                        scale=(0.7, 1.0),
+                        ratio=(1.0, 1.3333333333333333),
+                    ),
+                    transforms.RandomHorizontalFlip(),
+                    transforms.ToTensor(),
+                    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+                ]
+            )
+        else:
+            self.transform = transforms.Compose(
+                [
+                    transforms.CenterCrop(orig_min_dim),
+                    transforms.Resize(config.dataset.target_resolution),
+                    transforms.ToTensor(),
+                    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+                ]
+            )
 
         splits = pandas.read_csv(
             os.path.join(self.root, "list_eval_partition.txt"), delim_whitespace=True, header=None, index_col=0

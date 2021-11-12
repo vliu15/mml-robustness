@@ -39,8 +39,8 @@ def main(config):
         optimizer.load_state_dict(ckpt["optim"])
         scheduler.load_state_dict(ckpt["sched"])
         ema.load_state_dict(ckpt["ema"])
-        global_step = ckpt["step"]
-        epoch = ckpt["epoch"]
+        global_step = ckpt["step"] + 1
+        epoch = ckpt["epoch"] + 1
     else:
         global_step = 0
         epoch = 0

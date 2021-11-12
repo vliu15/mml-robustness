@@ -144,14 +144,14 @@ def train(
                 ema.step()
                 global_step += 1
 
-                # [Rank 0] Update loss averages, progress bars, and checkpoint
+                # [Rank 0] Update loss averages, progress bars
                 if rank == 0:
                     # Update loss average
                     for key in out_dict.keys():
                         if key == "loss":
                             train_stats[key] += out_dict[key].item()
                         elif key.startswith("metric") and "avg" in key:  # only want avg accuracies here
-                            train_stats[key[7:]] += out_dict[key].item()
+                            train_stats[key] += out_dict[key].item()
 
                     # Log losses/metrics and update progress bars
                     if global_step % config.train.log_every_n_steps == 0:
@@ -167,10 +167,6 @@ def train(
                         pbar.set_postfix(postfix)
                         train_stats = defaultdict(float)
                         logger.debug(dict(**postfix, STEP=global_step, EPOCH=epoch))
-
-                    # Checkpoint
-                    if epoch % config.train.ckpt_every_n_epochs == 0:
-                        save_checkpoint(config, global_step, epoch, model, ema, optimizer, scheduler)
 
             # [Rank 0] Run evaluation with EMA, save ground truth and predictions for comparison
             if rank == 0 and epoch % config.train.eval_every_n_epochs == 0:
@@ -225,4 +221,9 @@ def train(
             # End-of-epoch logistics
             epoch += 1
             pbar.update(1)
+
+            # Checkpoint
+            if epoch % config.train.ckpt_every_n_epochs == 0:
+                save_checkpoint(config, global_step, epoch, model, ema, optimizer, scheduler)
+
             barrier()
