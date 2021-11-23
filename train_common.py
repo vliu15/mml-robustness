@@ -1,7 +1,6 @@
 """Contains the entire train function for both train.py and train_ddp.py."""
 
 import logging
-import os
 from collections import defaultdict
 
 import torch
@@ -30,7 +29,6 @@ def train(
     writer: torch.utils.tensorboard.SummaryWriter,
     device: str,
     rank: int = 0,
-    exp: str = "",
 ) -> None:
     """
     Trains the model. A few rules of thumb:
@@ -48,10 +46,7 @@ def train(
         writer: (tensorboard) logger to track spectrograms, audio samples, and losses
         device: string name of device to put this training process on
         rank: index that the device corresponds to with (respect to the world size)
-        exp: any string prefix to organize logs
     """
-    # Strip "/" so we can use this to prefix logs
-    exp = exp.strip("/")
 
     # Handy function for synchronizing processes in multi-gpu training
     def barrier():
@@ -153,11 +148,9 @@ def train(
                             for key in train_stats.keys():
                                 train_stats[key] /= config.train.log_every_n_steps
                                 if key.startswith("loss"):
-                                    writer.add_scalar(os.path.join(exp, "loss", f"train_{key}"), train_stats[key], global_step)
+                                    writer.add_scalar(f"loss/train_{key}", train_stats[key], global_step)
                                 elif key.startswith("metric") and "avg" in key:
-                                    writer.add_scalar(
-                                        os.path.join(exp, "metric", f"train_{key}"), train_stats[key], global_step
-                                    )
+                                    writer.add_scalar(f"metric/train_{key}", train_stats[key], global_step)
                             postfix = dict(**train_stats, lr=optimizer.param_groups[0]["lr"])
                             train_pbar.set_postfix(postfix)
                             train_stats = defaultdict(float)
@@ -196,17 +189,15 @@ def train(
                 # Log losses/metrics
                 for key in val_stats.keys():
                     if key.startswith("loss"):
-                        writer.add_scalar(
-                            os.path.join(exp, "loss", f"val_{key}"), val_stats[key] / len(val_dataloader.dataset), epoch
-                        )
+                        writer.add_scalar(f"loss/val_{key}", val_stats[key] / len(val_dataloader.dataset), epoch)
                     elif key.startswith("metric"):
                         if "avg" in key:
                             avg = val_stats[key] / len(val_dataloader.dataset)
-                            writer.add_scalar(os.path.join(exp, "metric", f"val_{key[7:]}"), avg, epoch)
+                            writer.add_scalar(f"metric/val_{key[7:]}", avg, epoch)
                             val_stats_to_pbar[key[7:]] = avg  # metric_*** -> ***
                         elif "counts" in key:
                             accuracy = val_stats[key][0] / val_stats[key][1]
-                            writer.add_scalar(os.path.join(exp, "metric", f"val_{key[7:-7]}_acc"), accuracy, epoch)
+                            writer.add_scalar(f"metric/val_{key[7:-7]}_acc", accuracy, epoch)
                             val_stats_to_pbar[key[7:-7]] = accuracy  # metric_***_counts -> ***
 
                 # Add additional post-evaluation logging here (i.e. images, audio, text)
