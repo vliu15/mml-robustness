@@ -81,87 +81,86 @@ def train(
 
             # Train epoch
             model.train()
-            for batch in tqdm(
-                    train_dataloader,
+            with tqdm(
                     total=len(train_dataloader),
                     leave=False,
                     desc=f"Epoch {epoch} [train]",
                     disable=(rank != 0),
-            ):
-                batch = to_device(batch, device)
-                optimizer.zero_grad()
+            ) as train_pbar:
+                for batch in train_dataloader:
+                    batch = to_device(batch, device)
+                    optimizer.zero_grad()
 
-                # Mixed precision: O1 forward pass, scale/clip gradients, schedule LR when no gradient overflow
-                if config.train.fp16:
-                    with torch.cuda.amp.autocast():
+                    # Mixed precision: O1 forward pass, scale/clip gradients, schedule LR when no gradient overflow
+                    if config.train.fp16:
+                        with torch.cuda.amp.autocast():
+                            out_dict = model.supervised_step(batch, subgroup=config.dataset.subgroup_labels)
+                            loss = out_dict["loss"]
+                            scaler.scale(loss).backward()
+                            # Optionally apply gradient clipping
+                            if config.train.grad_clip_norm:
+                                scaler.unscale_(optimizer)
+                                nn.utils.clip_grad_norm_(model.parameters(), config.train.grad_clip_norm)
+                            scaler.step(optimizer)
+                            scaler.update()
+                            # Check for gradient overflow, if none then schedule LR
+                            if scaling_factor == scaler.get_scale():
+                                scheduler.step()
+                            else:
+                                logger.debug(
+                                    f"[Rank {rank}] Gradient overflow detected. Loss scale lowered to {scaler.get_scale()}"
+                                )
+                                scaling_factor = scaler.get_scale()
+
+                    # Full precision: O0 forward pass with optional gradient clipping, schedule LR
+                    else:
                         out_dict = model.supervised_step(batch, subgroup=config.dataset.subgroup_labels)
                         loss = out_dict["loss"]
-                        scaler.scale(loss).backward()
+                        if torch.isnan(loss):
+                            logger.info(
+                                dict(
+                                    **{k: out_dict[k] for k in out_dict.keys() if k.startswith("loss")},
+                                    STEP=global_step,
+                                    EPOCH=epoch,
+                                    RANK=rank,
+                                )
+                            )
+                            raise RuntimeError(f"Nan detected in loss at step {global_step}, epoch {epoch}")
+                        loss.backward()
                         # Optionally apply gradient clipping
                         if config.train.grad_clip_norm:
-                            scaler.unscale_(optimizer)
                             nn.utils.clip_grad_norm_(model.parameters(), config.train.grad_clip_norm)
-                        scaler.step(optimizer)
-                        scaler.update()
-                        # Check for gradient overflow, if none then schedule LR
-                        if scaling_factor == scaler.get_scale():
-                            scheduler.step()
-                        else:
-                            logger.debug(
-                                f"[Rank {rank}] Gradient overflow detected. Loss scale lowered to {scaler.get_scale()}"
-                            )
-                            scaling_factor = scaler.get_scale()
+                        optimizer.step()
+                        # Schedule LR
+                        scheduler.step()
 
-                # Full precision: O0 forward pass with optional gradient clipping, schedule LR
-                else:
-                    out_dict = model.supervised_step(batch, subgroup=config.dataset.subgroup_labels)
-                    loss = out_dict["loss"]
-                    if torch.isnan(loss):
-                        logger.info(
-                            dict(
-                                **{k: out_dict[k] for k in out_dict.keys() if k.startswith("loss")},
-                                STEP=global_step,
-                                EPOCH=epoch,
-                                RANK=rank,
-                            )
-                        )
-                        raise RuntimeError(f"Nan detected in loss at step {global_step}, epoch {epoch}")
-                    loss.backward()
-                    # Optionally apply gradient clipping
-                    if config.train.grad_clip_norm:
-                        nn.utils.clip_grad_norm_(model.parameters(), config.train.grad_clip_norm)
-                    optimizer.step()
-                    # Schedule LR
-                    scheduler.step()
+                    # Update per-rank stepwise averages
+                    ema.step()
+                    global_step += 1
+                    train_pbar.update(1)
 
-                # Update per-rank stepwise averages
-                ema.step()
-                global_step += 1
+                    # [Rank 0] Update loss averages, progress bars
+                    if rank == 0:
+                        # Update loss average
+                        for key in out_dict.keys():
+                            if key == "loss":
+                                train_stats[key] += out_dict[key].item()
+                            elif key.startswith("metric") and "avg" in key:  # only want avg accuracies here
+                                train_stats[key[7:]] += out_dict[key].item()  # metric_*** -> ***
 
-                # [Rank 0] Update loss averages, progress bars
-                if rank == 0:
-                    # Update loss average
-                    for key in out_dict.keys():
-                        if key == "loss":
-                            train_stats[key] += out_dict[key].item()
-                        elif key.startswith("metric") and "avg" in key:  # only want avg accuracies here
-                            train_stats[key] += out_dict[key].item()
-
-                    # Log losses/metrics and update progress bars
-                    if global_step % config.train.log_every_n_steps == 0:
-                        for key in train_stats.keys():
-                            train_stats[key] /= config.train.log_every_n_steps
-                            if key.startswith("loss"):
-                                writer.add_scalar(os.path.join(exp, "loss", f"train_{key}"), train_stats[key], global_step)
-                            elif key.startswith("metric") and "avg" in key:
-                                train_stats.pop(key)  # NOTE(vliu15) no training metrics in progress bar to avoid cluttering
-                                writer.add_scalar(
-                                    os.path.join(exp, "metric", f"train_{key[7:]}"), train_stats[key], global_step
-                                )
-                        postfix = dict(**train_stats, **val_stats_to_pbar, lr=optimizer.param_groups[0]["lr"])
-                        pbar.set_postfix(postfix)
-                        train_stats = defaultdict(float)
-                        logger.debug(dict(**postfix, STEP=global_step, EPOCH=epoch))
+                        # Log losses/metrics and update progress bars
+                        if global_step % config.train.log_every_n_steps == 0:
+                            for key in train_stats.keys():
+                                train_stats[key] /= config.train.log_every_n_steps
+                                if key.startswith("loss"):
+                                    writer.add_scalar(os.path.join(exp, "loss", f"train_{key}"), train_stats[key], global_step)
+                                elif key.startswith("metric") and "avg" in key:
+                                    writer.add_scalar(
+                                        os.path.join(exp, "metric", f"train_{key}"), train_stats[key], global_step
+                                    )
+                            postfix = dict(**train_stats, lr=optimizer.param_groups[0]["lr"])
+                            train_pbar.set_postfix(postfix)
+                            train_stats = defaultdict(float)
 
             # [Rank 0] Run evaluation with EMA, save ground truth and predictions for comparison
             if rank == 0 and epoch % config.train.eval_every_n_epochs == 0:
@@ -204,14 +203,14 @@ def train(
                         if "avg" in key:
                             avg = val_stats[key] / len(val_dataloader.dataset)
                             writer.add_scalar(os.path.join(exp, "metric", f"val_{key[7:]}"), avg, epoch)
-                            val_stats_to_pbar[key[7:]] = avg
+                            val_stats_to_pbar[key[7:]] = avg  # metric_*** -> ***
                         elif "counts" in key:
                             accuracy = val_stats[key][0] / val_stats[key][1]
                             writer.add_scalar(os.path.join(exp, "metric", f"val_{key[7:-7]}_acc"), accuracy, epoch)
-                            val_stats_to_pbar[key[7:-7]] = accuracy
+                            val_stats_to_pbar[key[7:-7]] = accuracy  # metric_***_counts -> ***
 
                 # Add additional post-evaluation logging here (i.e. images, audio, text)
-                pass
+                pbar.set_postfix(val_stats_to_pbar)
 
             # End-of-epoch logistics
             epoch += 1
