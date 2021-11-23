@@ -7,9 +7,8 @@ import torch.nn as nn
 from omegaconf import DictConfig
 from tqdm import tqdm
 
-from train_common import to_device
 from utils.init_modules import init_logdir, init_model, init_test_dataloader
-from utils.train_utils import seed_all_rng
+from utils.train_utils import seed_all_rng, to_device
 
 
 @hydra.main(config_path="configs/", config_name="default")

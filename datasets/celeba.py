@@ -104,7 +104,7 @@ class CelebA(Dataset):
 
                 self.subgroups.append(group_label)
 
-            self.subgroups = torch.tensor(self.subgroups)
+            self.subgroups = torch.tensor(self.subgroups, dtype=torch.long)
 
             if split == 'train':
                 logger.info(f"Subgroup attributes  : {self.subgroup_attributes}")
@@ -118,7 +118,7 @@ class CelebA(Dataset):
 
         if self.subgroup_labels:
             subgroup_label = self.subgroups[index]
-            return index, image, label.to(image.dtype), subgroup_label.to(image.dtype)
+            return index, image, label.to(image.dtype), subgroup_label
         else:
             return index, image, label.to(image.dtype), 0  # dummy group (everything is group 0)
 

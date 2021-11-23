@@ -10,15 +10,10 @@ import torch.nn as nn
 from omegaconf import DictConfig
 from tqdm import tqdm
 
-from utils.train_utils import get_top_level_summary, save_checkpoint
+from utils.train_utils import get_top_level_summary, save_checkpoint, to_device
 
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger(__name__)
-
-
-def to_device(batch, device):
-    """Puts a batch onto the specified device"""
-    return [b.to(device) for b in batch if isinstance(b, torch.Tensor)]
 
 
 def train(
@@ -80,10 +75,9 @@ def train(
     with tqdm(initial=epoch, total=config.train.total_epochs, desc="Global epoch", postfix=postfix) as pbar:
 
         while True:
-
             # Check if training is done
             if epoch >= config.train.total_epochs:
-                return
+                break
 
             # Train epoch
             model.train()
@@ -160,6 +154,7 @@ def train(
                             if key.startswith("loss"):
                                 writer.add_scalar(os.path.join(exp, "loss", f"train_{key}"), train_stats[key], global_step)
                             elif key.startswith("metric") and "avg" in key:
+                                train_stats.pop(key)  # NOTE(vliu15) no training metrics in progress bar to avoid cluttering
                                 writer.add_scalar(
                                     os.path.join(exp, "metric", f"train_{key[7:]}"), train_stats[key], global_step
                                 )
@@ -209,11 +204,11 @@ def train(
                         if "avg" in key:
                             avg = val_stats[key] / len(val_dataloader.dataset)
                             writer.add_scalar(os.path.join(exp, "metric", f"val_{key[7:]}"), avg, epoch)
-                            val_stats_to_pbar[f"val_{key[7:]}"] = avg
+                            val_stats_to_pbar[key[7:]] = avg
                         elif "counts" in key:
                             accuracy = val_stats[key][0] / val_stats[key][1]
                             writer.add_scalar(os.path.join(exp, "metric", f"val_{key[7:-7]}_acc"), accuracy, epoch)
-                            val_stats_to_pbar[f"val_{key[7:-7]}_acc"] = accuracy
+                            val_stats_to_pbar[key[7:-7]] = accuracy
 
                 # Add additional post-evaluation logging here (i.e. images, audio, text)
                 pass
@@ -227,3 +222,10 @@ def train(
                 save_checkpoint(config, global_step, epoch, model, ema, optimizer, scheduler)
 
             barrier()
+
+    # Cleanup
+    if rank == 0:
+        writer.close()
+
+    # Save one last checkpoint
+    save_checkpoint(config, global_step, -1, model, ema, optimizer, scheduler)

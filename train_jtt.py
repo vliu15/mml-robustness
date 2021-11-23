@@ -1,56 +1,22 @@
-"""Contains the entire train function for both train.py and train_ddp.py."""
+"""Script for JTT training"""
 
 import logging
 import os
 import pickle
+import subprocess
+from collections import defaultdict
 
+import hydra
 import torch
 import torch.nn as nn
-from omegaconf import DictConfig
-from torch.utils.tensorboard import SummaryWriter
+from omegaconf import OmegaConf
 from tqdm import tqdm
 
-from models.base import ClassificationModel
-from train_common import to_device, train
-from utils.init_modules import init_ema, init_logdir, init_model, init_optimizer, init_scheduler
+from utils.init_modules import init_dataloaders, init_model
+from utils.train_utils import to_device
 
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger(__name__)
-
-
-class UpsampledDataset(torch.utils.data.Dataset):
-    """
-    Wrapper around the original training dataset to upweight specified examples more often than the others
-
-    This works under the hood by mapping all the indices above the range of the initial dataset into
-    indices of the examples that should be upweighted
-
-    Args:
-        dataset: original dataset implementation
-        lambda_up: the upsampling factor for specified examples
-        upsample_indices: indices of examples in the original dataset that should be upsampled
-    """
-
-    def __init__(self, dataset, lambda_up, upsample_indices=[]):
-        super().__init__()
-        assert lambda_up > 1 and isinstance(lambda_up, int), \
-            f"Upsampling amount should be a positive integer, got lambda_up={lambda_up} instead."
-
-        self.dataset = dataset
-        self.lambda_up = lambda_up
-        self.upsample_indices = upsample_indices
-
-    def __getitem__(self, index):
-        # Return original dataset if index is in range
-        if index < len(self.dataset) or self.lambda_up == 1:
-            return self.dataset.__getitem__(index)
-
-        # Otherwise shift to start at 0 and take modulo wrt self.upsample_indices
-        upsample_index = (index - len(self.dataset)) % len(self.upsample_indices)
-        return self.dataset.__getitem__(upsample_index)
-
-    def __len__(self):
-        return len(self.dataset) + (self.lambda_up - 1) * len(self.upsample_indices)
 
 
 @torch.no_grad()
@@ -64,141 +30,93 @@ def construct_error_set(
     model.eval()
 
     global_indices = []
-    postfix = {"error rate": "0 / 0"}
+    g_totals, g_errors = defaultdict(int), defaultdict(int)
 
-    total_errors, total_examples = 0, 0
-    with tqdm(total=len(train_dataloader), desc="Constructing error set", postfix=postfix) as pbar:
+    with tqdm(total=len(train_dataloader), desc="Constructing error set") as pbar:
         for batch in train_dataloader:
             batch = to_device(batch, device)
             output_dict = model.inference_step(batch)
 
-            # NOTE(vliu15): since yh could contain multiple binary predictions per batch example,
-            # let's just take the first one to keep things simple and consistent with JTT
-            yh = (output_dict["yh"][:, task] > 0).float()
-            y = output_dict["y"][:, task]
+            g_labels = batch[-1]
+            g_indices, g_counts = torch.unique(g_labels, return_counts=True)
+            for g_index, g_count in zip(g_indices.cpu().tolist(), g_counts.cpu().tolist()):
+                g_mask = torch.where(g_labels == g_index)[0]
+                yh = (output_dict["yh"][g_mask, task] > 0).float()
+                y = output_dict["y"][g_mask, task]
 
-            errors = (yh != y)
-            global_indices += batch[0][errors].cpu().tolist()
+                errors = batch[0][g_mask][yh != y].cpu().tolist()
+                global_indices += errors
 
-            total_errors += errors.sum()
-            total_examples += y.numel()
+                g_errors[g_index] += len(errors)
+                g_totals[g_index] += g_count
 
-            postfix["error rate"] = f"{total_errors} / {total_examples}"
-            pbar.set_postfix(postfix)
             pbar.update(1)
 
-    print(f"Total error rate: {100 * total_errors / total_examples:.4f}%")
-    return global_indices
+    # Assemble error rates for all and sub groups
+    pickle_meta = {}
+    total_examples, total_errors = 0, 0
+    for g_index in sorted(g_totals.keys()):
+        errors, total = g_errors[g_index], g_totals[g_index]
+        total_errors += errors
+        total_examples += total
+        pickle_meta[g_index] = (errors, total)
+    pickle_meta["*"] = (total_errors, total_examples)
+    return global_indices, pickle_meta
 
 
-def train_jtt(
-    *,
-    global_step: int,
-    epoch: int,
-    config: DictConfig,
-    model: nn.Module,
-    ema: nn.Module,
-    optimizer: torch.optim.Optimizer,
-    scheduler: torch.optim.lr_scheduler._LRScheduler,
-    train_dataloader: torch.utils.data.DataLoader,
-    val_dataloader: torch.utils.data.DataLoader,
-    writer: torch.utils.tensorboard.SummaryWriter,
-    device: str,
-    rank: int = 0,
-) -> None:
-    """
-    Trains the model according to the algorithm proposed in (Liu, Haghgoo, Chen, et al. 2020)
-    Just Train Twice: Improving Group Robustness without Training Group Information
-
-    Args: see train() docstring in train_common.py.
-    """
-    assert isinstance(model, ClassificationModel), \
-        f"JTT training is only supported for classification models. Got {model.__class__.__name__} instead."
+@hydra.main(config_path="configs/", config_name="default")
+def main(config):
+    """Entry point into JTT training"""
+    config = config.exp
 
     ###########
     # Stage 1 #
     ###########
+    stage_1_log_dir = os.path.join(config.log_dir, "stage_1")
 
-    if hasattr(config.train, "jtt_error_set") and config.train.jtt_error_set:
-        with open(os.path.join(config.train.log_dir, "jtt_error_set.pkl"), "rb") as f:
-            error_indices = pickle.load(f)
-        logger.info(f"Loaded JTT error set. Error rate: {100 * len(error_indices) / len(train_dataloader.dataset):.4f}%")
-
-    else:
-        # 1. Train f_id on D via ERM for T steps
-        train(
-            global_step=global_step,
-            epoch=epoch,
-            config=config,
-            model=model,
-            ema=ema,
-            optimizer=optimizer,
-            scheduler=scheduler,
-            train_dataloader=train_dataloader,
-            val_dataloader=val_dataloader,
-            writer=writer,
-            device=device,
-            rank=rank,
+    if not config.load_upweight_pkl:
+        # 1. Train f_id on D via ERM for T epochs
+        subprocess.run(
+            f"python train_erm.py exp={config.stage_1_config} "
+            f"exp.train.log_dir={stage_1_log_dir} "
+            f"exp.train.load_ckpt={config.load_stage_1_ckpt or 'null'}",
+            shell=True,
+            check=True,
         )
 
         # 2. Construct the error set E of training examples misclassified by f_id
-        error_indices = construct_error_set(model, train_dataloader, device, task=0)
-        with open(os.path.join(config.train.log_dir, "jtt_error_set.pkl"), "wb") as f:
-            pickle.dump(error_indices, f)
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        stage_1_config = OmegaConf.load(os.path.join(stage_1_log_dir, "config.yaml"))
+        model = init_model(stage_1_config).to(device)
+        ckpt = torch.load(os.path.join(stage_1_log_dir, "ckpts", "ckpt.last.pt"))
+        model.load_state_dict(ckpt["model"])
+
+        train_dataloader, _ = init_dataloaders(stage_1_config)
+
+        error_indices, pickle_meta = construct_error_set(model, train_dataloader, device, task=config.task)
+        config.load_upweight_pkl = os.path.join(config.log_dir, "jtt_error_set.pkl")
+        with open(config.load_upweight_pkl, "wb") as f:
+            pickle.dump({"error_set": error_indices, "meta": pickle_meta}, f)
 
     ###########
     # Stage 2 #
     ###########
+    stage_2_log_dir = os.path.join(config.log_dir, "stage_2")
 
     # 3. Construct upsampled dataset D_up containing examples in the error set λ_up times and all other examples once
-    train_dataset = UpsampledDataset(
-        dataset=train_dataloader.dataset,
-        lambda_up=config.train.lambda_up,
-        upsample_indices=error_indices,
-    )
-    train_dataloader = torch.utils.data.DataLoader(
-        train_dataset,
-        batch_size=config.dataloader.batch_size,
-        num_workers=config.dataloader.num_workers,
-        shuffle=True,
-        pin_memory=True,
-    )
-
     # 4. Train final model f_final on D_up via ERM
-    config.train.total_epochs = config.train.stage_2_total_epochs
-    config.train.log_dir = os.path.join(config.train.log_dir, "stage_2")  # create new logdir
-    init_logdir(config)
-
-    writer.close()
-    writer = SummaryWriter(config.train.log_dir)
-    model = init_model(config).to(device)
-    ema = init_ema(config, model)  # re-init model EMA
-    optimizer = init_optimizer(config, model)  # re-init optimizer
-    scheduler = init_scheduler(config, optimizer)  # re-init scheduler
-
-    if config.train.stage_2_load_ckpt:
-        ckpt = torch.load(config.train.stage_2_load_ckpt, map_location=device)
-        model.load_state_dict(ckpt["model"])
-        optimizer.load_state_dict(ckpt["optim"])
-        scheduler.load_state_dict(ckpt["sched"])
-        ema.load_state_dict(ckpt["ema"])
-        global_step = ckpt["step"] + 1
-        epoch = ckpt["epoch"] + 1
-    else:
-        global_step = 0
-        epoch = 0
-
-    train(
-        global_step=global_step,
-        epoch=epoch,
-        config=config,
-        model=model,
-        ema=ema,
-        optimizer=optimizer,
-        scheduler=scheduler,
-        train_dataloader=train_dataloader,
-        val_dataloader=val_dataloader,
-        writer=writer,
-        device=device,
-        rank=rank,
+    subprocess.run(
+        f"python train_erm.py "
+        f"exp={config.stage_2_config} "
+        f"exp.train.lambda_up={config.lambda_up} "
+        f"exp.train.load_upweight_pkl={config.load_upweight_pkl} "
+        f"exp.train.log_dir={stage_2_log_dir} "
+        f"exp.train.load_ckpt={config.load_stage_2_ckpt or 'null'}",
+        shell=True,
+        check=True,
     )
+
+
+if __name__ == "__main__":
+    main()

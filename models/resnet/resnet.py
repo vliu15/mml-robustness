@@ -17,6 +17,7 @@ class ResNet(ClassificationModel):
     def __init__(self, config, block, layers):
         super().__init__()
         self.config = config
+
         self.resnet = _ResNet(
             block=block,
             layers=layers,

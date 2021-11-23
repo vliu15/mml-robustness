@@ -31,6 +31,14 @@ def init_datasets(config):
     else:
         raise ValueError(f"Didn't recognize dataset name {config.dataset.name}")
 
+    # Upweight training dataset if provided
+    if hasattr(config.train, "lambda_up") and config.train.lambda_up > 1:
+        from datasets.upweight import UpweightedDataset
+        return (
+            UpweightedDataset(dataset(config, split='train'), config.train.lambda_up, config.train.load_upweight_pkl),
+            dataset(config, split='val'),
+        )
+
     return dataset(config, split='train'), dataset(config, split='val')
 
 

@@ -1,0 +1,57 @@
+seed: 0
+
+dataloader:
+    batch_size: 128
+    num_workers: 20
+
+dataset:
+    name: celeba
+    root: ./data
+
+    data_augmentation: false
+    target_resolution: [224, 224]
+    num_classes: &num_classes 1
+
+    subgroup_labels: true
+
+    ## GROUP 1
+    task_labels: ["Blond_Hair"]
+    subgroup_attributes: {
+        "Blond_Hair": ["Male"]
+    }
+
+model:
+    name: resnet50
+    pretrained: true
+    num_classes: *num_classes
+    num_tasks: 1
+
+    # Defaults for ResNet
+    zero_init_residual: False
+    groups: 1
+    width_per_group: 64
+    replace_stride_with_dilation: null
+    norm_layer: null
+
+optimizer:
+    name: sgd
+    lr: 0.0001
+    weight_decay: 0.0001
+    momentum: 0.9
+
+train:
+    n_gpus: 1
+    total_epochs: 1
+    load_ckpt: null
+    ckpt_every_n_epochs: 1
+    log_every_n_steps: 50
+    eval_every_n_epochs: 1
+    log_dir: ./logs/jtt_subgroup_1
+    grad_clip_norm: null
+    ema: false
+    fp16: true
+
+    # should only be overwritten from train_jtt #
+    lambda_up: 1  # this will control if the specified dataset should be upweighted for training
+    upweight_pkl: null
+    #############################################
