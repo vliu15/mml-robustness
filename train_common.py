@@ -203,14 +203,13 @@ def train(
                 # Add additional post-evaluation logging here (i.e. images, audio, text)
                 pbar.set_postfix(val_stats_to_pbar)
 
-            # End-of-epoch logistics
-            epoch += 1
-            pbar.update(1)
-
             # Checkpoint
             if epoch % config.train.ckpt_every_n_epochs == 0:
                 save_checkpoint(config, global_step, epoch, model, ema, optimizer, scheduler)
 
+            # End-of-epoch logistics
+            epoch += 1
+            pbar.update(1)
             barrier()
 
     # Cleanup
