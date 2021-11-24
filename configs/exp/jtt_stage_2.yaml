@@ -1,19 +1,24 @@
-seed: 420
+seed: 0
 
 dataloader:
     batch_size: 128
-    num_workers: 12
+    num_workers: 20
 
 dataset:
     name: celeba
     root: ./data
 
+    data_augmentation: false
     target_resolution: [224, 224]
     num_classes: &num_classes 1
 
+    subgroup_labels: true
+
+    ## GROUP 1
     task_labels: ["Blond_Hair"]
-    subgroup_labels: False
-    subgroup_attributes: {"Blond_Hair": ["Male"]} #mapping of task label to it's spurrious attributes
+    subgroup_attributes: {
+        "Blond_Hair": ["Male"]
+    }
 
 model:
     name: resnet50
@@ -21,40 +26,32 @@ model:
     num_classes: *num_classes
     num_tasks: 1
 
-
     # Defaults for ResNet
     zero_init_residual: False
     groups: 1
     width_per_group: 64
     replace_stride_with_dilation: null
     norm_layer: null
-    pretrained: true 
 
 optimizer:
     name: sgd
-    lr: 0.0001
-    weight_decay: 0.0001
+    lr: 0.00001
+    weight_decay: 0.1
     momentum: 0.9
 
-scheduler:
-    name: linear
-    warmup_steps: 1000
-
 train:
-    name: jtt
-    lambda_up: 50
-
-    n_gpus: -1
-    total_epochs: 15
+    n_gpus: 1
+    total_epochs: 50
     load_ckpt: null
     ckpt_every_n_epochs: 1
-    log_every_n_steps: 5
+    log_every_n_steps: 50
     eval_every_n_epochs: 1
-    log_dir: ./logs/erm_baseline_jtt
     grad_clip_norm: null
+    ema: false
     fp16: true
 
-test:
-    load_ckpt: null
-    results_dir: ./logs/erm_baseline_jtt/results
-    size: 19962
+    # should only be overwritten from train_jtt #
+    lambda_up: ???  # this will control if the specified dataset should be upweighted for training
+    load_upweight_pkl: ???
+    log_dir: ???
+    #############################################

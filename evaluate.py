@@ -8,7 +8,7 @@ from omegaconf import DictConfig
 from tqdm import tqdm
 
 from utils.init_modules import init_logdir, init_model, init_test_dataloader
-from utils.train_utils import seed_all_rng
+from utils.train_utils import seed_all_rng, to_device
 
 
 @hydra.main(config_path="configs/", config_name="default")
@@ -47,11 +47,8 @@ def evaluate(config: DictConfig, model: nn.Module, test_dataloader: torch.utils.
     for batch in tqdm(test_dataloader, total=len(test_dataloader.dataset)):
         with torch.no_grad():
 
-            batch = [b.to(device) if b is not None else None for b in batch]
-            if config.dataset.subgroup_labels:
-                out_dict = model.supervised_step_subgroup(batch)
-            else:
-                out_dict = model.supervised_step(batch)
+            batch = to_device(batch, device)
+            out_dict = model.supervised_step(batch, subgroup=config.dataset.subgroup_labels)
 
             for key in out_dict.keys():
 

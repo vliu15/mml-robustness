@@ -2,7 +2,7 @@ import logging
 
 import torch.nn as nn
 
-logging.basicConfig(level=logging.INFO)
+logging.config.fileConfig("logger.conf")
 logger = logging.getLogger(__name__)
 
 

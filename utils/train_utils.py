@@ -10,6 +10,11 @@ from omegaconf import DictConfig
 from tabulate import tabulate
 
 
+def to_device(batch, device):
+    """Puts a batch onto the specified device"""
+    return [b.to(device) for b in batch if isinstance(b, torch.Tensor)]
+
+
 def seed_all_rng(seed: int, cuda: bool = True) -> None:
     random.seed(seed)
     np.random.seed(seed)
@@ -74,8 +79,8 @@ def save_checkpoint(
     optimizer: torch.optim.Optimizer,
     scheduler: torch.optim.lr_scheduler._LRScheduler,
 ) -> None:
-    ckpt_path = os.path.join(config.train.log_dir, "ckpts", f"ckpt.{epoch}.pt")
-    ema.swap()
+    """Pass in epoch=-1 to save the last checkpoint"""
+    ckpt_path = os.path.join(config.train.log_dir, "ckpts", f"ckpt.{'last' if epoch == -1 else epoch}.pt")
     torch.save(
         {
             "config": config,
@@ -84,9 +89,8 @@ def save_checkpoint(
             "sched": scheduler.state_dict(),
             "ema": ema.state_dict(),
             "step": global_step,
-            "epoch": epoch,
+            "epoch": config.train.total_epochs if epoch == -1 else epoch,
         },
         ckpt_path,
     )
-    ema.swap()
     return ckpt_path
