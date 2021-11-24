@@ -43,9 +43,9 @@ class UpweightedDataset(Dataset):
             return self.dataset.__getitem__(index)
 
         # Otherwise shift to start at 0 and take modulo wrt self.upweight_indices
-        index = (index - len(self.dataset)) % len(self.upweight_indices)
-        upsample_index = self.upweight_indices[index]
-        return self.dataset.__getitem__(upsample_index)
+        up_index = (index - len(self.dataset)) % len(self.upweight_indices)
+        up_index = self.upweight_indices[up_index]
+        return self.dataset.__getitem__(up_index)
 
     def __len__(self):
         return len(self.dataset) + (self.lambda_up - 1) * len(self.upweight_indices)
