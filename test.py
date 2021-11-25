@@ -32,15 +32,44 @@ def parse_args():
         type=int,
         help="Checkpoint number to load, corresponds to: `ckpt.{{ckpt_num}}.pt`",
     )
-    return parser.parse_args()
+    parser.add_argument(
+        "--subgroup_labels",
+        required=False,
+        default=False,
+        action='store_true',
+        help="Whether to evaluate subgroup accuracies",
+    )
 
+    parser.add_argument(
+        "--no_subgroup_labels",
+        required=False,
+        action='store_false',
+        dest='subgroup_labels',
+        help="Whether to not evaluate subgroup accuracies",
+    )
+
+    ### must be in the following form: '{"task_label_1": ["Spurrious_1", "Spurrious_2"], ...}'
+    parser.add_argument(
+        "--subgroup_attributes",
+        required=False,
+        type=str,
+        help="Defines the subgroups to deliniate per task",
+    )
+
+    return parser.parse_args()
 
 def main():
     """Entry point into testing script"""
     args = parse_args()
     config = OmegaConf.load(os.path.join(args.log_dir, "config.yaml"))
 
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device("cuda:1") if torch.cuda.is_available() else torch.device("cpu")
+
+    ### config set subggroup attributes , config set subgroup labes , test that args.subgroup_attirbutees iis as expect, that configg 
+    ### changes as expected, then good
+    config.dataset.subgroup_labels = args.subgroup_labels
+    config.dataset.subgroup_attributes = json.loads(args.subgroup_attributes)
+  
 
     # Init modules
     model = init_model(config).to(device)
@@ -56,17 +85,18 @@ def main():
         model=model,
         test_dataloader=test_dataloader,
         device=device,
+        args = args
     )
 
 
 @torch.no_grad()
-def evaluate(config: DictConfig, model: nn.Module, test_dataloader: torch.utils.data.DataLoader, device: str):
+def evaluate(config: DictConfig, model: nn.Module, test_dataloader: torch.utils.data.DataLoader, device: str, args):
 
     test_stats = defaultdict(float)
     for batch in tqdm(test_dataloader, total=len(test_dataloader), desc="Running eval on test set"):
         # Forward pass
         batch = to_device(batch, device)
-        out_dict = model.supervised_step(batch, subgroup=config.dataset.subgroup_labels)
+        out_dict = model.supervised_step(batch, subgroup=args.subgroup_labels)
 
         # Accumulate metrics
         for key in out_dict.keys():
@@ -89,9 +119,17 @@ def evaluate(config: DictConfig, model: nn.Module, test_dataloader: torch.utils.
                 print(f"  {key[7:-7]}: {100 * test_stats[key[7:-7]]:.4f}%")
 
     # Write results to json
-    results_dir = os.path.join(config.train.log_dir, "results")
+
+    identifiers = []
+    for key in config.dataset.subgroup_attributes.keys():
+        identifiers.append(key)
+        for attr in config.dataset.subgroup_attributes[key]:
+            identifiers.append(attr)
+    correlates = "_".join(identifiers) 
+
+    results_dir = os.path.join(args.log_dir, "results")
     os.makedirs(results_dir, exist_ok=True)
-    results_file = os.path.join(results_dir, "test_results.json")
+    results_file = os.path.join(results_dir, f"{correlates}_test_results.json")
     with open(results_file, 'w') as fp:
         json.dump(test_stats, fp)
 
