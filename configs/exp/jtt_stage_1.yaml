@@ -51,7 +51,8 @@ train:
     fp16: true
 
     # should only be overwritten from train_jtt #
+    up_type: null  # one of [upsample, upweight, null]
     lambda_up: 1  # this will control if the specified dataset should be upweighted for training
-    load_upweight_pkl: null
+    load_up_pkl: null
     log_dir: ???
     #############################################

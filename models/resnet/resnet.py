@@ -42,10 +42,13 @@ class ResNet(ClassificationModel):
         return self.resnet(x)
 
     ### can only support binary in this setting due to no seperate linear layer per task
-    def forward(self, x, y):
+    def forward(self, x, y, w):
         # Forward pass
         logits = self.resnet(x)
         loss = F.binary_cross_entropy_with_logits(logits, y, reduction="none")
+
+        # Apply loss weighting
+        loss = loss * w.reshape(-1, 1)
 
         ## loop over columns in logits
         output_dict = {}
@@ -66,9 +69,12 @@ class ResNet(ClassificationModel):
         return output_dict
 
     ### can only support binary in this setting due to no seperate linear layer per task
-    def forward_subgroup(self, x, y, g):
+    def forward_subgroup(self, x, y, g, w):
         logits = self.resnet(x)
         loss = F.binary_cross_entropy_with_logits(logits, y, reduction="none")
+
+        # Apply loss weighting
+        loss = loss * w.reshape(-1, 1)
 
         ## loop over columns in logits
         output_dict = {}

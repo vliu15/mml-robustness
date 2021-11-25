@@ -31,13 +31,22 @@ def init_datasets(config):
     else:
         raise ValueError(f"Didn't recognize dataset name {config.dataset.name}")
 
-    # Upweight training dataset if provided
-    if hasattr(config.train, "lambda_up") and config.train.lambda_up > 1:
-        from datasets.upweight import UpweightedDataset
-        return (
-            UpweightedDataset(dataset(config, split='train'), config.train.lambda_up, config.train.load_upweight_pkl),
-            dataset(config, split='val'),
-        )
+    # Upweight/upweight training dataset if provided
+    if config.train.get("up_type", None):
+        if config.train.up_type == "upsample":
+            from datasets.upsample import UpsampledDataset
+            return (
+                UpsampledDataset(dataset(config, split='train'), config.train.lambda_up, config.train.load_up_pkl),
+                dataset(config, split='val'),
+            )
+        elif config.train.up_type == "upweight":
+            from datasets.upweight import UpweightedDataset
+            return (
+                UpweightedDataset(dataset(config, split='train'), config.train.lambda_up, config.train.load_up_pkl),
+                dataset(config, split='val'),
+            )
+        else:
+            raise ValueError(f"Didn't recognize up_type {config.train.up_type}")
 
     return dataset(config, split='train'), dataset(config, split='val')
 
@@ -82,7 +91,7 @@ def init_test_dataloader(config):
         test_dataset,
         batch_size=config.dataloader.batch_size,
         num_workers=config.dataloader.num_workers,
-        shuffle=True,
+        shuffle=False,
         pin_memory=True,
     )
 
