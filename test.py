@@ -58,6 +58,7 @@ def parse_args():
 
     return parser.parse_args()
 
+
 def main():
     """Entry point into testing script"""
     args = parse_args()
@@ -65,11 +66,10 @@ def main():
 
     device = torch.device("cuda:1") if torch.cuda.is_available() else torch.device("cpu")
 
-    ### config set subggroup attributes , config set subgroup labes , test that args.subgroup_attirbutees iis as expect, that configg 
+    ### config set subggroup attributes , config set subgroup labes , test that args.subgroup_attirbutees iis as expect, that configg
     ### changes as expected, then good
     config.dataset.subgroup_labels = args.subgroup_labels
     config.dataset.subgroup_attributes = json.loads(args.subgroup_attributes)
-  
 
     # Init modules
     model = init_model(config).to(device)
@@ -80,13 +80,7 @@ def main():
     model.load_state_dict(ckpt["model"])
     model.eval()
 
-    evaluate(
-        config=config,
-        model=model,
-        test_dataloader=test_dataloader,
-        device=device,
-        args = args
-    )
+    evaluate(config=config, model=model, test_dataloader=test_dataloader, device=device, args=args)
 
 
 @torch.no_grad()
@@ -125,7 +119,7 @@ def evaluate(config: DictConfig, model: nn.Module, test_dataloader: torch.utils.
         identifiers.append(key)
         for attr in config.dataset.subgroup_attributes[key]:
             identifiers.append(attr)
-    correlates = "_".join(identifiers) 
+    correlates = "_".join(identifiers)
 
     results_dir = os.path.join(args.log_dir, "results")
     os.makedirs(results_dir, exist_ok=True)
