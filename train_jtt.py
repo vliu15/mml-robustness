@@ -74,7 +74,7 @@ def main(config):
     ###########
     stage_1_log_dir = os.path.join(config.log_dir, "stage_1")
 
-    if not config.load_upweight_pkl:
+    if not config.load_up_pkl:
         # 1. Train f_id on D via ERM for T epochs
         subprocess.run(
             f"python train_erm.py exp={config.stage_1_config} "
@@ -95,8 +95,8 @@ def main(config):
         train_dataloader, _ = init_dataloaders(stage_1_config)
 
         error_indices, pickle_meta = construct_error_set(model, train_dataloader, device, task=config.task)
-        config.load_upweight_pkl = os.path.join(config.log_dir, "jtt_error_set.pkl")
-        with open(config.load_upweight_pkl, "wb") as f:
+        config.load_up_pkl = os.path.join(config.log_dir, "jtt_error_set.pkl")
+        with open(config.load_up_pkl, "wb") as f:
             pickle.dump({"error_set": error_indices, "meta": pickle_meta}, f)
 
     ###########
@@ -109,8 +109,9 @@ def main(config):
     subprocess.run(
         f"python train_erm.py "
         f"exp={config.stage_2_config} "
+        f"exp.train.up_type={config.up_type} "
         f"exp.train.lambda_up={config.lambda_up} "
-        f"exp.train.load_upweight_pkl={config.load_upweight_pkl} "
+        f"exp.train.load_up_pkl={config.load_up_pkl} "
         f"exp.train.log_dir={stage_2_log_dir} "
         f"exp.train.load_ckpt={config.load_stage_2_ckpt or 'null'}",
         shell=True,

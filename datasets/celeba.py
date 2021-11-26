@@ -116,11 +116,12 @@ class CelebA(Dataset):
         image = self.transform(image)
         label = self.attr[index, self.task_label_indices]
 
+        # Return type: [image index, image, image label, image subgroup, image weight]
         if self.subgroup_labels:
             subgroup_label = self.subgroups[index]
-            return index, image, label.to(image.dtype), subgroup_label
+            return index, image, label.to(image.dtype), subgroup_label, 1.0
         else:
-            return index, image, label.to(image.dtype), 0  # dummy group (everything is group 0)
+            return index, image, label.to(image.dtype), 0, 1.0  # dummy group (everything is group 0)
 
     def __len__(self):
         return len(self.attr)

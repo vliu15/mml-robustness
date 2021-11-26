@@ -41,17 +41,18 @@ optimizer:
 
 train:
     n_gpus: 1
-    total_epochs: 15
+    total_epochs: 50
     load_ckpt: null
     ckpt_every_n_epochs: 1
     log_every_n_steps: 50
     eval_every_n_epochs: 1
-    log_dir: ./logs/erm_smiling
+    log_dir: ./logs/erm
     grad_clip_norm: null
     ema: false
     fp16: true
 
-    # should only be overwritten from train_jtt #
-    lambda_up: 1  # this will control if the specified dataset should be upweighted for training
-    upweight_pkl: null
+    # fields used by jtt, do not change for erm #
+    up_type: null  # one of [upsample, upweight, null]
+    lambda_up: 1
+    load_up_pkl: null
     #############################################
