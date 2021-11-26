@@ -29,7 +29,7 @@ def parse_args():
     parser.add_argument(
         "--ckpt_num",
         required=True,
-        type=int,
+        type=str,
         help="Checkpoint number to load, corresponds to: `ckpt.{{ckpt_num}}.pt`",
     )
     parser.add_argument(

@@ -12,12 +12,12 @@ dataset:
     target_resolution: [224, 224]
     num_classes: &num_classes 1
 
-    subgroup_labels: true
+    subgroup_labels: false
 
     ## GROUP 1
-    task_labels: ["Blond_Hair"]
+    task_labels: ["Smiling"]
     subgroup_attributes: {
-        "Blond_Hair": ["Male"]
+        "Smiling": ["Male"]
     }
 
 model:
@@ -41,12 +41,12 @@ optimizer:
 
 train:
     n_gpus: 1
-    total_epochs: 1
+    total_epochs: 15
     load_ckpt: null
     ckpt_every_n_epochs: 1
     log_every_n_steps: 50
     eval_every_n_epochs: 1
-    log_dir: ./logs/jtt_subgroup_1
+    log_dir: ./logs/erm_smiling
     grad_clip_norm: null
     ema: false
     fp16: true
