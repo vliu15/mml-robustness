@@ -1,6 +1,11 @@
 """File containing init handles for various modules"""
 # All lazy imports to avoid importing unnecessary modules
 
+import logging
+
+logging.config.fileConfig("logger.conf")
+logger = logging.getLogger(__name__)
+
 
 def init_model(config):
     if config.model.name == "resnet50":
@@ -182,3 +187,5 @@ def init_logdir(config):
     os.makedirs(os.path.join(config.train.log_dir, "ckpts"), exist_ok=True)
     with open(os.path.join(config.train.log_dir, "config.yaml"), "w") as f:
         OmegaConf.save(config=config, f=f.name)
+
+    logger.info(f"Set up logdir at {config.train.log_dir}")

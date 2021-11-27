@@ -9,6 +9,8 @@ import torchvision.transforms as transforms
 from PIL import Image
 from torch.utils.data import Dataset
 
+from datasets.groupings import get_grouping
+
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger(__name__)
 
@@ -20,9 +22,12 @@ class CelebA(Dataset):
         super().__init__()
         self.root = os.path.join(config.dataset.root, "celeba")
 
-        self.task_labels = config.dataset.task_labels
         self.subgroup_labels = config.dataset.subgroup_labels
-        self.subgroup_attributes = config.dataset.subgroup_attributes
+
+        self.grouping = get_grouping(config.dataset.groupings)
+        self.task_labels = self.grouping.task_labels
+        self.subgroup_attributes = self.grouping.subgroup_attributes
+
         # Transforms taken from https://github.com/kohpangwei/group_DRO/blob/master/data/celebA_dataset.py
         orig_w = 178
         orig_h = 218

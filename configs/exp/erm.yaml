@@ -13,12 +13,7 @@ dataset:
     num_classes: &num_classes 1
 
     subgroup_labels: true
-
-    ## GROUP 1
-    task_labels: ["Blond_Hair"]
-    subgroup_attributes: {
-        "Blond_Hair": ["Male"]
-    }
+    groupings: [0]
 
 model:
     name: resnet50
@@ -44,7 +39,7 @@ train:
     total_epochs: 50
     load_ckpt: null
     ckpt_every_n_epochs: 1
-    log_every_n_steps: 50
+    log_every_n_steps: 25
     eval_every_n_epochs: 1
     log_dir: ./logs/erm
     grad_clip_norm: null

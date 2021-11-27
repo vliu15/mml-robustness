@@ -3,13 +3,12 @@ stage_1_config: jtt_stage_1
 stage_2_config: jtt_stage_2
 
 # Base log dir for both phases of ERM training
-log_dir: &log_dir ./logs/jtt-loss-weighting
-
-task: 0
+log_dir: &log_dir ./logs/jtt
+groupings: [0]
 
 up_type: upweight  # one of [upsample, upweight]
 lambda_up: 50
-load_up_pkl: ./logs/jtt/jtt_error_set.pkl  # specify this to load it
+load_up_pkl: null  # specify this to load it
 
 load_stage_1_ckpt: null
 load_stage_2_ckpt: null

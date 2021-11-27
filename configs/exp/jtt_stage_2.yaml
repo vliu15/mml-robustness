@@ -13,12 +13,7 @@ dataset:
     num_classes: &num_classes 1
 
     subgroup_labels: true
-
-    ## GROUP 1
-    task_labels: ["Blond_Hair"]
-    subgroup_attributes: {
-        "Blond_Hair": ["Male"]
-    }
+    groupings: [0]
 
 model:
     name: resnet50
@@ -41,7 +36,7 @@ optimizer:
 
 train:
     n_gpus: 1
-    total_epochs: 50
+    total_epochs: 25
     load_ckpt: null
     ckpt_every_n_epochs: 1
     log_every_n_steps: 50
