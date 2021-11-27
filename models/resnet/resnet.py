@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+from datasets.groupings import get_grouping
 from models.base import ClassificationModel
 from models.resnet.modules import Bottleneck, ResNet as _ResNet
 
@@ -17,6 +18,9 @@ class ResNet(ClassificationModel):
     def __init__(self, config, block, layers):
         super().__init__()
         self.config = config
+
+        # TODO: this might be hacky since the grouping is also instantiated in celeba.py
+        self.grouping = get_grouping(config.dataset.groupings)
 
         self.resnet = _ResNet(
             block=block,
@@ -62,8 +66,7 @@ class ResNet(ClassificationModel):
 
         ## loop over columns in logits
         output_dict = {}
-        task_labels = self.config.dataset.task_labels if len(self.config.dataset.task_labels) != 0 else [i for i in range(40)]
-        for col, name in zip(range(logits.shape[1]), task_labels):
+        for col, name in zip(range(logits.shape[1]), self.grouping.task_labels):
             task_logits = logits[:, col]
             y_task = y[:, col]
             task_loss = loss[:, col].mean()
@@ -115,10 +118,9 @@ class ResNet(ClassificationModel):
 
         ## loop over columns in logits
         output_dict = {}
-        task_labels = self.config.dataset.task_labels if len(self.config.dataset.task_labels) != 0 else [i for i in range(40)]
 
         with torch.no_grad():
-            for col, name in zip(range(logits.shape[1]), task_labels):
+            for col, name in zip(range(logits.shape[1]), self.grouping.task_labels):
                 task_logits = logits[:, col]
                 y_task = y[:, col]
                 g_task = g[:, col]
