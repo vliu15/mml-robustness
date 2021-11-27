@@ -115,7 +115,7 @@ class CelebA(Dataset):
 
                 bin_counts = []
                 for channel in range(self.subgroups.shape[1]):
-                    bin_counts.append(torch.bincount(self.subgroups[:,channel]))
+                    bin_counts.append(torch.bincount(self.subgroups[:, channel]))
                 counts = torch.vstack(bin_counts)
                 logger.info(f'Subgroup counts: {counts.detach().cpu().numpy()}')
 
