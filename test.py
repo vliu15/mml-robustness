@@ -90,7 +90,7 @@ def evaluate(config: DictConfig, model: nn.Module, test_dataloader: torch.utils.
     for batch in tqdm(test_dataloader, total=len(test_dataloader), desc="Running eval on test set"):
         # Forward pass
         batch = to_device(batch, device)
-        out_dict = model.supervised_step(batch, subgroup=args.subgroup_labels)
+        out_dict = model.supervised_step(batch, subgroup=args.subgroup_labels, first_batch_loss = None)
 
         # Accumulate metrics
         for key in out_dict.keys():

@@ -42,7 +42,7 @@ class ResNet(ClassificationModel):
         return self.resnet(x)
 
     ### can only support binary in this setting due to no seperate linear layer per task
-    def forward(self, x, y, w):
+    def forward(self, x, y, w, first_batch_loss = None):
         # Forward pass
         logits = self.resnet(x)
         loss = F.binary_cross_entropy_with_logits(logits, y, reduction="none")
@@ -69,15 +69,34 @@ class ResNet(ClassificationModel):
                 ## in the case of jtt only one task and hence:
                 output_dict[f"metric_{name}_avg_acc"] = accuracy
 
-        ## sum loss on channel then take mean
-        loss = loss.sum(dim=1)
+        ### loss based task weighting
+        if config.dataset.loss_based_task_weighting:
 
-        output_dict["loss"] = loss.mean()
+            loss_batch_mean = loss.mean(dim=0)
+            device = torch.device("cuda") if cuda else torch.device("cpu")
+
+            if first_batch_loss is None:
+                output_dict['first_batch_loss'] = loss_batch_mean
+                output_dict["loss"] = torch.sum(loss_batch_mean * torch.pow(torch.ones(logits.shape[1], device = device), config.dataset.lbtw_alpha))
+            else:
+                
+                new_task_weights = []
+                for col in range(logits.shape[1]):
+                    new_task_weights.append(loss_batch_mean[col] /first_batch_loss[col]) 
+
+                new_task_weights = torch.FloatTensor(new_task_weights, device = device)
+                output_dict["loss"] = torch.sum(loss_batch_mean * torch.pow(new_task_weights, config.dataset.lbtw_alpha))
+
+        else:
+            ## sum loss on channel then take mean
+            loss = loss.sum(dim=1)
+            output_dict["loss"] = loss.mean()  # NOTE(vliu15) all tasks are weighted equally here
+
         output_dict["yh"] = logits.detach()
         return output_dict
 
     ### can only support binary in this setting due to no seperate linear layer per task
-    def forward_subgroup(self, x, y, g, w):
+    def forward_subgroup(self, x, y, g, w, first_batch_loss = None):
         logits = self.resnet(x)
         loss = F.binary_cross_entropy_with_logits(logits, y, reduction="none")
 
@@ -87,7 +106,6 @@ class ResNet(ClassificationModel):
         ## apply multi task weighting to loss
         for col in range(logits.shape[1]):
             loss[:,col] = loss[:,col] * config.dataset.task_weights[col]
-
 
         ## loop over columns in logits
         output_dict = {}
@@ -120,10 +138,31 @@ class ResNet(ClassificationModel):
                                 [num_correct, logits_subgroup.shape[0]], dtype=np.float32
                             )
 
-        ## sum loss on channel then take mean
-        loss = loss.sum(dim=1)
+        
+        ### loss based task weighting
+        if config.dataset.loss_based_task_weighting:
 
-        output_dict["loss"] = loss.mean()  # NOTE(vliu15) all tasks are weighted equally here
+            loss_batch_mean = loss.mean(dim=0)
+            device = torch.device("cuda") if cuda else torch.device("cpu")
+
+            if first_batch_loss is None:
+                output_dict['first_batch_loss'] = loss_batch_mean
+                output_dict["loss"] = torch.sum(loss_batch_mean * torch.pow(torch.ones(logits.shape[1], device = device), config.dataset.lbtw_alpha))
+            else:
+                
+                new_task_weights = []
+                for col in range(logits.shape[1]):
+                    new_task_weights.append(loss_batch_mean[col] /first_batch_loss[col]) 
+
+                new_task_weights = torch.FloatTensor(new_task_weights, device = device)
+                output_dict["loss"] = torch.sum(loss_batch_mean * torch.pow(new_task_weights, config.dataset.lbtw_alpha))
+
+        else:
+            ## sum loss on channel then take mean
+            loss = loss.sum(dim=1)
+            output_dict["loss"] = loss.mean()  # NOTE(vliu15) all tasks are weighted equally here
+
+
         output_dict["yh"] = logits.detach()
         return output_dict
 

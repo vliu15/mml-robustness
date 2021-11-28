@@ -4,12 +4,12 @@ import torch.nn as nn
 class ClassificationModel(nn.Module):
     """Abstract model that handles forward i/o for classification models"""
 
-    def supervised_step(self, batch, subgroup=False):
+    def supervised_step(self, batch, subgroup=False, first_batch_loss = None):
         _, x, y, g, w = batch
         if not subgroup:
-            out_dict = self.forward(x, y, w)
+            out_dict = self.forward(x, y, w, first_batch_loss)
         else:
-            out_dict = self.forward_subgroup(x, y, g, w)
+            out_dict = self.forward_subgroup(x, y, g, w, first_batch_loss)
         out_dict["y"] = y
         return out_dict
 

@@ -74,6 +74,7 @@ def train(
             if epoch >= config.train.total_epochs:
                 break
 
+            first_batch_loss = None
             # Train epoch
             model.train()
             with tqdm(
@@ -89,8 +90,11 @@ def train(
                     # Mixed precision: O1 forward pass, scale/clip gradients, schedule LR when no gradient overflow
                     if config.train.fp16:
                         with torch.cuda.amp.autocast():
-                            out_dict = model.supervised_step(batch, subgroup=config.dataset.subgroup_labels)
+                            out_dict = model.supervised_step(batch, subgroup=config.dataset.subgroup_labels, first_batch_loss = first_batch_loss)
                             loss = out_dict["loss"]
+
+                            if first_batch_loss = None:
+                                first_batch_loss = out_dict['first_batch_loss']
                             scaler.scale(loss).backward()
                             # Optionally apply gradient clipping
                             if config.train.grad_clip_norm:
@@ -109,8 +113,10 @@ def train(
 
                     # Full precision: O0 forward pass with optional gradient clipping, schedule LR
                     else:
-                        out_dict = model.supervised_step(batch, subgroup=config.dataset.subgroup_labels)
+                        out_dict = model.supervised_step(batch, subgroup=config.dataset.subgroup_labels, first_batch_loss = first_batch_loss)
                         loss = out_dict["loss"]
+                        if first_batch_loss = None:
+                                first_batch_loss = out_dict['first_batch_loss']
                         if torch.isnan(loss):
                             logger.info(
                                 dict(
@@ -172,7 +178,7 @@ def train(
                     ):
                         batch = to_device(batch, device)
                         with torch.cuda.amp.autocast(enabled=config.train.fp16):
-                            out_dict = model.supervised_step(batch, subgroup=config.dataset.subgroup_labels)
+                            out_dict = model.supervised_step(batch, subgroup=config.dataset.subgroup_labels, first_batch_loss = None)
 
                         # Accumulate losses/metrics
                         for key in out_dict.keys():
