@@ -20,6 +20,9 @@ dataset:
         "Blond_Hair": ["Male"]
     }
 
+    ### these correspondd directly to tasks specified in task labels, ensure they are either all 1 (no weighting) or sum up to 1 (weighting)
+    task_weights: [1]
+
 model:
     name: resnet50
     pretrained: true

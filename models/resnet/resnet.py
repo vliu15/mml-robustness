@@ -50,6 +50,11 @@ class ResNet(ClassificationModel):
         # Apply loss weighting
         loss = loss * w.reshape(-1, 1)
 
+        ## apply multi task weighting to loss
+        for col in range(logits.shape[1]):
+            loss[:,col] = loss[:,col] * config.dataset.task_weights[col]
+
+
         ## loop over columns in logits
         output_dict = {}
         task_labels = self.config.dataset.task_labels if len(self.config.dataset.task_labels) != 0 else [i for i in range(40)]
@@ -64,6 +69,9 @@ class ResNet(ClassificationModel):
                 ## in the case of jtt only one task and hence:
                 output_dict[f"metric_{name}_avg_acc"] = accuracy
 
+        ## sum loss on channel then take mean
+        loss = loss.sum(dim=1)
+
         output_dict["loss"] = loss.mean()
         output_dict["yh"] = logits.detach()
         return output_dict
@@ -75,6 +83,11 @@ class ResNet(ClassificationModel):
 
         # Apply loss weighting
         loss = loss * w.reshape(-1, 1)
+
+        ## apply multi task weighting to loss
+        for col in range(logits.shape[1]):
+            loss[:,col] = loss[:,col] * config.dataset.task_weights[col]
+
 
         ## loop over columns in logits
         output_dict = {}
@@ -106,6 +119,9 @@ class ResNet(ClassificationModel):
                             output_dict[subgroup_counts_key] = np.array(
                                 [num_correct, logits_subgroup.shape[0]], dtype=np.float32
                             )
+
+        ## sum loss on channel then take mean
+        loss = loss.sum(dim=1)
 
         output_dict["loss"] = loss.mean()  # NOTE(vliu15) all tasks are weighted equally here
         output_dict["yh"] = logits.detach()
