@@ -51,6 +51,10 @@ class ResNet(ClassificationModel):
         loss = loss * w.reshape(-1, 1)
 
         ## apply multi task weighting to loss
+        device = torch.device("cuda") if cuda else torch.device("cpu")
+        task_weights = torch.FloatTensor(config.dataset.task_weights, device = device)
+        loss = loss * task_weights.unsqueeze(dim=0)
+
         for col in range(logits.shape[1]):
             loss[:,col] = loss[:,col] * config.dataset.task_weights[col]
 
@@ -73,7 +77,6 @@ class ResNet(ClassificationModel):
         if config.dataset.loss_based_task_weighting:
 
             loss_batch_mean = loss.mean(dim=0)
-            device = torch.device("cuda") if cuda else torch.device("cpu")
 
             if first_batch_loss is None:
                 output_dict['first_batch_loss'] = loss_batch_mean
@@ -104,8 +107,9 @@ class ResNet(ClassificationModel):
         loss = loss * w.reshape(-1, 1)
 
         ## apply multi task weighting to loss
-        for col in range(logits.shape[1]):
-            loss[:,col] = loss[:,col] * config.dataset.task_weights[col]
+        device = torch.device("cuda") if cuda else torch.device("cpu")
+        task_weights = torch.FloatTensor(config.dataset.task_weights, device = device)
+        loss = loss * task_weights.unsqueeze(dim=0)
 
         ## loop over columns in logits
         output_dict = {}
@@ -143,7 +147,6 @@ class ResNet(ClassificationModel):
         if config.dataset.loss_based_task_weighting:
 
             loss_batch_mean = loss.mean(dim=0)
-            device = torch.device("cuda") if cuda else torch.device("cpu")
 
             if first_batch_loss is None:
                 output_dict['first_batch_loss'] = loss_batch_mean
