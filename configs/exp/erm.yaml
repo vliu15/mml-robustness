@@ -18,7 +18,7 @@ dataset:
     task_labels: ["Attractive", "Smiling"]
     subgroup_attributes: {
         "Attractive": ["Eyeglasses"],
-        "Smiling": ["Heavy_Makeup"]
+        "Smiling": ["Oval_Face"]
     }
 
     ### these correspondd directly to tasks specified in task labels, ensure they are either all 1 (no weighting) or sum up to 1 (weighting)
