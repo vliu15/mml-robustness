@@ -18,13 +18,13 @@ dataset:
     task_labels: ["Attractive", "Smiling"]
     subgroup_attributes: {
         "Attractive": ["Eyeglasses"],
-        "Smiling": ["Oval_Face"]
+        "Smiling": ["High_Cheekbones"]
     }
 
     ### these correspondd directly to tasks specified in task labels, ensure they are either all 1 (no weighting) or sum up to 1 (weighting)
     task_weights: [1, 1]
 
-    loss_based_task_weighting: true
+    loss_based_task_weighting: false
     lbtw_alpha: 0.5
 
 model:
@@ -53,7 +53,7 @@ train:
     ckpt_every_n_epochs: 1
     log_every_n_steps: 50
     eval_every_n_epochs: 1
-    log_dir: ./logs/mtl_attractive_smiling_t
+    log_dir: ./logs/mtl_attractive_smiling_task_weighting_test
     grad_clip_norm: null
     ema: false
     fp16: true
