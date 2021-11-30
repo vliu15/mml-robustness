@@ -24,7 +24,7 @@ dataset:
     ### these correspondd directly to tasks specified in task labels, ensure they are either all 1 (no weighting) or sum up to 1 (weighting)
     task_weights: [1, 1]
 
-    loss_based_task_weigting: false 
+    loss_based_task_weighting: true
     lbtw_alpha: 0.5
 
 model:

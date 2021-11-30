@@ -51,12 +51,13 @@ class ResNet(ClassificationModel):
         loss = loss * w.reshape(-1, 1)
 
         ## apply multi task weighting to loss
+        cuda = torch.cuda.is_available()
         device = torch.device("cuda") if cuda else torch.device("cpu")
-        task_weights = torch.FloatTensor(config.dataset.task_weights, device = device)
+        task_weights = torch.tensor(self.config.dataset.task_weights, device = device).float()
         loss = loss * task_weights.unsqueeze(dim=0)
 
-        for col in range(logits.shape[1]):
-            loss[:,col] = loss[:,col] * config.dataset.task_weights[col]
+        #for col in range(logits.shape[1]):
+            #loss[:,col] = loss[:,col] * config.dataset.task_weights[col]
 
 
         ## loop over columns in logits
@@ -74,21 +75,21 @@ class ResNet(ClassificationModel):
                 output_dict[f"metric_{name}_avg_acc"] = accuracy
 
         ### loss based task weighting
-        if config.dataset.loss_based_task_weighting:
+        if self.config.dataset.loss_based_task_weighting:
 
             loss_batch_mean = loss.mean(dim=0)
 
             if first_batch_loss is None:
                 output_dict['first_batch_loss'] = loss_batch_mean
-                output_dict["loss"] = torch.sum(loss_batch_mean * torch.pow(torch.ones(logits.shape[1], device = device), config.dataset.lbtw_alpha))
+                output_dict["loss"] = torch.sum(loss_batch_mean * torch.pow(torch.ones(logits.shape[1], device = device), self.config.dataset.lbtw_alpha))
             else:
                 
                 new_task_weights = []
                 for col in range(logits.shape[1]):
                     new_task_weights.append(loss_batch_mean[col] /first_batch_loss[col]) 
 
-                new_task_weights = torch.FloatTensor(new_task_weights, device = device)
-                output_dict["loss"] = torch.sum(loss_batch_mean * torch.pow(new_task_weights, config.dataset.lbtw_alpha))
+                new_task_weights = torch.tensor(new_task_weights, device = device).float()
+                output_dict["loss"] = torch.sum(loss_batch_mean * torch.pow(new_task_weights, self.config.dataset.lbtw_alpha))
 
         else:
             ## sum loss on channel then take mean
@@ -107,8 +108,9 @@ class ResNet(ClassificationModel):
         loss = loss * w.reshape(-1, 1)
 
         ## apply multi task weighting to loss
+        cuda = torch.cuda.is_available()
         device = torch.device("cuda") if cuda else torch.device("cpu")
-        task_weights = torch.FloatTensor(config.dataset.task_weights, device = device)
+        task_weights = torch.tensor(self.config.dataset.task_weights, device = device).float()
         loss = loss * task_weights.unsqueeze(dim=0)
 
         ## loop over columns in logits
@@ -144,21 +146,20 @@ class ResNet(ClassificationModel):
 
         
         ### loss based task weighting
-        if config.dataset.loss_based_task_weighting:
+        if self.config.dataset.loss_based_task_weighting:
 
             loss_batch_mean = loss.mean(dim=0)
-
             if first_batch_loss is None:
                 output_dict['first_batch_loss'] = loss_batch_mean
-                output_dict["loss"] = torch.sum(loss_batch_mean * torch.pow(torch.ones(logits.shape[1], device = device), config.dataset.lbtw_alpha))
+                output_dict["loss"] = torch.sum(loss_batch_mean * torch.pow(torch.ones(logits.shape[1], device = device), self.config.dataset.lbtw_alpha))
             else:
                 
                 new_task_weights = []
                 for col in range(logits.shape[1]):
                     new_task_weights.append(loss_batch_mean[col] /first_batch_loss[col]) 
 
-                new_task_weights = torch.FloatTensor(new_task_weights, device = device)
-                output_dict["loss"] = torch.sum(loss_batch_mean * torch.pow(new_task_weights, config.dataset.lbtw_alpha))
+                new_task_weights = torch.tensor(new_task_weights, device = device).float()
+                output_dict["loss"] = torch.sum(loss_batch_mean * torch.pow(new_task_weights, self.config.dataset.lbtw_alpha))
 
         else:
             ## sum loss on channel then take mean
