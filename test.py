@@ -15,6 +15,9 @@ from tqdm import tqdm
 from utils.init_modules import init_model, init_test_dataloader
 from utils.train_utils import to_device
 
+import warnings
+warnings.filterwarnings("ignore")
+
 logging.config.fileConfig("logger.conf")
 
 
@@ -64,7 +67,7 @@ def main():
     args = parse_args()
     config = OmegaConf.load(os.path.join(args.log_dir, "config.yaml"))
 
-    device = torch.device("cuda:1") if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     ### config set subggroup attributes , config set subgroup labes , test that args.subgroup_attirbutees iis as expect, that configg
     ### changes as expected, then good
