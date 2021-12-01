@@ -15,6 +15,9 @@ from tqdm import tqdm
 from utils.init_modules import init_model, init_test_dataloader
 from utils.train_utils import to_device
 
+import warnings
+warnings.filterwarnings("ignore")
+
 logging.config.fileConfig("logger.conf")
 
 
