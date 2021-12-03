@@ -4,7 +4,7 @@ Runs and collects results on a batch of experiments.
 Sample usage from repo root:
 python -m scripts.run_batch_tests \
     logs/jtt-g0 logs/jtt-g1:5,10 logs/jtt-g2 logs/jtt-g3:6 logs/jtt-g4 logs/jtt-g8:9 \
-    --results_json results.json
+    --json_file results.json
 """
 
 import argparse
@@ -17,7 +17,6 @@ from collections import defaultdict
 
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger(__name__)
-
 
 # #################################################
 # For reference, here are groupings that belong
@@ -34,14 +33,14 @@ logger = logging.getLogger(__name__)
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "log_dirs_and_groupings",
+        "log_dirs_and_subgroups",
         metavar="log_dir",
         type=str,
         nargs="+",
         help="Sequence of log dirs and additional groupings to run tests on. Format: {{log_dir}}:g1,g2",
     )
     parser.add_argument(
-        "--results_json",
+        "--json_file",
         type=str,
         default="results",
         help="Json file to dump results",
@@ -51,13 +50,13 @@ def parse_args():
 
 def main():
     args = parse_args()
-    assert args.results_json.endswith(".json"), "Must specify a json file for --results_json"
+    assert args.json_file.endswith(".json"), "Must specify a json file for --results_json"
     results_json = defaultdict(dict)
 
     # Loop over log_dirs specified
-    for i, log_dir in enumerate(args.log_dirs_and_groupings):
-        log_dir, groupings = log_dir.split(":")
-        logger.info(f"== [{i + 1} / {len(args.log_dirs_and_groupings)}] Running tests on {log_dir} ==")
+    for i, log_dir in enumerate(args.log_dirs_and_subgroups):
+        log_dir, subgroup_attributes = log_dir.split(":")
+        logger.info(f"== [{i + 1} / {len(args.log_dirs_and_subgroups)}] Running tests on {log_dir} ==")
 
         # Filter out ckpt.last.pt
         ckpts = sorted(
@@ -71,12 +70,12 @@ def main():
             ckpt_num = int(ckpt.split(".")[1])
 
             # Run test.py, which saves results.json into {log_dir}/results
-            extra_groupings = "" if groupings == "" else f"--extra_groupings {groupings}"
+            extra_subgroups = "" if subgroup_attributes == "" else f"--subgroup_attributes {subgroup_attributes}"
             subprocess.run(
                 f"python test.py "
                 f"--log_dir {log_dir} "
                 f"--ckpt_num {ckpt_num} "
-                f"{extra_groupings}",
+                f"{extra_subgroups}",
                 check=True,
                 shell=True,
             )
@@ -86,7 +85,7 @@ def main():
                     results_json[os.path.join(log_dir, json_name)][ckpt_num] = json.load(f)
 
     # Write cumulative results file
-    with open(args.results_json, "w") as f:
+    with open(args.json_file, "w") as f:
         json.dump(results_json, f)
 
 

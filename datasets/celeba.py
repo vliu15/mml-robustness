@@ -9,7 +9,7 @@ import torchvision.transforms as transforms
 from PIL import Image
 from torch.utils.data import Dataset
 
-from datasets.groupings import get_grouping
+from datasets.groupings import get_grouping_object
 
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ class CelebA(Dataset):
 
         self.subgroup_labels = config.dataset.subgroup_labels
 
-        self.grouping = get_grouping(config.dataset.groupings)
+        self.grouping = get_grouping_object(config.dataset.groupings)
         self.task_labels = self.grouping.task_labels
         self.subgroup_attributes = self.grouping.subgroup_attributes
 

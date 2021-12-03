@@ -13,7 +13,9 @@ dataset:
     num_classes: &num_classes 1
 
     subgroup_labels: true
-    groupings: [0]
+    groupings: [
+        "Blond_Hair:Male"
+    ]
 
     ### these correspondd directly to tasks specified in task labels, ensure they are either all 1 (no weighting) or sum up to 1 (weighting)
     task_weights: [1]

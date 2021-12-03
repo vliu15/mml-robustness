@@ -5,6 +5,7 @@ import json
 import logging
 import logging.config
 import os
+import warnings
 from collections import defaultdict
 
 import torch
@@ -15,7 +16,6 @@ from tqdm import tqdm
 from utils.init_modules import init_model, init_test_dataloader
 from utils.train_utils import to_device
 
-import warnings
 warnings.filterwarnings("ignore")
 
 logging.config.fileConfig("logger.conf")
@@ -36,11 +36,19 @@ def parse_args():
         help="Checkpoint number to load, corresponds to: `ckpt.{{ckpt_num}}.pt`",
     )
     parser.add_argument(
-        "--extra_groupings",
+        "--extra_attributes",
         required=False,
         default="",
+        nargs="*",
         type=str,
-        help="Comma-separated list of additional group ids to run test on",
+        help="Comma-separated list of additional attribute names to run test on for all tasks",
+    )
+    parser.add_argument(
+        "--json_name",
+        required=False,
+        default="test_results.json",
+        type=str,
+        help="Filename of JSON file in which results are saved into {{args.log_dir}}/results/{{args.json_name}}",
     )
     return parser.parse_args()
 
@@ -50,9 +58,22 @@ def main():
     args = parse_args()
     config = OmegaConf.load(os.path.join(args.log_dir, "config.yaml"))
 
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    # Parse args.extra_attributes into dict mapping task -> extra_attributes
+    extra_attributes = defaultdict(str)
+    for extra_attr in args.extra_attributes:
+        task, extra_attr = extra_attr.split(":")
+        extra_attributes[task] = extra_attr.strip(",")
+
+    # Surgery specified args.subgroup_attributes in the config
+    new_groupings = []
+    for grouping in config.dataset.groupings:
+        task, subgroup_attributes = grouping.split(":")
+        subgroup_attributes = f"{subgroup_attributes},{extra_attributes[task]}".strip(",")
+        new_groupings += [f"{task}:{subgroup_attributes}"]
+    config.dataset.groupings = new_groupings
 
     # Init and load model
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     model = init_model(config).to(device)
     ckpt = torch.load(os.path.join(args.log_dir, "ckpts", f"ckpt.{args.ckpt_num}.pt"), map_location=device)
     model.load_state_dict(ckpt["model"])
@@ -65,22 +86,9 @@ def main():
         model=model,
         test_dataloader=test_dataloader,
         device=device,
-        results_json=f"test_results_{config.dataset.grouping}.json",
+        json_name=args.json_name,
     )
 
-    # Run test on additional groupings
-    extra_groupings = args.extra_groupings.split(",")
-    for grouping in extra_groupings:
-        config.dataset.grouping = [int(grouping)]
-
-        test_dataloader = init_test_dataloader(config)
-        evaluate(
-            config=config,
-            model=model,
-            test_dataloader=test_dataloader,
-            device=device,
-            results_json=f"test_results_{config.dataset.grouping}.json",
-        )
 
 @torch.no_grad()
 def evaluate(
@@ -88,19 +96,20 @@ def evaluate(
     model: nn.Module,
     test_dataloader: torch.utils.data.DataLoader,
     device: str,
-    results_json: str = "test_results.json",
+    json_name: str = "test_results.json",
+    verbose: bool = False,
 ):
 
     test_stats = defaultdict(float)
     for batch in tqdm(
-        test_dataloader,
-        total=len(test_dataloader),
-        desc=f"Running eval on grouping {config.dataset.grouping}",
-        leave=False,
+            test_dataloader,
+            total=len(test_dataloader),
+            desc=f"Running eval on test set",
+            leave=False,
     ):
         # Forward pass
         batch = to_device(batch, device)
-        out_dict = model.supervised_step(batch, subgroup=args.subgroup_labels, first_batch_loss = None)
+        out_dict = model.supervised_step(batch, subgroup=True)
 
         # Accumulate metrics
         for key in out_dict.keys():
@@ -123,21 +132,10 @@ def evaluate(
                 print(f"  {key[7:-7]}: {100 * test_stats[key[7:-7]]:.4f}%")
 
     # Write results to json
-
-    identifiers = []
-    for key in config.dataset.subgroup_attributes.keys():
-        identifiers.append(key)
-        for attr in config.dataset.subgroup_attributes[key]:
-            identifiers.append(attr)
-    correlates = "_".join(identifiers)
-
     results_dir = os.path.join(args.log_dir, "results")
     os.makedirs(results_dir, exist_ok=True)
-<<<<<<< cf537b8e5f03e4e3de3937484741bda8fb2a178c
-    results_file = os.path.join(results_dir, f"{correlates}_test_results.json")
-=======
-    results_file = os.path.join(results_dir, results_json)
->>>>>>> Move grouping definitions into python, add batch test script
+
+    results_file = os.path.join(results_dir, json_name)
     with open(results_file, 'w') as fp:
         json.dump(test_stats, fp)
 

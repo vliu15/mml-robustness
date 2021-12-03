@@ -3,14 +3,57 @@
 from dataclasses import dataclass
 from typing import Iterable, List
 
+ATTRIBUTES = [
+    "5_o_Clock_Shadow",
+    "Arched_Eyebrows",
+    "Attractive",
+    "Bags_Under_Eyes",
+    "Bald",
+    "Bangs",
+    "Big_Lips",
+    "Big_Nose",
+    "Black_Hair",
+    "Blond_Hair",
+    "Blurry",
+    "Brown_Hair",
+    "Bushy_Eyebrows",
+    "Chubby",
+    "Double_Chin",
+    "Eyeglasses",
+    "Goatee",
+    "Gray_Hair",
+    "Heavy_Makeup",
+    "High_Cheekbones",
+    "Male",
+    "Mouth_Slightly_Open",
+    "Mustache",
+    "Narrow_Eyes",
+    "No_Beard",
+    "Oval_Face",
+    "Pale_Skin",
+    "Pointy_Nose",
+    "Receding_Hairline",
+    "Rosy_Cheeks",
+    "Sideburns",
+    "Smiling",
+    "Straight_Hair",
+    "Wavy_Hair",
+    "Wearing_Earrings",
+    "Wearing_Hat",
+    "Wearing_Lipstick",
+    "Wearing_Necklace",
+    "Wearing_Necktie",
+    "Young",
+]
+
 
 @dataclass(init=False)
 class Grouping(object):
     """Instantiates one grouping"""
 
-    def __init__(self, task_label: str, subgroup_attribute: List[str]):
+    def __init__(self, task_label: str, subgroup_attributes: List[str]):
         self.task_labels = [task_label]
-        self.subgroup_attributes = {task_label: subgroup_attribute}
+        self.subgroup_attributes = {task_label: subgroup_attributes}
 
 
 @dataclass(init=False)
@@ -28,32 +71,36 @@ class MTLGrouping(object):
         self.subgroup_attributes = subgroup_attributes
 
 
-single_task_groupings = {
-    # DEFAULT (yes, this is also grouping #7)
-    0: Grouping(task_label="Blond_Hair", subgroup_attribute=["Male"]),
+# DEPRECATED
+# default_groupings = {
+#     # DEFAULT (yes, this is also grouping #7)
+#     0: Grouping(task_label="Blond_Hair", subgroup_attributes=["Male"]),
 
-    # Grouping 1: Disjoint spurious correlates
-    1: Grouping(task_label="Attractive", subgroup_attribute=["Eyeglasses"]),
-    2: Grouping(task_label="Smiling", subgroup_attribute=["High_Cheekbones"]),
-    3: Grouping(task_label="Young", subgroup_attribute=["Attractive"]),
-    # 2: Grouping(task_label="Smiling", subgroup_attribute=["High_Cheekbones"]),
+#     # Grouping 1: Disjoint spurious correlates
+#     1: Grouping(task_label="Attractive", subgroup_attributes=["Eyeglasses"]),
+#     2: Grouping(task_label="Smiling", subgroup_attributes=["High_Cheekbones"]),
+#     3: Grouping(task_label="Young", subgroup_attributes=["Attractive"]),
+#     # 2: Grouping(task_label="Smiling", subgroup_attributes=["High_Cheekbones"]),
 
-    # Grouping 2: Non-disjoint spurious correlates
-    4: Grouping(task_label="Oval_Face", subgroup_attribute=["Rosy_Cheeks"]),
-    5: Grouping(task_label="Attractive", subgroup_attribute=["Bald"]),
-    6: Grouping(task_label="Young", subgroup_attribute=["Gray_Hair"]),
-    7: Grouping(task_label="Blond_Hair", subgroup_attribute=["Male"]),
-    8: Grouping(task_label="Pointy_Nose", subgroup_attribute=["Male"]),
+#     # Grouping 2: Non-disjoint spurious correlates
+#     4: Grouping(task_label="Oval_Face", subgroup_attributes=["Rosy_Cheeks"]),
+#     5: Grouping(task_label="Attractive", subgroup_attributes=["Bald"]),
+#     6: Grouping(task_label="Young", subgroup_attributes=["Gray_Hair"]),
+#     7: Grouping(task_label="Blond_Hair", subgroup_attributes=["Male"]),
+#     8: Grouping(task_label="Pointy_Nose", subgroup_attributes=["Male"]),
 
-    # Grouping 3: Similary bad ERM models
-    9: Grouping(task_label="Pointy_Nose", subgroup_attribute=["Rosy_Cheeks"]),
-    10: Grouping(task_label="Attractive", subgroup_attribute=["Heavy_Makeup"]),
-}
-
-
-def add_grouping(task_label: str, subgroup_attribute: List):
-    return Grouping(task_label=task_label, subgroup_attribute=subgroup_attribute)
+#     # Grouping 3: Similary bad ERM models
+#     9: Grouping(task_label="Pointy_Nose", subgroup_attributes=["Rosy_Cheeks"]),
+#     10: Grouping(task_label="Attractive", subgroup_attributes=["Heavy_Makeup"]),
+# }
 
 
-def get_grouping(indices):
-    return MTLGrouping(*[single_task_groupings[index] for index in indices])
+def get_grouping_object(tasks):
+    """Takes in grouping string and returns a Python dataclass"""
+    groupings = []
+    for task in tasks:
+        task_label, subgroup_attributes = task.split(":")
+        subgroup_attributes = subgroup_attributes.split(",")
+        subgroup_attributes = list(set(subgroup_attributes))
+        groupings += [Grouping(task_label=task_label, subgroup_attributes=subgroup_attributes)]
+    return MTLGrouping(*groupings)
