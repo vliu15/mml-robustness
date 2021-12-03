@@ -36,29 +36,12 @@ def parse_args():
         help="Checkpoint number to load, corresponds to: `ckpt.{{ckpt_num}}.pt`",
     )
     parser.add_argument(
-        "--subgroup_labels",
+        "--extra_groupings",
         required=False,
-        default=False,
-        action='store_true',
-        help="Whether to evaluate subgroup accuracies",
-    )
-
-    parser.add_argument(
-        "--no_subgroup_labels",
-        required=False,
-        action='store_false',
-        dest='subgroup_labels',
-        help="Whether to not evaluate subgroup accuracies",
-    )
-
-    ### must be in the following form: '{"task_label_1": ["Spurrious_1", "Spurrious_2"], ...}'
-    parser.add_argument(
-        "--subgroup_attributes",
-        required=False,
+        default="",
         type=str,
-        help="Defines the subgroups to deliniate per task",
+        help="Comma-separated list of additional group ids to run test on",
     )
-
     return parser.parse_args()
 
 
@@ -69,28 +52,52 @@ def main():
 
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-    ### config set subggroup attributes , config set subgroup labes , test that args.subgroup_attirbutees iis as expect, that configg
-    ### changes as expected, then good
-    config.dataset.subgroup_labels = args.subgroup_labels
-    config.dataset.subgroup_attributes = json.loads(args.subgroup_attributes)
-
-    # Init modules
+    # Init and load model
     model = init_model(config).to(device)
-    test_dataloader = init_test_dataloader(config)
-
-    # Load checkpoint
     ckpt = torch.load(os.path.join(args.log_dir, "ckpts", f"ckpt.{args.ckpt_num}.pt"), map_location=device)
     model.load_state_dict(ckpt["model"])
     model.eval()
 
-    evaluate(config=config, model=model, test_dataloader=test_dataloader, device=device, args=args)
+    # Run test on trained grouping
+    test_dataloader = init_test_dataloader(config)
+    evaluate(
+        config=config,
+        model=model,
+        test_dataloader=test_dataloader,
+        device=device,
+        results_json=f"test_results_{config.dataset.grouping}.json",
+    )
 
+    # Run test on additional groupings
+    extra_groupings = args.extra_groupings.split(",")
+    for grouping in extra_groupings:
+        config.dataset.grouping = [int(grouping)]
+
+        test_dataloader = init_test_dataloader(config)
+        evaluate(
+            config=config,
+            model=model,
+            test_dataloader=test_dataloader,
+            device=device,
+            results_json=f"test_results_{config.dataset.grouping}.json",
+        )
 
 @torch.no_grad()
-def evaluate(config: DictConfig, model: nn.Module, test_dataloader: torch.utils.data.DataLoader, device: str, args):
+def evaluate(
+    config: DictConfig,
+    model: nn.Module,
+    test_dataloader: torch.utils.data.DataLoader,
+    device: str,
+    results_json: str = "test_results.json",
+):
 
     test_stats = defaultdict(float)
-    for batch in tqdm(test_dataloader, total=len(test_dataloader), desc="Running eval on test set"):
+    for batch in tqdm(
+        test_dataloader,
+        total=len(test_dataloader),
+        desc=f"Running eval on grouping {config.dataset.grouping}",
+        leave=False,
+    ):
         # Forward pass
         batch = to_device(batch, device)
         out_dict = model.supervised_step(batch, subgroup=args.subgroup_labels, first_batch_loss = None)
@@ -126,7 +133,11 @@ def evaluate(config: DictConfig, model: nn.Module, test_dataloader: torch.utils.
 
     results_dir = os.path.join(args.log_dir, "results")
     os.makedirs(results_dir, exist_ok=True)
+<<<<<<< cf537b8e5f03e4e3de3937484741bda8fb2a178c
     results_file = os.path.join(results_dir, f"{correlates}_test_results.json")
+=======
+    results_file = os.path.join(results_dir, results_json)
+>>>>>>> Move grouping definitions into python, add batch test script
     with open(results_file, 'w') as fp:
         json.dump(test_stats, fp)
 

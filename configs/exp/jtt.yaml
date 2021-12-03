@@ -6,7 +6,7 @@ stage_2_config: jtt_stage_2
 log_dir: &log_dir ./logs/jtt
 groupings: [0]
 
-up_type: upweight  # one of [upsample, upweight]
+up_type: upsample  # one of [upsample, upweight]
 lambda_up: 50
 load_up_pkl: null  # specify this to load it
 
