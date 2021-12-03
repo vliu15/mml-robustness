@@ -51,5 +51,9 @@ single_task_groupings = {
 }
 
 
+def add_grouping(task_label: str, subgroup_attribute: List):
+    return Grouping(task_label=task_label, subgroup_attribute=subgroup_attribute)
+
+
 def get_grouping(indices):
     return MTLGrouping(*[single_task_groupings[index] for index in indices])

@@ -32,6 +32,13 @@ def parse_args():
         type=int,
         help="Checkpoint number to load, corresponds to: `ckpt.{{ckpt_num}}.pt`",
     )
+    parser.add_argument(
+        "--extra_groupings",
+        required=False,
+        default="",
+        type=str,
+        help="Comma-separated list of additional group ids to run test on",
+    )
     return parser.parse_args()
 
 
@@ -42,28 +49,52 @@ def main():
 
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-    # Init modules
+    # Init and load model
     model = init_model(config).to(device)
-    test_dataloader = init_test_dataloader(config)
-
-    # Load checkpoint
     ckpt = torch.load(os.path.join(args.log_dir, "ckpts", f"ckpt.{args.ckpt_num}.pt"), map_location=device)
     model.load_state_dict(ckpt["model"])
     model.eval()
 
-    evaluate(
-        config=config,
-        model=model,
-        test_dataloader=test_dataloader,
-        device=device,
-    )
+    # Run test on trained grouping
+    # test_dataloader = init_test_dataloader(config)
+    # evaluate(
+    #     config=config,
+    #     model=model,
+    #     test_dataloader=test_dataloader,
+    #     device=device,
+    #     results_json=f"test_results_{config.dataset.grouping}.json",
+    # )
 
+    # Run test on additional groupings
+    extra_groupings = args.extra_groupings.split(",")
+    for grouping in extra_groupings:
+        config.dataset.grouping = [int(grouping)]
+
+        test_dataloader = init_test_dataloader(config)
+        evaluate(
+            config=config,
+            model=model,
+            test_dataloader=test_dataloader,
+            device=device,
+            results_json=f"test_results_{config.dataset.grouping}.json",
+        )
 
 @torch.no_grad()
-def evaluate(config: DictConfig, model: nn.Module, test_dataloader: torch.utils.data.DataLoader, device: str):
+def evaluate(
+    config: DictConfig,
+    model: nn.Module,
+    test_dataloader: torch.utils.data.DataLoader,
+    device: str,
+    results_json: str = "test_results.json",
+):
 
     test_stats = defaultdict(float)
-    for batch in tqdm(test_dataloader, total=len(test_dataloader), desc="Running eval on test set"):
+    for batch in tqdm(
+        test_dataloader,
+        total=len(test_dataloader),
+        desc=f"Running eval on grouping {config.dataset.grouping}",
+        leave=False,
+    ):
         # Forward pass
         batch = to_device(batch, device)
         out_dict = model.supervised_step(batch, subgroup=config.dataset.subgroup_labels)
@@ -91,7 +122,7 @@ def evaluate(config: DictConfig, model: nn.Module, test_dataloader: torch.utils.
     # Write results to json
     results_dir = os.path.join(config.train.log_dir, "results")
     os.makedirs(results_dir, exist_ok=True)
-    results_file = os.path.join(results_dir, "test_results.json")
+    results_file = os.path.join(results_dir, results_json)
     with open(results_file, 'w') as fp:
         json.dump(test_stats, fp)
 

@@ -95,7 +95,7 @@ class ResNet(ClassificationModel):
                 # Only run this in eval since we don't log batch metrics in training
                 # since not all subgroups are guaranteed to be present
                 if not self.training:
-                    for i in range(2**(len(self.config.dataset.subgroup_attributes[name]) + 1)):
+                    for i in range(2**(len(self.grouping.subgroup_attributes[name]) + 1)):
                         logits_subgroup = task_logits[(g_task == i).nonzero(as_tuple=True)[0]]
                         y_subgroup = y_task[(g_task == i).nonzero(as_tuple=True)[0]]
 
