@@ -1,86 +1,46 @@
-"""Generates PNG of confusion matrix of spurious correlations
+## NOTE this file may be deprecated and require revision before being functional
 
-Sample usage: MUST HAVE ALREADY RUN test.py ON ALL SPURIOUS CORRELATES
-python -m scripts.generate_spurious_confusion_matrix \
-    --log_dir logs/erm \
-    --json_name test_results.json
-
-Output PNG per task is saved into {args.log_dir}/results/heatmap_{task}.png
-"""
-
-import argparse
 import json
 import os
-from copy import copy
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
-from omegaconf import OmegaConf
 
-from datasets.grouping import ATTRIBUTES, get_grouping
+## for all files in the results of a given log dir, load them into dicts, put into pandas and then display it
 
+task_label = "Smiling"
+attributes = [
+    "5_o_Clock_Shadow", "Arched_Eyebrows", "Attractive", "Bags_Under_Eyes", "Bald", "Bangs", "Big_Lips", "Big_Nose",
+    "Black_Hair", "Blond_Hair", "Blurry", "Brown_Hair", "Bushy_Eyebrows", "Chubby", "Double_Chin", "Eyeglasses", "Goatee",
+    "Gray_Hair", "Heavy_Makeup", "High_Cheekbones", "Male", "Mouth_Slightly_Open", "Mustache", "Narrow_Eyes", "No_Beard",
+    "Oval_Face", "Pale_Skin", "Pointy_Nose", "Receding_Hairline", "Rosy_Cheeks", "Sideburns", "Smiling", "Straight_Hair",
+    "Wavy_Hair", "Wearing_Earrings", "Wearing_Hat", "Wearing_Lipstick", "Wearing_Necklace", "Wearing_Necktie", "Young"
+]
+attributes.remove(task_label)
+log_dir = './logs/erm_smiling'
 
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--log_dir",
-        type=str,
-        required=True,
-        help="Log directory to load",
-    )
-    parser.add_argument(
-        "--json_name",
-        type=str,
-        required=True,
-        help="Name of JSON of results saved from test.py, should be filename in {{args.log_dir}}/results",
-    )
-    return parser.parse_args()
+results_dict = {"Group 0 Acc": [], "Group 1 Acc": [], "Group 2 Acc": [], "Group 3 Acc": []}
 
+for attr in attributes:
 
-def main():
-    args = parse_args()
+    results_dir = os.path.join(log_dir, "results_best_val")
+    file = os.path.join(results_dir, f"{task_label}_{attr}_test_results.json")
 
-    config = OmegaConf.load(os.path.join(args.log_dir, "config.yaml"))
-    grouping = get_grouping(config.dataset.grouping)
+    attr_dict = json.load(open(file))
 
-    # Load results from testing
-    with open(os.path.join(args.log_dir, "results", args.json_name), "r") as f:
-        test_results = json.load(f)
+    for i in range(4):
+        results_dict[f'Group {i} Acc'].append(attr_dict[f'{task_label}_g{i}'])
 
-    # Loop through tasks
-    for task in grouping.task_labels:
-        attributes = copy(ATTRIBUTES)
-        attributes.remove(task)
+results_df = pd.DataFrame.from_dict(results_dict)
+results_df = results_df.rename(index={ind: v for ind, v in enumerate(attributes)})
 
-        results_dict = {"Group 0 Acc": [], "Group 1 Acc": [], "Group 2 Acc": [], "Group 3 Acc": []}
+fig, ax = plt.subplots(figsize=(16, 10))
+heatmap = sns.heatmap(results_df, annot=True, linewidths=.5, ax=ax)
+ax.set_title(f'Task Label: {task_label}')
+plt.xlabel("Subgroups")
+plt.ylabel("Potential Spurrious Correlates")
+heatmap.figure.savefig(os.path.join(results_dir, "heatmap.png"))
+## put into sns
 
-        # Loop through attributes
-        for attr in attributes:
-            j = ATTRIBUTES.index(attr)
-
-            # Retrieve subgroup accuracy
-            for k in range(4):
-                results_dict[f'Group {k} Acc'] += [test_results[f"{task}_g{j},{k}"]]
-
-        # Save as png
-        results_df = pd.DataFrame.from_dict(results_dict)
-        results_df = results_df.rename(index={ind: v for ind, v in enumerate(attributes)})
-
-        results_dir = os.path.join(args.log_dir, "results")
-        os.makedirs(results_dir, exist_ok=True)
-
-        _, ax = plt.subplots(figsize=(16, 10))
-        heatmap = sns.heatmap(results_df, annot=True, linewidths=.5, ax=ax)
-        ax.set_title(f'Task: {task}')
-        plt.xlabel("Subgroups: (Task x Potential Spurious Correlate)")
-        plt.ylabel("Potential Spurious Correlates")
-        heatmap.figure.savefig(os.path.join(results_dir, f"heatmap_{task}.png"))
-
-        # Reset plt for next task
-        plt.cla()
-        plt.clf()
-
-
-if __name__ == "__main__":
-    main()
+## svae sns image

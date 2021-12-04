@@ -13,11 +13,11 @@ import torch.nn as nn
 from omegaconf import DictConfig, OmegaConf
 from tqdm import tqdm
 
+from datasets.groupings import get_grouping_object
 from utils.init_modules import init_model, init_test_dataloader
 from utils.train_utils import to_device
 
 warnings.filterwarnings("ignore")
-
 logging.config.fileConfig("logger.conf")
 
 
@@ -36,12 +36,11 @@ def parse_args():
         help="Checkpoint number to load, corresponds to: `ckpt.{{ckpt_num}}.pt`",
     )
     parser.add_argument(
-        "--extra_attributes",
+        "--subgroup_attributes",
         required=False,
         default="",
-        nargs="*",
         type=str,
-        help="Comma-separated list of additional attribute names to run test on for all tasks",
+        help="JSON-string list of {{task}}:{{subgroup}}",
     )
     parser.add_argument(
         "--json_name",
@@ -58,19 +57,8 @@ def main():
     args = parse_args()
     config = OmegaConf.load(os.path.join(args.log_dir, "config.yaml"))
 
-    # Parse args.extra_attributes into dict mapping task -> extra_attributes
-    extra_attributes = defaultdict(str)
-    for extra_attr in args.extra_attributes:
-        task, extra_attr = extra_attr.split(":")
-        extra_attributes[task] = extra_attr.strip(",")
-
-    # Surgery specified args.subgroup_attributes in the config
-    new_groupings = []
-    for grouping in config.dataset.groupings:
-        task, subgroup_attributes = grouping.split(":")
-        subgroup_attributes = f"{subgroup_attributes},{extra_attributes[task]}".strip(",")
-        new_groupings += [f"{task}:{subgroup_attributes}"]
-    config.dataset.groupings = new_groupings
+    if args.subgroup_attributes:
+        config.dataset.groupings = json.loads(args.subgroup_attributes)
 
     # Init and load model
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -79,14 +67,18 @@ def main():
     model.load_state_dict(ckpt["model"])
     model.eval()
 
+    results_dir = os.path.join(args.log_dir, "results")
+    os.makedirs(results_dir, exist_ok=True)
+
     # Run test on trained grouping
     test_dataloader = init_test_dataloader(config)
     evaluate(
         config=config,
         model=model,
         test_dataloader=test_dataloader,
+        log_dir=args.log_dir,
         device=device,
-        json_name=args.json_name,
+        json_file=os.path.join(results_dir, args.json_name),
     )
 
 
@@ -95,8 +87,9 @@ def evaluate(
     config: DictConfig,
     model: nn.Module,
     test_dataloader: torch.utils.data.DataLoader,
+    log_dir: str,
     device: str,
-    json_name: str = "test_results.json",
+    json_file: str = "test_results.json",
     verbose: bool = False,
 ):
 
@@ -109,7 +102,7 @@ def evaluate(
     ):
         # Forward pass
         batch = to_device(batch, device)
-        out_dict = model.supervised_step(batch, subgroup=True)
+        out_dict = model.supervised_step(batch, subgroup=True, first_batch_loss=False)
 
         # Accumulate metrics
         for key in out_dict.keys():
@@ -131,12 +124,9 @@ def evaluate(
                 test_stats[key[7:-7]] = float(correct / total)
                 print(f"  {key[7:-7]}: {100 * test_stats[key[7:-7]]:.4f}%")
 
-    # Write results to json
-    results_dir = os.path.join(args.log_dir, "results")
-    os.makedirs(results_dir, exist_ok=True)
-
-    results_file = os.path.join(results_dir, json_name)
-    with open(results_file, 'w') as fp:
+    # Save this so we can map g{i} to the corresponding spurious correlation
+    test_stats["subgroups"] = get_grouping_object(config.dataset.groupings).subgroup_attributes
+    with open(json_file, 'w') as fp:
         json.dump(test_stats, fp)
 
 

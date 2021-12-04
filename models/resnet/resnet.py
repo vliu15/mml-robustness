@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from datasets.groupings import ATTRIBUTES, get_grouping_object
+from datasets.groupings import get_grouping_object
 from models.base import ClassificationModel
 from models.resnet.modules import Bottleneck, ResNet as _ResNet
 
@@ -55,8 +55,9 @@ class ResNet(ClassificationModel):
         loss = loss * w.reshape(-1, 1)
 
         # Apply multi task weighting to loss
-        task_weights = torch.tensor(self.config.dataset.task_weights, device=loss.device).float()
-        loss = loss * task_weights.unsqueeze(dim=0)
+        if hasattr(self.config.dataset, "task_weights"):
+            task_weights = torch.tensor(self.config.dataset.task_weights, device=loss.device).float()
+            loss = loss * task_weights.unsqueeze(dim=0)
 
         ## loop over columns in logits
         output_dict = {}
@@ -72,7 +73,7 @@ class ResNet(ClassificationModel):
                 output_dict[f"metric_{name}_avg_acc"] = accuracy
 
         ### loss based task weighting
-        if self.config.dataset.loss_based_task_weighting:
+        if self.config.dataset.get("loss_based_task_weighting", False):
             loss_batch_mean = loss.mean(dim=0)
 
             if first_batch_loss is None:
@@ -105,8 +106,9 @@ class ResNet(ClassificationModel):
         loss = loss * w.reshape(-1, 1)
 
         ## apply multi task weighting to loss
-        task_weights = torch.tensor(self.config.dataset.task_weights, device=loss.device).float()
-        loss = loss * task_weights.unsqueeze(dim=0)
+        if hasattr(self.config.dataset, "task_weights"):
+            task_weights = torch.tensor(self.config.dataset.task_weights, device=loss.device).float()
+            loss = loss * task_weights.unsqueeze(dim=0)
 
         output_dict = {}
         with torch.no_grad():
@@ -127,24 +129,22 @@ class ResNet(ClassificationModel):
                 if not self.training:
 
                     # [1.2] Compute subgroup averages
-                    for subgroup in self.grouping.subgroup_attributes[task]:
-                        j = ATTRIBUTES.index(subgroup)
-                        for k in range(4):
-                            logits_subgroup = task_logits[(g_task == k).nonzero(as_tuple=True)[0]]
-                            y_subgroup = y_task[(g_task == k).nonzero(as_tuple=True)[0]]
+                    for j in range(2**(len(self.grouping.subgroup_attributes[task]) + 1)):
+                        logits_subgroup = task_logits[(g_task == j).nonzero(as_tuple=True)[0]]
+                        y_subgroup = y_task[(g_task == j).nonzero(as_tuple=True)[0]]
 
-                            # Store accuracy components as counts in the format [correct, total] in numpy arrays so they can be easily added
-                            subgroup_counts_key = f"metric_{task}_g{j},{k}_counts"
-                            if logits_subgroup.shape[0] == 0:
-                                output_dict[subgroup_counts_key] = np.array([0, 0], dtype=np.float32)
-                            else:
-                                num_correct = ((logits_subgroup > 0.0) == y_subgroup.bool()).float().sum().item()
-                                output_dict[subgroup_counts_key] = np.array(
-                                    [num_correct, logits_subgroup.shape[0]], dtype=np.float32
-                                )
+                        # Store accuracy components as counts in the format [correct, total] in numpy arrays so they can be easily added
+                        subgroup_counts_key = f"metric_{task}_g{j}_counts"
+                        if logits_subgroup.shape[0] == 0:
+                            output_dict[subgroup_counts_key] = np.array([0, 0], dtype=np.float32)
+                        else:
+                            num_correct = ((logits_subgroup > 0.0) == y_subgroup.bool()).float().sum().item()
+                            output_dict[subgroup_counts_key] = np.array(
+                                [num_correct, logits_subgroup.shape[0]], dtype=np.float32
+                            )
 
         ### loss based task weighting
-        if self.config.dataset.loss_based_task_weighting:
+        if self.config.dataset.get("loss_based_task_weighting", False):
             loss_batch_mean = loss.mean(dim=0)
             if first_batch_loss is None:
                 output_dict['first_batch_loss'] = loss_batch_mean

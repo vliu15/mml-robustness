@@ -111,7 +111,7 @@ class CelebA(Dataset):
 
             self.subgroups = torch.tensor(self.subgroups, dtype=torch.long)
 
-            if split == 'train':
+            if split == "train":
                 logger.info(f"Subgroup attributes  : {self.subgroup_attributes}")
                 logger.info(f"Subgroup combinations: {self.subgroup_combinations}")
 
