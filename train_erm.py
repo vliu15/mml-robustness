@@ -142,9 +142,8 @@ def main(config):
     if config.train.n_gpus == -1:
         config.train.n_gpus = max_gpus
 
-
     ## make sure task weights are correctly specified
-    if len(config.dataset.task_weights) != len(config.dataset.task_labels):
+    if len(config.dataset.task_weights) != len(config.dataset.groupings):
         raise ValueError("Task weights must be the same length as task labels")
 
     if sum(config.dataset.task_weights) != 1:
@@ -154,8 +153,7 @@ def main(config):
     if config.dataset.loss_based_task_weighting:
         if len(set(config.dataset.task_weights)) != 1 or 1 not in config.dataset.task_weights:
             raise ValueError("To apply loss based task weighting, the original task weights must be all 1")
-        
-        
+
     # Determine whether to launch single or multi-gpu training
     n_gpus = min(config.train.n_gpus, max_gpus)
     if n_gpus <= 1:

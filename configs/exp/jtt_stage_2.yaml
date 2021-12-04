@@ -10,15 +10,9 @@ dataset:
 
     data_augmentation: false
     target_resolution: [224, 224]
-    num_classes: &num_classes 1
 
     subgroup_labels: true
-
-    ## GROUP 1
-    task_labels: ["Blond_Hair"]
-    subgroup_attributes: {
-        "Blond_Hair": ["Male"]
-    }
+    groupings: ["Blond_Hair:Male"]
 
     ### these correspondd directly to tasks specified in task labels, ensure they are either all 1 (no weighting) or sum up to 1 (weighting)
     task_weights: [1]
@@ -28,8 +22,7 @@ dataset:
 model:
     name: resnet50
     pretrained: true
-    num_classes: *num_classes
-    num_tasks: 1
+    num_classes: null  # should be len(config.dataset.groupings)
 
     # Defaults for ResNet
     zero_init_residual: False
@@ -46,7 +39,7 @@ optimizer:
 
 train:
     n_gpus: 1
-    total_epochs: 50
+    total_epochs: 25
     load_ckpt: null
     ckpt_every_n_epochs: 1
     log_every_n_steps: 50

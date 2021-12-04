@@ -9,6 +9,8 @@ import torchvision.transforms as transforms
 from PIL import Image
 from torch.utils.data import Dataset
 
+from datasets.groupings import get_grouping_object
+
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger(__name__)
 
@@ -20,9 +22,12 @@ class CelebA(Dataset):
         super().__init__()
         self.root = os.path.join(config.dataset.root, "celeba")
 
-        self.task_labels = config.dataset.task_labels
         self.subgroup_labels = config.dataset.subgroup_labels
-        self.subgroup_attributes = config.dataset.subgroup_attributes
+
+        self.grouping = get_grouping_object(config.dataset.groupings)
+        self.task_labels = self.grouping.task_labels
+        self.subgroup_attributes = self.grouping.subgroup_attributes
+
         # Transforms taken from https://github.com/kohpangwei/group_DRO/blob/master/data/celebA_dataset.py
         orig_w = 178
         orig_h = 218
@@ -106,18 +111,18 @@ class CelebA(Dataset):
 
             self.subgroups = torch.tensor(self.subgroups, dtype=torch.long)
 
-            if split == 'train':
-                logger.info(f"Subgroup attributes  : {self.subgroup_attributes}")
-                logger.info(f"Subgroup combinations: {self.subgroup_combinations}")
+            logger.info(f"Split                : {split}")
+            logger.info(f"Subgroup attributes  : {self.subgroup_attributes}")
+            logger.info(f"Subgroup combinations: {self.subgroup_combinations}")
 
-                ## need to fix this such that it is output per channel
-                #torch.bincount(self.subgroups.squeeze(dim=1)).tolist()
+            ## need to fix this such that it is output per channel
+            #torch.bincount(self.subgroups.squeeze(dim=1)).tolist()
 
-                bin_counts = []
-                for channel in range(self.subgroups.shape[1]):
-                    bin_counts.append(torch.bincount(self.subgroups[:, channel]))
-                counts = torch.vstack(bin_counts)
-                logger.info(f'Subgroup counts: {counts.detach().cpu().numpy()}')
+            bin_counts = []
+            for channel in range(self.subgroups.shape[1]):
+                bin_counts.append(torch.bincount(self.subgroups[:, channel]))
+            counts = torch.vstack(bin_counts)
+            logger.info(f'Subgroup counts: {counts.detach().cpu().numpy()}')
 
     def __getitem__(self, index):
         image = Image.open(os.path.join(self.root, "img_align_celeba", self.filename[index]))

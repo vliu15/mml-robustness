@@ -1,10 +1,12 @@
 hydra-core
 isort==5.9.3
+matplotlib
 numpy>=1.17.0
 omegaconf
 pandas
 pillow
 pylint==2.11.0
+seaborn
 tabulate
 tensorboard
 toml==0.10.2

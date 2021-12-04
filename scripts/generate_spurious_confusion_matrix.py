@@ -1,3 +1,5 @@
+## NOTE this file may be deprecated and require revision before being functional
+
 import json
 import os
 
@@ -5,7 +7,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-## for all files in the reultls of a given log dir, load them into dicts, put into pandas and then display it
+## for all files in the results of a given log dir, load them into dicts, put into pandas and then display it
 
 task_label = "Smiling"
 attributes = [

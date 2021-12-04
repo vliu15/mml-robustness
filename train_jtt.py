@@ -37,7 +37,7 @@ def construct_error_set(
             batch = to_device(batch, device)
             output_dict = model.inference_step(batch)
 
-            g_labels = batch[-1]
+            _, _, _, g_labels, _ = batch
             g_indices, g_counts = torch.unique(g_labels, return_counts=True)
             for g_index, g_count in zip(g_indices.cpu().tolist(), g_counts.cpu().tolist()):
                 g_mask = torch.where(g_labels == g_index)[0]
@@ -78,6 +78,8 @@ def main(config):
         # 1. Train f_id on D via ERM for T epochs
         subprocess.run(
             f"python train_erm.py exp={config.stage_1_config} "
+            f"exp.dataset.subgroup_labels=true "
+            f"exp.dataset.groupings={config.groupings} "
             f"exp.train.log_dir={stage_1_log_dir} "
             f"exp.train.load_ckpt={config.load_stage_1_ckpt or 'null'}",
             shell=True,
@@ -94,7 +96,8 @@ def main(config):
 
         train_dataloader, _ = init_dataloaders(stage_1_config)
 
-        error_indices, pickle_meta = construct_error_set(model, train_dataloader, device, task=config.task)
+        # TODO: make construct_error_set support multiple tasks
+        error_indices, pickle_meta = construct_error_set(model, train_dataloader, device, task=0)
         config.load_up_pkl = os.path.join(config.log_dir, "jtt_error_set.pkl")
         with open(config.load_up_pkl, "wb") as f:
             pickle.dump({"error_set": error_indices, "meta": pickle_meta}, f)
@@ -109,6 +112,8 @@ def main(config):
     subprocess.run(
         f"python train_erm.py "
         f"exp={config.stage_2_config} "
+        f"exp.dataset.subgroup_labels=true "
+        f"exp.dataset.groupings={config.groupings} "
         f"exp.train.up_type={config.up_type} "
         f"exp.train.lambda_up={config.lambda_up} "
         f"exp.train.load_up_pkl={config.load_up_pkl} "
