@@ -111,18 +111,18 @@ class CelebA(Dataset):
 
             self.subgroups = torch.tensor(self.subgroups, dtype=torch.long)
 
-            if split == "train":
-                logger.info(f"Subgroup attributes  : {self.subgroup_attributes}")
-                logger.info(f"Subgroup combinations: {self.subgroup_combinations}")
+            logger.info(f"Split                : {split}")
+            logger.info(f"Subgroup attributes  : {self.subgroup_attributes}")
+            logger.info(f"Subgroup combinations: {self.subgroup_combinations}")
 
-                ## need to fix this such that it is output per channel
-                #torch.bincount(self.subgroups.squeeze(dim=1)).tolist()
+            ## need to fix this such that it is output per channel
+            #torch.bincount(self.subgroups.squeeze(dim=1)).tolist()
 
-                bin_counts = []
-                for channel in range(self.subgroups.shape[1]):
-                    bin_counts.append(torch.bincount(self.subgroups[:, channel]))
-                counts = torch.vstack(bin_counts)
-                logger.info(f'Subgroup counts: {counts.detach().cpu().numpy()}')
+            bin_counts = []
+            for channel in range(self.subgroups.shape[1]):
+                bin_counts.append(torch.bincount(self.subgroups[:, channel]))
+            counts = torch.vstack(bin_counts)
+            logger.info(f'Subgroup counts: {counts.detach().cpu().numpy()}')
 
     def __getitem__(self, index):
         image = Image.open(os.path.join(self.root, "img_align_celeba", self.filename[index]))
