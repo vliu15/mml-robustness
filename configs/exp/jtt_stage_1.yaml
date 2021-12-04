@@ -13,21 +13,17 @@ dataset:
     num_classes: &num_classes 1
 
     subgroup_labels: true
-    groupings: [
-        "Blond_Hair:Male"
-    ]
+    groupings: ["Blond_Hair:Male"]
 
     ### these correspondd directly to tasks specified in task labels, ensure they are either all 1 (no weighting) or sum up to 1 (weighting)
     task_weights: [1]
-
     loss_based_task_weighting: false 
     lbtw_alpha: 0.5
 
 model:
     name: resnet50
     pretrained: true
-    num_classes: *num_classes
-    num_tasks: 1
+    num_classes: null  # should be len(config.dataset.groupings)
 
     # Defaults for ResNet
     zero_init_residual: False

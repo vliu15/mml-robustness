@@ -25,7 +25,7 @@ class ResNet(ClassificationModel):
         self.resnet = _ResNet(
             block=block,
             layers=layers,
-            num_classes=config.model.num_tasks,
+            num_classes=len(config.dataset.groupings),
             zero_init_residual=config.model.zero_init_residual,
             groups=config.model.groups,
             width_per_group=config.model.width_per_group,
@@ -55,9 +55,8 @@ class ResNet(ClassificationModel):
         loss = loss * w.reshape(-1, 1)
 
         # Apply multi task weighting to loss
-        if hasattr(self.config.dataset, "task_weights"):
-            task_weights = torch.tensor(self.config.dataset.task_weights, device=loss.device).float()
-            loss = loss * task_weights.unsqueeze(dim=0)
+        task_weights = torch.tensor(self.config.dataset.task_weights, device=loss.device).float()
+        loss = loss * task_weights.unsqueeze(dim=0)
 
         ## loop over columns in logits
         output_dict = {}
@@ -106,9 +105,8 @@ class ResNet(ClassificationModel):
         loss = loss * w.reshape(-1, 1)
 
         ## apply multi task weighting to loss
-        if hasattr(self.config.dataset, "task_weights"):
-            task_weights = torch.tensor(self.config.dataset.task_weights, device=loss.device).float()
-            loss = loss * task_weights.unsqueeze(dim=0)
+        task_weights = torch.tensor(self.config.dataset.task_weights, device=loss.device).float()
+        loss = loss * task_weights.unsqueeze(dim=0)
 
         output_dict = {}
         with torch.no_grad():

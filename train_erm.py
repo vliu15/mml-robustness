@@ -143,7 +143,7 @@ def main(config):
         config.train.n_gpus = max_gpus
 
     ## make sure task weights are correctly specified
-    if len(config.dataset.task_weights) != len(config.dataset.task_labels):
+    if len(config.dataset.task_weights) != len(config.dataset.groupings):
         raise ValueError("Task weights must be the same length as task labels")
 
     if sum(config.dataset.task_weights) != 1:
