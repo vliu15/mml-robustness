@@ -1,6 +1,8 @@
 """Contains the entire train function for both train.py and train_ddp.py."""
 
+import json
 import logging
+import os
 from collections import defaultdict
 
 import torch
@@ -65,8 +67,14 @@ def train(
 
     # Train
     postfix = {}
+
+    # Global validation metrics
+    global_val_stats = []
+
+    # Reset every epoch
     train_stats = defaultdict(float)
     val_stats_to_pbar = defaultdict(float)
+
     with tqdm(initial=epoch, total=config.train.total_epochs, desc="Global epoch", postfix=postfix) as pbar:
 
         while True:
@@ -202,19 +210,22 @@ def train(
                 # Log losses/metrics
                 for key in val_stats.keys():
                     if key.startswith("loss"):
-                        writer.add_scalar(f"loss/val_{key}", val_stats[key] / len(val_dataloader.dataset), epoch)
+                        loss = val_stats[key] / len(val_dataloader.dataset)
+                        writer.add_scalar(f"loss/val_{key}", loss, epoch)
+                        val_stats_to_pbar[key] = float(loss)
                     elif key.startswith("metric"):
                         if "avg" in key:
-                            avg = val_stats[key] / len(val_dataloader.dataset)
-                            writer.add_scalar(f"metric/val_{key[7:]}", avg, epoch)
-                            val_stats_to_pbar[key[7:]] = avg  # metric_*** -> ***
+                            accuracy = val_stats[key] / len(val_dataloader.dataset)
+                            writer.add_scalar(f"metric/val_{key[7:]}", accuracy, epoch)
+                            val_stats_to_pbar[key[7:]] = float(accuracy)  # metric_*** -> ***
                         elif "counts" in key:
                             accuracy = val_stats[key][0] / val_stats[key][1]
                             writer.add_scalar(f"metric/val_{key[7:-7]}_acc", accuracy, epoch)
-                            val_stats_to_pbar[key[7:-7]] = accuracy  # metric_***_counts -> ***
+                            val_stats_to_pbar[key[7:-7]] = float(accuracy)  # metric_***_counts -> ***
 
                 # Add additional post-evaluation logging here (i.e. images, audio, text)
                 pbar.set_postfix(val_stats_to_pbar)
+                global_val_stats += [val_stats_to_pbar]
 
             # Checkpoint
             if epoch % config.train.ckpt_every_n_epochs == 0:
@@ -229,5 +240,7 @@ def train(
     if rank == 0:
         writer.close()
 
-    # Save one last checkpoint
+    # Save one last checkpoint and final val stats (in case they might be useful)
     save_checkpoint(config, global_step, -1, model, ema, optimizer, scheduler)
+    with open(os.path.join(config.train.log_dir, "final_val_stats.json"), "w") as f:
+        json.dump(global_val_stats, f)

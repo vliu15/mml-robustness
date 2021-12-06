@@ -1,17 +1,20 @@
 """Script for JTT training"""
 
+import json
 import logging
 import os
 import pickle
 import subprocess
-from collections import defaultdict
+from collections import Counter, defaultdict
+from typing import Dict, List
 
 import hydra
 import torch
 import torch.nn as nn
-from omegaconf import OmegaConf
+from omegaconf import DictConfig, OmegaConf
 from tqdm import tqdm
 
+from datasets.groupings import get_grouping_object
 from utils.init_modules import init_dataloaders, init_model
 from utils.train_utils import to_device
 
@@ -32,13 +35,15 @@ def construct_error_set(
     global_indices = []
     g_totals, g_errors = defaultdict(int), defaultdict(int)
 
-    with tqdm(total=len(train_dataloader), desc="Constructing error set") as pbar:
+    with tqdm(total=len(train_dataloader), desc=f"[{task}] Constructing error set") as pbar:
         for batch in train_dataloader:
             batch = to_device(batch, device)
             output_dict = model.inference_step(batch)
 
             _, _, _, g_labels, _ = batch
+            g_labels = g_labels[:, task]
             g_indices, g_counts = torch.unique(g_labels, return_counts=True)
+
             for g_index, g_count in zip(g_indices.cpu().tolist(), g_counts.cpu().tolist()):
                 g_mask = torch.where(g_labels == g_index)[0]
                 yh = (output_dict["yh"][g_mask, task] > 0).float()
@@ -64,6 +69,51 @@ def construct_error_set(
     return global_indices, pickle_meta
 
 
+def merge_error_sets(
+    config: DictConfig,
+    error_sets: Dict[int, List[int]],
+    how: str,
+    val_stats: List[Dict[str, float]],
+):
+    """Merges multiple error sets based on the specified method"""
+    # Each method will create a weighted_error_indices dict mapping `index` -> `weight`
+    # where `weight` will be scaled by `lambda_up` afterward to upsample `index` correspondingly
+    if how == "xor":
+        # Take the xor of the indices
+        weighted_error_indices = reduce(lambda set1, set2: set(set1) ^ set(set2), error_sets.values())
+        # Set the weight for each one to be 1
+        weighted_error_indices = {index: 1 for index in weighted_error_indices}
+
+    elif how == "inv":
+        # Accumulate the frequencies of each index
+        weighted_error_indices = Counter([index for error_set in error_sets.values() for index in error_set])
+        # Set the weight for each one to be 1/frequency
+        weighted_error_indices = {key: 1. / value for key, value in weighted_error_indices.items()}
+
+    elif how == "task":
+        # Grab the final validation losses per task
+        final_epoch_val_stats = val_stats[-1]
+        grouping = get_grouping_object(config.groupings)
+        task_losses = np.array([final_epoch_val_stats[f"loss_{task}"] for task in grouping.task_labels], dtype=np.float32)
+        # Normalize
+        task_losses /= task_losses.sum()
+        # Accumulate by frequency weighted by task loss
+        weighted_error_indices = defaultdict(float)
+        for i, error_set in error_sets.items():
+            for index in error_set:
+                weighted_error_indices[index] += task_losses[i]
+
+    else:
+        raise ValueError(f"mtl_join_type {how} not recognized")
+
+    # Apply final weighting
+    final_error_set = []
+    for index, weight in weighted_error_indices.items():
+        final_error_set += [index
+                           ] * int(weight * (config.lambda_up) - 1)  # lambda_up - 1 since this is additional indices concat
+    return final_error_set
+
+
 @hydra.main(config_path="configs/", config_name="default")
 def main(config):
     """Entry point into JTT training"""
@@ -76,10 +126,13 @@ def main(config):
 
     if not config.load_up_pkl:
         # 1. Train f_id on D via ERM for T epochs
+        groupings = json.dumps(list(config.groupings)).replace(" ", "")
+        task_weights = json.dumps([str(w) for w in config.task_weights]).replace(" ", "")
         subprocess.run(
             f"python train_erm.py exp={config.stage_1_config} "
             f"exp.dataset.subgroup_labels=true "
-            f"exp.dataset.groupings={config.groupings} "
+            f"exp.dataset.groupings={groupings} "
+            f"exp.dataset.task_weights={task_weights} "
             f"exp.train.log_dir={stage_1_log_dir} "
             f"exp.train.load_ckpt={config.load_stage_1_ckpt or 'null'}",
             shell=True,
@@ -97,10 +150,27 @@ def main(config):
         train_dataloader, _ = init_dataloaders(stage_1_config)
 
         # TODO: make construct_error_set support multiple tasks
-        error_indices, pickle_meta = construct_error_set(model, train_dataloader, device, task=0)
-        config.load_up_pkl = os.path.join(config.log_dir, "jtt_error_set.pkl")
+        error_sets = {}
+        pickle_metas = {}
+        for task in range(len(config.groupings)):
+            error_indices, pickle_meta = construct_error_set(model, train_dataloader, device, task=task)
+            error_sets[task] = error_indices
+            pickle_metas[f"Task {task}"] = pickle_meta
+
+        # Merge error sets for MTL
+        if len(config.groupings):
+            with open(os.path.join(config.log_dir, "stage_1", "final_val_stats.json"), "r") as f:
+                val_stats = json.load(f)
+            error_indices = merge_error_sets(
+                config=config,
+                error_sets=error_sets,
+                how=config.mtl_join_type,
+                val_stats=val_stats,
+            )
+
+        config.load_up_pkl = os.path.join(config.log_dir, f"jtt_error_set_{config.mtl_join_type}.pkl")
         with open(config.load_up_pkl, "wb") as f:
-            pickle.dump({"error_set": error_indices, "meta": pickle_meta}, f)
+            pickle.dump({"error_set": error_indices, "meta": pickle_metas}, f)
 
     ###########
     # Stage 2 #
@@ -109,13 +179,15 @@ def main(config):
 
     # 3. Construct upsampled dataset D_up containing examples in the error set λ_up times and all other examples once
     # 4. Train final model f_final on D_up via ERM
+    groupings = json.dumps(list(config.groupings)).replace(" ", "")
+    task_weights = json.dumps([str(w) for w in config.task_weights]).replace(" ", "")
     subprocess.run(
         f"python train_erm.py "
         f"exp={config.stage_2_config} "
         f"exp.dataset.subgroup_labels=true "
-        f"exp.dataset.groupings={config.groupings} "
+        f"exp.dataset.groupings={groupings} "
+        f"exp.dataset.task_weights={task_weights} "
         f"exp.train.up_type={config.up_type} "
-        f"exp.train.lambda_up={config.lambda_up} "
         f"exp.train.load_up_pkl={config.load_up_pkl} "
         f"exp.train.log_dir={stage_2_log_dir} "
         f"exp.train.load_ckpt={config.load_stage_2_ckpt or 'null'}",

@@ -115,9 +115,6 @@ class CelebA(Dataset):
             logger.info(f"Subgroup attributes  : {self.subgroup_attributes}")
             logger.info(f"Subgroup combinations: {self.subgroup_combinations}")
 
-            ## need to fix this such that it is output per channel
-            #torch.bincount(self.subgroups.squeeze(dim=1)).tolist()
-
             bin_counts = []
             for channel in range(self.subgroups.shape[1]):
                 bin_counts.append(torch.bincount(self.subgroups[:, channel]))
