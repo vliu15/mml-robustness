@@ -149,7 +149,7 @@ def main(config):
 
         train_dataloader, _ = init_dataloaders(stage_1_config)
 
-        # TODO: make construct_error_set support multiple tasks
+        # Accumulate error set per task
         error_sets = {}
         pickle_metas = {}
         for task in range(len(config.groupings)):
@@ -157,7 +157,7 @@ def main(config):
             error_sets[task] = error_indices
             pickle_metas[f"Task {task}"] = pickle_meta
 
-        # Merge error sets for MTL
+        # Merge error sets: note that error indices are already upsampled, so dataset doesn't handle upsampling
         if len(config.groupings):
             with open(os.path.join(config.log_dir, "stage_1", "final_val_stats.json"), "r") as f:
                 val_stats = json.load(f)
@@ -167,6 +167,8 @@ def main(config):
                 how=config.mtl_join_type,
                 val_stats=val_stats,
             )
+        else:
+            error_indices = list(error_indices) * config.lambda_up
 
         config.load_up_pkl = os.path.join(config.log_dir, f"jtt_error_set_{config.mtl_join_type}.pkl")
         with open(config.load_up_pkl, "wb") as f:
