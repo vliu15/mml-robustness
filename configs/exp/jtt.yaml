@@ -3,12 +3,15 @@ stage_1_config: jtt_stage_1
 stage_2_config: jtt_stage_2
 
 # Base log dir for both phases of ERM training
-log_dir: &log_dir ./logs/jtt
-groupings: [0]
+log_dir: &log_dir ./logs/jtt-mtl2
+groupings: ["Young:Attractive", "Smiling:High_Cheekbones"]
+task_weights: [1, 1]
 
-up_type: upsample  # one of [upsample, upweight]
+up_type: upsample  # one of [upsample, upweight (deprecated)]
 lambda_up: 50
 load_up_pkl: null  # specify this to load it
+
+mtl_join_type: inv  # one of [xor, inv, task]
 
 load_stage_1_ckpt: null
 load_stage_2_ckpt: null

@@ -105,14 +105,14 @@ class ResNet(ClassificationModel):
         loss = loss * w.reshape(-1, 1)
 
         ## apply multi task weighting to loss
-        task_weights = torch.tensor(self.config.dataset.task_weights, device=loss.device).float()
+        task_weights = torch.tensor(self.config.dataset.task_weights, device=loss.device, dtype=loss.dtype)
         loss = loss * task_weights.unsqueeze(dim=0)
 
         output_dict = {}
         with torch.no_grad():
 
             # [1] Loop over tasks first
-            for i, task in zip(range(logits.shape[1]), self.grouping.task_labels):
+            for i, task in enumerate(self.grouping.task_labels):
                 task_logits = logits[:, i]
                 y_task = y[:, i]
                 g_task = g[:, i]
@@ -147,20 +147,21 @@ class ResNet(ClassificationModel):
             if first_batch_loss is None:
                 output_dict['first_batch_loss'] = loss_batch_mean
                 output_dict["loss"] = torch.sum(
-                    loss_batch_mean * torch.pow(torch.ones(logits.shape[1], device=device), self.config.dataset.lbtw_alpha)
+                    loss_batch_mean *
+                    torch.pow(torch.ones(logits.shape[1], device=loss.device), self.config.dataset.lbtw_alpha)
                 )
             else:
                 new_task_weights = []
                 for col in range(logits.shape[1]):
                     new_task_weights.append(loss_batch_mean[col] / first_batch_loss[col])
 
-                new_task_weights = torch.tensor(new_task_weights, device=device).float()
+                new_task_weights = torch.tensor(new_task_weights, device=loss.device, dtype=loss.dtype)
                 output_dict["loss"] = torch.sum(loss_batch_mean * torch.pow(new_task_weights, self.config.dataset.lbtw_alpha))
 
         else:
             ## sum loss on channel then take mean
             loss = loss.sum(dim=1)
-            output_dict["loss"] = loss.mean()  # NOTE(vliu15) all tasks are weighted equally here
+            output_dict["loss"] = loss.mean()
 
         output_dict["yh"] = logits.detach()
         return output_dict

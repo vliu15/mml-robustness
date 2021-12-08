@@ -41,15 +41,16 @@ def init_datasets(config):
         if config.train.up_type == "upsample":
             from datasets.upsample import UpsampledDataset
             return (
-                UpsampledDataset(dataset(config, split='train'), config.train.lambda_up, config.train.load_up_pkl),
+                UpsampledDataset(dataset(config, split='train'), config.train.load_up_pkl),
                 dataset(config, split='val'),
             )
         elif config.train.up_type == "upweight":
-            from datasets.upweight import UpweightedDataset
-            return (
-                UpweightedDataset(dataset(config, split='train'), config.train.lambda_up, config.train.load_up_pkl),
-                dataset(config, split='val'),
-            )
+            raise ValueError(f"up_type `upweight` is deprecated")
+            # from datasets.upweight import UpweightedDataset
+            # return (
+            #     UpweightedDataset(dataset(config, split='train'), config.train.lambda_up, config.train.load_up_pkl),
+            #     dataset(config, split='val'),
+            # )
         else:
             raise ValueError(f"Didn't recognize up_type {config.train.up_type}")
 
@@ -74,6 +75,7 @@ def init_dataloaders(config):
             num_workers=config.dataloader.num_workers,
             shuffle=False,
             pin_memory=True,
+            drop_last=False,
         ),
     )
 
@@ -98,6 +100,7 @@ def init_test_dataloader(config):
         num_workers=config.dataloader.num_workers,
         shuffle=False,
         pin_memory=True,
+        drop_last=False,
     )
 
 
