@@ -2,7 +2,7 @@
 
 import os
 import random
-from typing import Dict
+from typing import Dict, Iterable
 
 import numpy as np
 import torch
@@ -19,9 +19,9 @@ def barrier() -> None:
         distributed.barrier()
 
 
-def to_device(batch, device):
+def to_device(batch: Iterable[torch.Tensor], device: str):
     """Puts a batch onto the specified device"""
-    return [b.to(device) for b in batch if isinstance(b, torch.Tensor)]
+    return [b.to(device) if isinstance(b, torch.Tensor) else None for b in batch]
 
 
 def seed_all_rng(seed: int, cuda: bool = True) -> None:
@@ -92,6 +92,7 @@ def accumulate_stats(
         accumulated_loss[key] += loss_dict[key].cpu().item() * batch_size / over_n_examples
     for key in metrics_dict.keys():
         if "counts" in key:
+            key = key.replace("counts", "acc")
             accumulated_metrics[key] += metrics_dict[key].cpu().item()
         else:
             accumulated_metrics[key] += metrics_dict[key].cpu().item() * batch_size / over_n_examples

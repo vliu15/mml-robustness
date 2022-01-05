@@ -79,8 +79,8 @@ def init_dataloaders(config):
         from torch.utils.data.distributed import DistributedSampler
         train_dataloader = DataLoader(
             train_dataset,
-            batch_size=config.train.batch_size,
-            num_workers=config.train.num_workers,
+            batch_size=config.dataloader.batch_size,
+            num_workers=config.dataloader.num_workers,
             sampler=DistributedSampler(train_dataset, num_replicas=world_size, rank=rank, shuffle=True),
             pin_memory=True,
             drop_last=False,
@@ -90,8 +90,8 @@ def init_dataloaders(config):
         rank = 0
         train_dataloader = DataLoader(
             train_dataset,
-            batch_size=config.train.batch_size,
-            num_workers=config.train.num_workers,
+            batch_size=config.dataloader.batch_size,
+            num_workers=config.dataloader.num_workers,
             shuffle=True,
             pin_memory=True,
             drop_last=False,
@@ -102,8 +102,8 @@ def init_dataloaders(config):
     if rank == 0:
         val_dataloader = DataLoader(
             dataset(config, split="val"),
-            batch_size=config.train.batch_size,
-            num_workers=config.train.num_workers,
+            batch_size=config.dataloader.batch_size,
+            num_workers=config.dataloader.num_workers,
             pin_memory=True,
             drop_last=False,
             collate_fn=dataset.collate,

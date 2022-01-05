@@ -1,6 +1,10 @@
 """Returns results dict with best worst-subgroup accuracy
 
-python -m scripts.find_best_test_result --results_dir ./logs/jtt/stage_2/results/ --task Attractive
+Sample usage:
+python -m scripts.find_best_test_result \
+    --results_dir ./logs/jtt/stage_2/results/ \
+    --task Attractive \
+    --attr Smiling
 """
 
 import argparse

@@ -1,6 +1,5 @@
 """Contains the entire train function for both train.py and train_ddp.py."""
 
-import json
 import logging
 import os
 from collections import defaultdict
@@ -203,7 +202,6 @@ def val_epoch(
     """Runs one epoch of validation"""
     losses, metrics = defaultdict(float), defaultdict(float)
 
-    y, yh = [], []
     with torch.no_grad():
         model.eval()
         ema.swap()

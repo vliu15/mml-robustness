@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# Sample usage:
+# bash scripts/run_hparam_search.sh
+
 for wd in 1 .1 .01 .001 .0001; do
     for lr in .001 .0001; do
         python ./train_erm.py \

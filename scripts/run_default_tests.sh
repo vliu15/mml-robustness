@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Sample usage:
+# bash scripts/run_default_tests.sh
+
 # #################################################
 # For reference, here are groupings that belong
 # together based on same task label during training
