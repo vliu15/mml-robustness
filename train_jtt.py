@@ -6,9 +6,11 @@ import os
 import pickle
 import subprocess
 from collections import Counter, defaultdict
+from functools import reduce
 from typing import Dict, List
 
 import hydra
+import numpy as np
 import torch
 import torch.nn as nn
 from omegaconf import DictConfig, OmegaConf

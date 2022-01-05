@@ -59,42 +59,41 @@ class ResNet(ClassificationModel):
         loss = loss * task_weights.unsqueeze(dim=0)
 
         ## loop over columns in logits
-        output_dict = {}
+        loss_dict, metrics_dict = {}, {}
         for col, name in zip(range(logits.shape[1]), self.grouping.task_labels):
             task_logits = logits[:, col]
             y_task = y[:, col]
             task_loss = loss[:, col].mean()
-            output_dict[f"loss_{name}"] = task_loss
+            loss_dict[f"{name}_loss"] = task_loss
 
             with torch.no_grad():
                 accuracy = ((task_logits > 0.0) == y_task.bool()).float().mean()
                 ## in the case of jtt only one task and hence:
-                output_dict[f"metric_{name}_avg_acc"] = accuracy
+                metrics_dict[f"{name}_avg_acc"] = accuracy
 
         ### loss based task weighting
         if self.config.dataset.get("loss_based_task_weighting", False):
             loss_batch_mean = loss.mean(dim=0)
 
             if first_batch_loss is None:
-                output_dict['first_batch_loss'] = loss_batch_mean
-                output_dict["loss"] = torch.sum(
-                    loss_batch_mean * torch.pow(torch.ones(logits.shape[1], device=device), self.config.dataset.lbtw_alpha)
+                loss_dict["first_batch_loss"] = loss_batch_mean
+                loss_dict["loss"] = torch.sum(
+                    loss_batch_mean * torch.pow(torch.ones(logits.shape[1], device=x.device), self.config.dataset.lbtw_alpha)
                 )
             else:
                 new_task_weights = []
                 for col in range(logits.shape[1]):
                     new_task_weights.append(loss_batch_mean[col] / first_batch_loss[col])
 
-                new_task_weights = torch.tensor(new_task_weights, device=device).float()
-                output_dict["loss"] = torch.sum(loss_batch_mean * torch.pow(new_task_weights, self.config.dataset.lbtw_alpha))
+                new_task_weights = torch.tensor(new_task_weights, device=x.device).float()
+                loss_dict["loss"] = torch.sum(loss_batch_mean * torch.pow(new_task_weights, self.config.dataset.lbtw_alpha))
 
         else:
             ## sum loss on channel then take mean
             loss = loss.sum(dim=1)
-            output_dict["loss"] = loss.mean()  # NOTE(vliu15) all tasks are weighted equally here
+            loss_dict["loss"] = loss.mean()  # NOTE(vliu15) all tasks are weighted equally here
 
-        output_dict["yh"] = logits.detach()
-        return output_dict
+        return loss_dict, metrics_dict
 
     ### can only support binary in this setting due to no seperate linear layer per task
     def forward_subgroup(self, x, y, g, w, first_batch_loss=None):
@@ -108,7 +107,7 @@ class ResNet(ClassificationModel):
         task_weights = torch.tensor(self.config.dataset.task_weights, device=loss.device, dtype=loss.dtype)
         loss = loss * task_weights.unsqueeze(dim=0)
 
-        output_dict = {}
+        loss_dict, metrics_dict = {}, {}
         with torch.no_grad():
 
             # [1] Loop over tasks first
@@ -119,8 +118,8 @@ class ResNet(ClassificationModel):
                 task_loss = loss[:, i]
 
                 # [1.1] Compute task average
-                output_dict[f"loss_{task}"] = task_loss.mean()
-                output_dict[f"metric_{task}_avg_acc"] = ((task_logits > 0.0) == y_task.bool()).float().mean()
+                loss_dict[f"{task}_loss"] = task_loss.mean()
+                metrics_dict[f"{task}_avg_acc"] = ((task_logits > 0.0) == y_task.bool()).float().mean()
 
                 # Only run this in eval since we don't log batch metrics in training
                 # since not all subgroups are guaranteed to be present
@@ -132,12 +131,12 @@ class ResNet(ClassificationModel):
                         y_subgroup = y_task[(g_task == j).nonzero(as_tuple=True)[0]]
 
                         # Store accuracy components as counts in the format [correct, total] in numpy arrays so they can be easily added
-                        subgroup_counts_key = f"metric_{task}_g{j}_counts"
+                        subgroup_counts_key = f"{task}_g{j}_counts"
                         if logits_subgroup.shape[0] == 0:
-                            output_dict[subgroup_counts_key] = np.array([0, 0], dtype=np.float32)
+                            metrics_dict[subgroup_counts_key] = np.array([0, 0], dtype=np.float32)
                         else:
                             num_correct = ((logits_subgroup > 0.0) == y_subgroup.bool()).float().sum().item()
-                            output_dict[subgroup_counts_key] = np.array(
+                            metrics_dict[subgroup_counts_key] = np.array(
                                 [num_correct, logits_subgroup.shape[0]], dtype=np.float32
                             )
 
@@ -145,8 +144,8 @@ class ResNet(ClassificationModel):
         if self.config.dataset.get("loss_based_task_weighting", False):
             loss_batch_mean = loss.mean(dim=0)
             if first_batch_loss is None:
-                output_dict['first_batch_loss'] = loss_batch_mean
-                output_dict["loss"] = torch.sum(
+                loss_dict["first_batch_loss"] = loss_batch_mean
+                loss_dict["loss"] = torch.sum(
                     loss_batch_mean *
                     torch.pow(torch.ones(logits.shape[1], device=loss.device), self.config.dataset.lbtw_alpha)
                 )
@@ -156,15 +155,14 @@ class ResNet(ClassificationModel):
                     new_task_weights.append(loss_batch_mean[col] / first_batch_loss[col])
 
                 new_task_weights = torch.tensor(new_task_weights, device=loss.device, dtype=loss.dtype)
-                output_dict["loss"] = torch.sum(loss_batch_mean * torch.pow(new_task_weights, self.config.dataset.lbtw_alpha))
+                loss_dict["loss"] = torch.sum(loss_batch_mean * torch.pow(new_task_weights, self.config.dataset.lbtw_alpha))
 
         else:
             ## sum loss on channel then take mean
             loss = loss.sum(dim=1)
-            output_dict["loss"] = loss.mean()
+            loss_dict["loss"] = loss.mean()
 
-        output_dict["yh"] = logits.detach()
-        return output_dict
+        return loss_dict, metrics_dict
 
 
 class ResNet50(ResNet):
