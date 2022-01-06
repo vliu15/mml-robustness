@@ -25,7 +25,7 @@ from utils.train_utils import (
 
 # On rice.stanford.edu, only older versions of pytorch are supported
 try:
-    from torch.cuda.amp.autocast import GradScaler
+    from torch.cuda.amp.GradScaler import GradScaler
 except ModuleNotFoundError:
     GradScaler = None
 
@@ -45,6 +45,7 @@ def train_step(
     scaler: GradScaler = None,
     device: str,
     rank: int = 0,
+    first_batch_loss: torch.Tensor = None,
 ):
     """Performs one step of forward pass, backpropagation, optimizer and EMA step"""
     batch = to_device(batch, device)
@@ -55,8 +56,12 @@ def train_step(
         with torch.cuda.amp.autocast(enabled=config.train.fp16):
             scaling_factor = scaler.get_scale()
 
-            loss_dict, metrics_dict = model.supervised_step(batch)
+            loss_dict, metrics_dict = model.supervised_step(
+                batch, subgroup=config.dataset.subgroup_labels, first_batch_loss=first_batch_loss
+            )
             loss = loss_dict["loss"]
+            if first_batch_loss is None and config.dataset.loss_based_task_weighting:
+                first_batch_loss.data = loss_dict["first_batch_loss"].data
             scaler.scale(loss).backward()
             # Optionally apply gradient clipping
             if config.train.grad_clip_norm:
@@ -73,8 +78,12 @@ def train_step(
 
     # Full precision: O0 forward pass with optional gradient clipping, schedule LR
     else:
-        loss_dict, metrics_dict = model.supervised_step(batch)
+        loss_dict, metrics_dict = model.supervised_step(
+            batch, subgroup=config.dataset.subgroup_labels, first_batch_loss=first_batch_loss
+        )
         loss = loss_dict["loss"]
+        if first_batch_loss is None and config.dataset.loss_based_task_weighting:
+            first_batch_loss.data = loss_dict["first_batch_loss"].data
         if torch.isnan(loss):
             print(
                 dict(
@@ -115,6 +124,7 @@ def train_epoch(
     """Runs one epoch of standard neural network training"""
     postfix = {}
     losses, metrics = defaultdict(float), defaultdict(float)
+    first_batch_loss = None
 
     # Train epoch
     with tqdm(
@@ -139,6 +149,7 @@ def train_epoch(
                 scaler=scaler,
                 device=device,
                 rank=rank,
+                first_batch_loss=first_batch_loss,
             )
 
             # Update per-rank stepwise averages
@@ -170,22 +181,19 @@ def train_epoch(
                     pbar.set_postfix(postfix)
                     losses, metrics = defaultdict(float), defaultdict(float)
 
-                # Save checkpoint
-                if global_step % config.train.ckpt_every_n_steps == 0:
-                    save_checkpoint(config, global_step, epoch, model, ema, optimizer, scheduler)
-
     return global_step, epoch
 
 
 def val_step(
     *,
     batch: Iterable[torch.Tensor],
+    config: DictConfig,
     model: nn.Module,
     device: str,
 ):
     """Performs one validation step"""
     batch = to_device(batch, device)
-    loss_dict, metrics_dict = model.supervised_step(batch)
+    loss_dict, metrics_dict = model.supervised_step(batch, subgroup=config.dataset.subgroup_labels, first_batch_loss=None)
     return loss_dict, metrics_dict
 
 
@@ -214,6 +222,7 @@ def val_epoch(
         ):
             loss_dict, metrics_dict = val_step(
                 batch=batch,
+                config=config,
                 model=model,
                 device=device,
             )
@@ -263,24 +272,27 @@ def train(
     if rank == 0:
         get_top_level_summary(model)
 
-    if config.train.run_sanity_val_epoch and rank == 0:
-        logger.info("Running sanity val epoch")
-        postfix = val_epoch(
-            epoch=epoch,
-            config=config,
-            model=model,
-            ema=ema,
-            val_dataloader=val_dataloader,
-            writer=writer,
-            device=device,
-        )
-        logger.info("Sanity val epoch done: %s", postfix)
+    # Additional global variables
+    scaler = GradScaler() if config.train.fp16 else None
 
     # Train
     postfix = {}
-    scaler = GradScaler() if config.train.fp16 else None
     with tqdm(initial=epoch, total=config.train.total_epochs, desc="Global epoch", postfix=postfix,
               disable=(rank != 0)) as pbar:
+
+        if config.train.run_sanity_val_epoch and rank == 0:
+            logger.info("Running sanity val epoch")
+            postfix = val_epoch(
+                epoch=epoch,
+                config=config,
+                model=model,
+                ema=ema,
+                val_dataloader=val_dataloader,
+                writer=writer,
+                device=device,
+            )
+            pbar.set_postfix(postfix)
+            logger.info("Sanity val epoch done: %s", postfix)
 
         # Loop through epochs
         while True:
@@ -317,6 +329,10 @@ def train(
             pbar.update(1)
             epoch = epoch + 1
 
+            # Save checkpoint
+            if global_step % config.train.ckpt_every_n_epochs == 0:
+                save_checkpoint(config, global_step, epoch, model, ema, optimizer, scheduler)
+
     if rank == 0:
         save_checkpoint(config, global_step, -1, model, ema, optimizer, scheduler)
         writer.close()
@@ -328,7 +344,7 @@ def train(
 def train_ddp(rank, world_size, config):
     """Entry point into ddp training"""
     # RNG
-    seed_all_rng(config.train.seed, cuda=True)
+    seed_all_rng(config.seed, cuda=True)
 
     # Initialize rank process
     os.environ["MASTER_ADDR"] = "localhost"
@@ -393,7 +409,7 @@ def train_single(config):
     """Entry point into single xpu training"""
     # RNG
     cuda = torch.cuda.is_available()
-    seed_all_rng(config.train.seed, cuda=cuda)
+    seed_all_rng(config.seed, cuda=cuda)
 
     device = torch.device("cuda") if cuda else torch.device("cpu")
 

@@ -3,7 +3,6 @@
 import logging
 
 import hydra
-import torch
 import torch.multiprocessing as multiprocessing
 
 from train_common import train_ddp, train_single
@@ -34,6 +33,13 @@ def main(config):
     if config.dataset.loss_based_task_weighting:
         if len(set(config.dataset.task_weights)) != 1 or 1 not in config.dataset.task_weights:
             raise ValueError("To apply loss based task weighting, the original task weights must be all 1")
+
+    if config.train.fp16:
+        try:
+            import torch.cuda.amp
+        except ModuleNotFoundError:
+            config.train.fp16 = False
+            logger.info("torch.cuda.amp.autocast not found, forcing training in FP32")
 
     # Determine whether to launch single or multi-gpu training
     n_gpus = min(config.train.n_gpus, max_gpus)

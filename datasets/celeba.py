@@ -118,7 +118,7 @@ class CelebA(Dataset):
             bin_counts = []
             for channel in range(self.subgroups.shape[1]):
                 bin_counts.append(torch.bincount(self.subgroups[:, channel]))
-            counts = torch.vstack(bin_counts)
+            counts = torch.stack(bin_counts, dim=0)
             logger.info(f'Subgroup counts: {counts.detach().cpu().numpy()}')
 
     def __getitem__(self, index):
@@ -129,9 +129,9 @@ class CelebA(Dataset):
         # Return type: [image index, image, image label, image subgroup, image weight]
         if self.subgroup_labels:
             subgroup_label = self.subgroups[index]
-            return index, image, label.to(image.dtype), subgroup_label, 1.0
+            return index, image, label.to(image.dtype), subgroup_label, np.float32(1.0)
         else:
-            return index, image, label.to(image.dtype), 0, 1.0  # dummy group (everything is group 0)
+            return index, image, label.to(image.dtype), 0, np.float32(1.0)  # dummy group (everything is group 0)
 
     def __len__(self):
         return len(self.attr)

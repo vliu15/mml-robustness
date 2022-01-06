@@ -3,6 +3,7 @@ import logging
 import numpy as np
 import torch
 import torch.nn.functional as F
+import torchvision
 
 from datasets.groupings import get_grouping_object
 from models.base import ClassificationModel
@@ -34,9 +35,8 @@ class ResNet(ClassificationModel):
         )
 
         if config.model.pretrained:
-            from torchvision.models.utils import load_state_dict_from_url
-            state_dict = load_state_dict_from_url("https://download.pytorch.org/models/resnet50-0676ba61.pth", progress=True)
             # NOTE(vliu15): throw out the fc weights since these are linear projections to ImageNet classes
+            state_dict = torchvision.models.resnet50(pretrained=True).state_dict()
             state_dict.pop("fc.weight")
             state_dict.pop("fc.bias")
             self.resnet.load_state_dict(state_dict, strict=False)
@@ -76,7 +76,7 @@ class ResNet(ClassificationModel):
             loss_batch_mean = loss.mean(dim=0)
 
             if first_batch_loss is None:
-                loss_dict["first_batch_loss"] = loss_batch_mean
+                loss_dict["first_batch_loss"] = loss_batch_mean.detach()
                 loss_dict["loss"] = torch.sum(
                     loss_batch_mean * torch.pow(torch.ones(logits.shape[1], device=x.device), self.config.dataset.lbtw_alpha)
                 )
@@ -144,7 +144,7 @@ class ResNet(ClassificationModel):
         if self.config.dataset.get("loss_based_task_weighting", False):
             loss_batch_mean = loss.mean(dim=0)
             if first_batch_loss is None:
-                loss_dict["first_batch_loss"] = loss_batch_mean
+                loss_dict["first_batch_loss"] = loss_batch_mean.detach()
                 loss_dict["loss"] = torch.sum(
                     loss_batch_mean *
                     torch.pow(torch.ones(logits.shape[1], device=loss.device), self.config.dataset.lbtw_alpha)

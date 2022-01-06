@@ -135,6 +135,8 @@ def main(config):
             f"exp.dataset.subgroup_labels=true "
             f"exp.dataset.groupings={groupings} "
             f"exp.dataset.task_weights={task_weights} "
+            f"exp.dataset.loss_based_task_weighting={config.loss_based_task_weighting} "
+            f"exp.dataset.lbtw_alpha={config.lbtw_alpha} "
             f"exp.train.log_dir={stage_1_log_dir} "
             f"exp.train.load_ckpt={config.load_stage_1_ckpt or 'null'}",
             shell=True,
@@ -191,6 +193,8 @@ def main(config):
         f"exp.dataset.subgroup_labels=true "
         f"exp.dataset.groupings={groupings} "
         f"exp.dataset.task_weights={task_weights} "
+        f"exp.dataset.loss_based_task_weighting={config.loss_based_task_weighting} "
+        f"exp.dataset.lbtw_alpha={config.lbtw_alpha} "
         f"exp.train.up_type={config.up_type} "
         f"exp.train.load_up_pkl={config.load_up_pkl} "
         f"exp.train.log_dir={stage_2_log_dir} "

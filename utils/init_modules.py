@@ -63,13 +63,7 @@ def init_datasets(config):
 
 def init_dataloaders(config):
     """Returns train and val dataloaders (val only for rank==0)"""
-    import importlib
-
-    # Init datasets
-    dataset_file, dataset_class = config.dataset["_import_"].rsplit(".", 1)
-    dataset = getattr(importlib.import_module(dataset_file), dataset_class)
-
-    train_dataset = dataset(config, split="train")
+    train_dataset, val_dataset = init_datasets(config)
 
     # Init (DDP) train dataloader
     from torch.utils.data import DataLoader
@@ -84,7 +78,6 @@ def init_dataloaders(config):
             sampler=DistributedSampler(train_dataset, num_replicas=world_size, rank=rank, shuffle=True),
             pin_memory=True,
             drop_last=False,
-            collate_fn=dataset.collate,
         )
     else:
         rank = 0
@@ -95,18 +88,16 @@ def init_dataloaders(config):
             shuffle=True,
             pin_memory=True,
             drop_last=False,
-            collate_fn=dataset.collate,
         )
 
     # Init (Rank 0) val dataloader
     if rank == 0:
         val_dataloader = DataLoader(
-            dataset(config, split="val"),
+            val_dataset,
             batch_size=config.dataloader.batch_size,
             num_workers=config.dataloader.num_workers,
             pin_memory=True,
             drop_last=False,
-            collate_fn=dataset.collate,
         )
     else:
         val_dataloader = None

@@ -79,6 +79,24 @@ def get_top_level_summary(model: nn.Module) -> None:
     print(model_summary + "\n" + parameters_summary + "\n")
 
 
+def to_scalar(x):
+    if isinstance(x, torch.Tensor):
+        return x.detach().cpu().item()
+    elif isinstance(x, np.ndarray):
+        return x.asscalar()
+    else:
+        return x
+
+
+def to_array(x):
+    if isinstance(x, torch.Tensor):
+        return x.detach().cpu().numpy()
+    elif isinstance(x, list):
+        return np.array(x)
+    else:
+        return x
+
+
 def accumulate_stats(
     loss_dict: Dict[str, torch.Tensor],
     metrics_dict: Dict[str, torch.Tensor],
@@ -92,10 +110,9 @@ def accumulate_stats(
         accumulated_loss[key] += loss_dict[key].cpu().item() * batch_size / over_n_examples
     for key in metrics_dict.keys():
         if "counts" in key:
-            key = key.replace("counts", "acc")
-            accumulated_metrics[key] += metrics_dict[key].cpu().item()
+            accumulated_metrics[key] += to_array(metrics_dict[key])
         else:
-            accumulated_metrics[key] += metrics_dict[key].cpu().item() * batch_size / over_n_examples
+            accumulated_metrics[key] += to_scalar(metrics_dict[key]) * batch_size / over_n_examples
 
 
 def log_stats(
@@ -108,9 +125,12 @@ def log_stats(
     """Logs loss and metrics into tensorboard"""
     for key in losses.keys():
         writer.add_scalar(f"loss/{split}_{key}", losses[key], step_or_epoch)
-    for key in metrics.keys():
+    for key in list(metrics.keys()):
         if "counts" in key:
-            metrics[key] = metrics[key][0] / metrics[key][1]
+            new_key = key.replace("counts", "acc")
+            metrics[new_key] = metrics[key][0] / metrics[key][1]
+            metrics.pop(key)
+            key = new_key
         writer.add_scalar(f"metrics/{split}_{key}", metrics[key], step_or_epoch)
 
 
