@@ -3,7 +3,6 @@
 import logging
 
 import hydra
-import torch  # pylint: disable=unused-import
 import torch.multiprocessing as multiprocessing
 
 from train_common import train_ddp, train_single
@@ -16,6 +15,8 @@ logger = logging.getLogger(__name__)
 @hydra.main(config_path="configs/", config_name="default")
 def main(config):
     """Entry point into ERM training"""
+    import torch  # idk why this throws an error when imported globally
+
     config = config.exp
     init_logdir(config)
 
