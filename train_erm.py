@@ -3,6 +3,7 @@
 import logging
 
 import hydra
+import torch  # pylint: disable=unused-import
 import torch.multiprocessing as multiprocessing
 
 from train_common import train_ddp, train_single

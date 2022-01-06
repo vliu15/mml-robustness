@@ -25,7 +25,7 @@ from utils.train_utils import (
 
 # On rice.stanford.edu, only older versions of pytorch are supported
 try:
-    from torch.cuda.amp.GradScaler import GradScaler
+    from torch.cuda.amp import GradScaler
 except ModuleNotFoundError:
     GradScaler = None
 
