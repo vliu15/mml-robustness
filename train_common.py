@@ -294,6 +294,8 @@ def train(
                 device=device,
             )
             pbar.set_postfix(postfix)
+            with open(os.path.join(config.train.log_dir, "val_sanity.json"), "w") as f:
+                json.dump(postfix, f)
             logger.info("Sanity val epoch done: %s", postfix)
 
         # Loop through epochs
