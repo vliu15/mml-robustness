@@ -83,7 +83,7 @@ def to_scalar(x):
     if isinstance(x, torch.Tensor):
         return x.detach().cpu().item()
     elif isinstance(x, np.ndarray):
-        return x.asscalar()
+        return x.item()
     else:
         return x
 
@@ -107,7 +107,7 @@ def accumulate_stats(
 ) -> None:
     """Accumulates loss into `accumulated_loss` and metrics into `accumulated_metrics` in-place"""
     for key in loss_dict.keys():
-        accumulated_loss[key] += loss_dict[key].cpu().item() * batch_size / over_n_examples
+        accumulated_loss[key] += to_scalar(loss_dict[key]) * batch_size / over_n_examples
     for key in metrics_dict.keys():
         if "counts" in key:
             accumulated_metrics[key] += to_array(metrics_dict[key])
@@ -128,7 +128,7 @@ def log_stats(
     for key in list(metrics.keys()):
         if "counts" in key:
             new_key = key.replace("counts", "acc")
-            metrics[new_key] = metrics[key][0] / metrics[key][1]
+            metrics[new_key] = to_scalar(metrics[key][0] / metrics[key][1])
             metrics.pop(key)
             key = new_key
         writer.add_scalar(f"metrics/{split}_{key}", metrics[key], step_or_epoch)

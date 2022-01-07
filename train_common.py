@@ -1,8 +1,10 @@
 """Contains the entire train function for both train.py and train_ddp.py."""
 
+import json
 import logging
 import os
 from collections import defaultdict
+from copy import deepcopy
 from typing import Iterable
 
 import torch
@@ -276,7 +278,7 @@ def train(
     scaler = GradScaler() if config.train.fp16 else None
 
     # Train
-    postfix = {}
+    postfix, all_val_stats = {}, {}
     with tqdm(initial=epoch, total=config.train.total_epochs, desc="Global epoch", postfix=postfix,
               disable=(rank != 0)) as pbar:
 
@@ -323,6 +325,7 @@ def train(
                     writer=writer,
                     device=device,
                 )
+                all_val_stats[epoch] = deepcopy(postfix)
 
             barrier()
             pbar.set_postfix(postfix)
@@ -336,6 +339,9 @@ def train(
     if rank == 0:
         save_checkpoint(config, global_step, -1, model, ema, optimizer, scheduler)
         writer.close()
+
+        with open(os.path.join(config.train.log_dir, "val_stats.json"), "w") as f:
+            json.dump(all_val_stats, f)
 
 
 ## End of training helpers, train_multi for ddp and train_single for single xpu
