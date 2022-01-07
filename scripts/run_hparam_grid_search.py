@@ -86,7 +86,8 @@ def submit_erm_grid_jobs(args):
                 if args.mode == "debug":
                     print(command)
                 elif args.mode == "shell":
-                    print(f"{Color.BOLD}{Color.GREEN}RUNNING COMMAND {counter} / {total_commands}{Color.END}{Color.END}")
+                    message = f"RUNNING COMMAND {counter} / {total_commands}"
+                    print(f"{Color.BOLD}{Color.GREEN}{message}{Color.END}{Color.END}")
                     subprocess.run(command, shell=True, check=True)
                 elif args.mode == "sbatch":
                     sbatch = template.replace("$JOB_NAME", job_name).replace("$LOG_FILE",

@@ -15,6 +15,6 @@
 export OMP_NUM_THREADS=8            # Set parallel threads to --cpus-per-task
 
 source /home/vliu15/.bashrc         # Load anaconda and other jazz
-conda activate py37                 # Activate the training environment
+source activate py37                # Activate the training environment
 
 $COMMAND

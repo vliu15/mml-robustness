@@ -81,17 +81,17 @@ def get_top_level_summary(model: nn.Module) -> None:
 
 def to_scalar(x):
     if isinstance(x, torch.Tensor):
-        return x.detach().cpu().item()
+        return float(x.detach().cpu().item())
     elif isinstance(x, np.ndarray):
-        return x.item()
+        return float(x.item())
     else:
-        return x
+        return float(x)
 
 
 def to_array(x):
     if isinstance(x, torch.Tensor):
         return x.detach().cpu().numpy()
-    elif isinstance(x, list):
+    elif isinstance(x, (list, tuple)):
         return np.array(x)
     else:
         return x
@@ -107,12 +107,12 @@ def accumulate_stats(
 ) -> None:
     """Accumulates loss into `accumulated_loss` and metrics into `accumulated_metrics` in-place"""
     for key in loss_dict.keys():
-        accumulated_loss[key] += to_scalar(loss_dict[key]) * batch_size / over_n_examples
+        accumulated_loss[key] += to_scalar(loss_dict[key] * batch_size / over_n_examples)
     for key in metrics_dict.keys():
         if "counts" in key:
             accumulated_metrics[key] += to_array(metrics_dict[key])
         else:
-            accumulated_metrics[key] += to_scalar(metrics_dict[key]) * batch_size / over_n_examples
+            accumulated_metrics[key] += to_scalar(metrics_dict[key] * batch_size / over_n_examples)
 
 
 def log_stats(
