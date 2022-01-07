@@ -1,8 +1,8 @@
 """
-Handy script to submit sbatch jobs for hyperparameter grid searches
+Handy script to run jobs for hyperparameter grid searches
 
 Sample usage:
-python -m sbatch.submit_hparam_grid_search \
+python -m scripts.run_hparam_grid_search \
     --template ./scripts/sbatch_template.sh \
     --mode sbatch \
     --slurm_logs ./slurm_logs
