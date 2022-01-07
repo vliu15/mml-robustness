@@ -47,6 +47,7 @@ train:
     grad_clip_norm: null
     ema: false
     fp16: true
+    run_sanity_val_epoch: true
 
     # should only be overwritten from train_jtt #
     up_type: ???  # one of [upsample, upweight, null]

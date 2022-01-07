@@ -6,6 +6,8 @@ stage_2_config: jtt_stage_2
 log_dir: &log_dir ./logs/jtt-mtl2
 groupings: ["Young:Attractive", "Smiling:High_Cheekbones"]
 task_weights: [1, 1]
+loss_based_task_weighting: false
+lbtw_alpha: 0.5
 
 up_type: upsample  # one of [upsample, upweight (deprecated)]
 lambda_up: 50

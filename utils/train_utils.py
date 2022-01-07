@@ -2,17 +2,26 @@
 
 import os
 import random
+from typing import Dict, Iterable
 
 import numpy as np
 import torch
+import torch.distributed as distributed
 import torch.nn as nn
 from omegaconf import DictConfig
 from tabulate import tabulate
+from torch.utils.tensorboard import SummaryWriter
 
 
-def to_device(batch, device):
+def barrier() -> None:
+    """Handy wrapper for distributed training (noop in single xpu training)"""
+    if distributed.is_initialized():
+        distributed.barrier()
+
+
+def to_device(batch: Iterable[torch.Tensor], device: str):
     """Puts a batch onto the specified device"""
-    return [b.to(device) for b in batch if isinstance(b, torch.Tensor)]
+    return [b.to(device) if isinstance(b, torch.Tensor) else None for b in batch]
 
 
 def seed_all_rng(seed: int, cuda: bool = True) -> None:
@@ -68,6 +77,61 @@ def get_top_level_summary(model: nn.Module) -> None:
     )
 
     print(model_summary + "\n" + parameters_summary + "\n")
+
+
+def to_scalar(x):
+    if isinstance(x, torch.Tensor):
+        return float(x.detach().cpu().item())
+    elif isinstance(x, np.ndarray):
+        return float(x.item())
+    else:
+        return float(x)
+
+
+def to_array(x):
+    if isinstance(x, torch.Tensor):
+        return x.detach().cpu().numpy()
+    elif isinstance(x, (list, tuple)):
+        return np.array(x)
+    else:
+        return x
+
+
+def accumulate_stats(
+    loss_dict: Dict[str, torch.Tensor],
+    metrics_dict: Dict[str, torch.Tensor],
+    accumulated_loss: Dict[str, torch.Tensor],
+    accumulated_metrics: Dict[str, torch.Tensor],
+    over_n_examples: int,
+    batch_size: int = 1,
+) -> None:
+    """Accumulates loss into `accumulated_loss` and metrics into `accumulated_metrics` in-place"""
+    for key in loss_dict.keys():
+        accumulated_loss[key] += to_scalar(loss_dict[key] * batch_size / over_n_examples)
+    for key in metrics_dict.keys():
+        if "counts" in key:
+            accumulated_metrics[key] += to_array(metrics_dict[key])
+        else:
+            accumulated_metrics[key] += to_scalar(metrics_dict[key] * batch_size / over_n_examples)
+
+
+def log_stats(
+    step_or_epoch: int,
+    writer: SummaryWriter,
+    split: str,
+    losses: Dict[str, torch.Tensor] = {},
+    metrics: Dict[str, torch.Tensor] = {},
+) -> None:
+    """Logs loss and metrics into tensorboard"""
+    for key in losses.keys():
+        writer.add_scalar(f"loss/{split}_{key}", losses[key], step_or_epoch)
+    for key in list(metrics.keys()):
+        if "counts" in key:
+            new_key = key.replace("counts", "acc")
+            metrics[new_key] = to_scalar(metrics[key][0] / metrics[key][1])
+            metrics.pop(key)
+            key = new_key
+        writer.add_scalar(f"metrics/{split}_{key}", metrics[key], step_or_epoch)
 
 
 def save_checkpoint(

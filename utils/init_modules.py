@@ -3,29 +3,33 @@
 
 import logging
 
+import torch.distributed as distributed
+
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger(__name__)
 
 
-def init_model(config):
+def init_model(config, device="cuda"):
     if config.model.name == "resnet50":
         from models.resnet import ResNet50
-        return ResNet50(config)
+        model = ResNet50(config)
     else:
         raise ValueError(f"Didn't recognize model name {config.model.name}")
 
+    model = model.to(device)
 
-def init_ddp_model(config, rank):
-    model = init_model(config).to(rank)
+    # Wrap model in DDP if initialized
+    if distributed.is_initialized():
+        # Convert BN -> SyncBN if applicable
+        from torch.nn.modules.batchnorm import _BatchNorm
+        if any(isinstance(module, _BatchNorm) for module in model.modules()):
+            from torch.nn import SyncBatchNorm
+            model = SyncBatchNorm.convert_sync_batchnorm(model)
 
-    # Check for possible conversion to synchronized batchnorm
-    from torch.nn.modules.batchnorm import _BatchNorm
-    if any(isinstance(module, _BatchNorm) for module in model.modules()):
-        from torch.nn import SyncBatchNorm
-        model = SyncBatchNorm.convert_sync_batchnorm(model)
+        from torch.nn.parallel import DistributedDataParallel
+        rank = distributed.get_rank()
+        model = DistributedDataParallel(model, device_ids=[rank], output_device=rank, broadcast_buffers=True)
 
-    from torch.nn.parallel import DistributedDataParallel
-    model = DistributedDataParallel(model, device_ids=[rank], output_device=rank, broadcast_buffers=True)
     return model
 
 
@@ -58,26 +62,46 @@ def init_datasets(config):
 
 
 def init_dataloaders(config):
+    """Returns train and val dataloaders (val only for rank==0)"""
     train_dataset, val_dataset = init_datasets(config)
 
+    # Init (DDP) train dataloader
     from torch.utils.data import DataLoader
-    return (
-        DataLoader(
+    if distributed.is_initialized():
+        world_size = distributed.get_world_size()
+        rank = distributed.get_rank()
+        from torch.utils.data.distributed import DistributedSampler
+        train_dataloader = DataLoader(
+            train_dataset,
+            batch_size=config.dataloader.batch_size,
+            num_workers=config.dataloader.num_workers,
+            sampler=DistributedSampler(train_dataset, num_replicas=world_size, rank=rank, shuffle=True),
+            pin_memory=True,
+            drop_last=False,
+        )
+    else:
+        rank = 0
+        train_dataloader = DataLoader(
             train_dataset,
             batch_size=config.dataloader.batch_size,
             num_workers=config.dataloader.num_workers,
             shuffle=True,
             pin_memory=True,
-        ),
-        DataLoader(
+            drop_last=False,
+        )
+
+    # Init (Rank 0) val dataloader
+    if rank == 0:
+        val_dataloader = DataLoader(
             val_dataset,
             batch_size=config.dataloader.batch_size,
             num_workers=config.dataloader.num_workers,
-            shuffle=False,
             pin_memory=True,
             drop_last=False,
-        ),
-    )
+        )
+    else:
+        val_dataloader = None
+    return train_dataloader, val_dataloader
 
 
 def init_test_dataset(config):
@@ -102,30 +126,6 @@ def init_test_dataloader(config):
         pin_memory=True,
         drop_last=False,
     )
-
-
-def init_ddp_dataloaders(config, rank, world_size):
-    train_dataset, val_dataset = init_datasets(config)
-
-    from torch.utils.data import DataLoader
-    from torch.utils.data.distributed import DistributedSampler
-    train_dataloader = DataLoader(
-        train_dataset,
-        batch_size=config.dataloader.batch_size,
-        num_workers=config.dataloader.num_workers,
-        sampler=DistributedSampler(train_dataset, num_replicas=world_size, rank=rank, shuffle=True),
-        pin_memory=True,
-    )
-    if rank == 0:
-        val_dataloader = DataLoader(
-            val_dataset,
-            batch_size=config.dataloader.batch_size,
-            num_workers=config.dataloader.num_workers,
-            pin_memory=True,
-        )
-    else:
-        val_dataloader = None
-    return train_dataloader, val_dataloader
 
 
 def init_optimizer(config, model):
@@ -188,6 +188,7 @@ def init_logdir(config):
     config.train.log_dir = to_absolute_path(config.train.log_dir)
     os.makedirs(config.train.log_dir, exist_ok=True)
     os.makedirs(os.path.join(config.train.log_dir, "ckpts"), exist_ok=True)
+    os.makedirs(os.path.join(config.train.log_dir, "results"), exist_ok=True)
     with open(os.path.join(config.train.log_dir, "config.yaml"), "w") as f:
         OmegaConf.save(config=config, f=f.name)
 

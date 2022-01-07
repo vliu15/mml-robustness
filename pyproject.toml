@@ -20,5 +20,5 @@ dedent_closing_brackets = true                      # closing bracket is dedente
 [tool.pylint.'MESSAGES CONTROL']
 max-line-length = 127
 disable = 'all'
-enable = 'unused-variable,unused-import'  # only use pylint for linting unused stuff
-ignore = 'logs,data'
+ignore = 'logs/,data/'
+enable = 'unused-variable,unused-import'
