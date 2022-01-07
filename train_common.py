@@ -328,6 +328,8 @@ def train(
                     device=device,
                 )
                 all_val_stats[epoch] = deepcopy(postfix)
+                with open(os.path.join(config.train.log_dir, "results", f"val_stats_{epoch}.json"), "w") as f:
+                    json.dump(postfix, f)
 
             barrier()
             pbar.set_postfix(postfix)

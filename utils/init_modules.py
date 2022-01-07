@@ -188,6 +188,7 @@ def init_logdir(config):
     config.train.log_dir = to_absolute_path(config.train.log_dir)
     os.makedirs(config.train.log_dir, exist_ok=True)
     os.makedirs(os.path.join(config.train.log_dir, "ckpts"), exist_ok=True)
+    os.makedirs(os.path.join(config.train.log_dir, "results"), exist_ok=True)
     with open(os.path.join(config.train.log_dir, "config.yaml"), "w") as f:
         OmegaConf.save(config=config, f=f.name)
 
