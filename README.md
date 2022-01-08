@@ -9,24 +9,49 @@ Currently we only support the Celeb-A dataset and the following methodologies: E
 
 #### ERM:
 
-TODO:
+Run
+
+```
+python train_erm.py
+```
+
+where hyperparameters should be specified in the following config [file](https://github.com/vliu15/mml-robustness/blob/main/configs/exp/erm.yaml). Make sure that groupings is a list of length 1 to not accidentally run a MTL experiment.
 
 #### JTT:
 
-TODO:
+Run
+
+```
+python train_jtt.py
+```
+
+where hyperparameters should be specified in the following config [file](https://github.com/vliu15/mml-robustness/blob/main/configs/exp/jtt.yaml) and correspondingingly in `./jtt_stage_1.yaml` and `./jtt_stage_2.yaml`. Make sure that groupings is a list of length 1 to not accidentally run a MTL experiment. 
 
 #### MTL ERM:
 
-TODO:
+Run
+
+```
+python train_erm.py
+```
+
+where hyperparameters should be specified in the following config [file](https://github.com/vliu15/mml-robustness/blob/main/configs/exp/erm.yaml). Make sure that groupings is a list of length greather than 1 to not accidentally run a STL experiment. 
 
 #### MTL JTT:
 
-TODO:
+Run
 
-#### Hyperparameter Search:
+```
+python train_jtt.py
+```
 
-TODO:
+where hyperparameters should be specified in the following config [file](https://github.com/vliu15/mml-robustness/blob/main/configs/exp/jtt.yaml) and correspondingingly in `./jtt_stage_1.yaml` and `./jtt_stage_2.yaml`. Make sure that groupings is a list of length greather than 1 to not accidentally run a STL experiment. 
+
 
 #### Spurrious Correlate Identification:
 
-TODO:
+To identifty spurious correlates of a given task label run:
+
+```
+./scripts/run_spurious_identification.sh
+```
