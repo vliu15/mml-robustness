@@ -82,9 +82,6 @@ def main():
     model.load_state_dict(ckpt["model"])
     model.eval()
 
-    results_dir = os.path.join(args.log_dir, "results")
-    os.makedirs(results_dir, exist_ok=True)
-
     # Run test on trained grouping
     if args.split == "train":
         dataloader, _ = init_dataloaders(config)
@@ -95,6 +92,8 @@ def main():
 
     # Dsefaults to the same save format as val_stats from training
     if args.save_json == "":
+        results_dir = os.path.join(args.log_dir, "results")
+        os.makedirs(results_dir, exist_ok=True)
         args.save_json = os.path.join(results_dir, f"{args.split}_stats_{args.ckpt_num}.json")
 
     evaluate(
@@ -120,12 +119,12 @@ def evaluate(
     for batch in tqdm(
             dataloader,
             total=len(dataloader),
-            desc=f"Running eval on split {split}",
+            desc=f"Running eval on {split} split",
             leave=False,
     ):
         # Forward pass
         batch = to_device(batch, device)
-        loss_dict, metrics_dict = model.supervised_step(batch, subgroup=config.dataset.subgroup, first_batch_loss=False)
+        loss_dict, metrics_dict = model.supervised_step(batch, subgroup=config.dataset.subgroup_labels, first_batch_loss=None)
         accumulate_stats(
             loss_dict=loss_dict,
             metrics_dict=metrics_dict,

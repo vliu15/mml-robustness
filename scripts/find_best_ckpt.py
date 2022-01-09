@@ -12,7 +12,7 @@ val_stats = {
 }
 
 Sample usage:
-python -m scripts.find_best_val_ckpt \
+python -m scripts.find_best_ckpt \
     --log_dir logs/erm/Blond_Hair:Male \
     --run_test --test_groupings [Blond_Hair:Male]
 """
@@ -38,7 +38,8 @@ def parse_args():
     parser.add_argument(
         "--test_groupings",
         type=str,
-        required=True,
+        required=False,
+        default="",
         help="JSON-string list of {{task}}:{{subgroup}} to run additional evaluation on"
     )
     return parser.parse_args()
@@ -68,14 +69,11 @@ def main():
 
     # Actually run evaluation on test set with this checkpoint
     if args.run_test:
-        logger.info("Running evaluation on test set with this checkpoint")
-        command = (
-            f"python test.py "
-            f"--log_dir {args.log_dir} "
-            f"--ckpt_num {int(best_epoch)} "
-            f"--groupings {args.test_groupings} "
-            f"--split test "
-        )
+        logger.info(f"Running evaluation on test set with checkpoint {best_epoch}")
+        command = ("python test.py " f"--log_dir {args.log_dir} " f"--ckpt_num {int(best_epoch)} " f"--split test")
+        if args.test_groupings:
+            command = f"{command} --groupings {args.test_groupings}"
+
         subprocess.run(command, shell=True, check=True)
 
 
