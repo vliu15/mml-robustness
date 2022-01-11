@@ -16,7 +16,6 @@ python -m scripts.generate_spurious_matrix \
 import argparse
 import json
 import os
-import re
 import subprocess
 from collections import defaultdict
 
