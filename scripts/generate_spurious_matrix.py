@@ -86,7 +86,6 @@ def main():
 
     # Aggregate JSON files
     results_dict = defaultdict(list)
-    group_acc_regex = re.compile(r"._g*[0-9]+_acc")
     for attr in attributes:
         with open(os.path.join(args.json_dir, f"{task_label}:{attr}.json"), "r") as f:
             data = json.load(f)
