@@ -1,11 +1,19 @@
-"""Script for running subgroup evaluation on test set"""
+"""
+Script for testing a model checkpoint on any dataset split
+
+Sample usage:
+python test.py \
+    --log_dir logs/erm/Blond_Hair:Male \
+    --ckpt_num 20 \
+    --groupings [Blond_Hair:Male] \
+    --split test
+"""
 
 import argparse
 import json
 import logging
 import logging.config
 import os
-import warnings
 from collections import defaultdict
 
 import torch
@@ -13,12 +21,11 @@ import torch.nn as nn
 from omegaconf import DictConfig, OmegaConf
 from tqdm import tqdm
 
-from datasets.groupings import get_grouping_object
-from utils.init_modules import init_model, init_test_dataloader
-from utils.train_utils import to_device
+from utils.init_modules import init_dataloaders, init_model, init_test_dataloader
+from utils.train_utils import accumulate_stats, to_device, to_scalar
 
-warnings.filterwarnings("ignore")
 logging.config.fileConfig("logger.conf")
+logger = logging.getLogger(__name__)
 
 
 def parse_args():
@@ -36,19 +43,21 @@ def parse_args():
         help="Checkpoint number to load, corresponds to: `ckpt.{{ckpt_num}}.pt`",
     )
     parser.add_argument(
-        "--subgroup_attributes",
+        "--groupings",
         required=False,
         default="",
         type=str,
         help="JSON-string list of {{task}}:{{subgroup}}",
     )
     parser.add_argument(
-        "--json_name",
+        "--split",
         required=False,
-        default="test_results.json",
+        default="val",
+        choices=["train", "val", "test"],
         type=str,
-        help="Filename of JSON file in which results are saved into {{args.log_dir}}/results/{{args.json_name}}",
+        help="Split to run evaluation on"
     )
+    parser.add_argument("--save_json", required=False, default="", type=str, help="JSON file to save test results into")
     return parser.parse_args()
 
 
@@ -57,28 +66,43 @@ def main():
     args = parse_args()
     config = OmegaConf.load(os.path.join(args.log_dir, "config.yaml"))
 
-    if args.subgroup_attributes:
-        config.dataset.groupings = json.loads(args.subgroup_attributes)
+    if args.groupings:
+        # Check that the specified groupings contain the exact tasks that were trained on
+        new_groupings = json.loads(args.groupings)
+        target_tasks = [g.split(":")[0] for g in config.dataset.groupings]
+        specified_tasks = [g.split(":")[0] for g in new_groupings]
+        assert all(t == s for t, s in zip(target_tasks, specified_tasks)), \
+            f"Tasks in training: {target_tasks}. Tasks specified: {specified_tasks}"
+        config.dataset.groupings = new_groupings
 
     # Init and load model
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    model = init_model(config).to(device)
+    model = init_model(config, device=device)
     ckpt = torch.load(os.path.join(args.log_dir, "ckpts", f"ckpt.{args.ckpt_num}.pt"), map_location=device)
     model.load_state_dict(ckpt["model"])
     model.eval()
 
-    results_dir = os.path.join(args.log_dir, "results")
-    os.makedirs(results_dir, exist_ok=True)
+    # Run eval on specified split
+    if args.split == "train":
+        dataloader, _ = init_dataloaders(config)
+    elif args.split == "val":
+        _, dataloader = init_dataloaders(config)
+    else:
+        dataloader = init_test_dataloader(config)
 
-    # Run test on trained grouping
-    test_dataloader = init_test_dataloader(config)
+    # Defaults to the same save format as val_stats from training
+    if args.save_json == "":
+        results_dir = os.path.join(args.log_dir, "results")
+        os.makedirs(results_dir, exist_ok=True)
+        args.save_json = os.path.join(results_dir, f"{args.split}_stats_{args.ckpt_num}.json")
+
     evaluate(
         config=config,
         model=model,
-        test_dataloader=test_dataloader,
-        log_dir=args.log_dir,
+        dataloader=dataloader,
         device=device,
-        json_file=os.path.join(results_dir, args.json_name),
+        split=args.split,
+        save_json=args.save_json,
     )
 
 
@@ -86,48 +110,42 @@ def main():
 def evaluate(
     config: DictConfig,
     model: nn.Module,
-    test_dataloader: torch.utils.data.DataLoader,
-    log_dir: str,
+    dataloader: torch.utils.data.DataLoader,
     device: str,
-    json_file: str = "test_results.json",
-    verbose: bool = False,
+    split: str,
+    save_json: str,
 ):
-
-    test_stats = defaultdict(float)
+    losses, metrics = defaultdict(float), defaultdict(float)
     for batch in tqdm(
-            test_dataloader,
-            total=len(test_dataloader),
-            desc=f"Running eval on test set",
+            dataloader,
+            total=len(dataloader),
+            desc=f"Running eval on {split} split",
             leave=False,
     ):
         # Forward pass
         batch = to_device(batch, device)
-        out_dict = model.supervised_step(batch, subgroup=True, first_batch_loss=False)
-
-        # Accumulate metrics
-        for key in out_dict.keys():
-            if key.startswith("metric"):
-                if "avg" in key:
-                    test_stats[key] += out_dict[key].item() * batch[0].shape[0]
-                elif "counts" in key:
-                    test_stats[key] += out_dict[key]
+        loss_dict, metrics_dict = model.supervised_step(batch, subgroup=config.dataset.subgroup_labels, first_batch_loss=None)
+        accumulate_stats(
+            loss_dict=loss_dict,
+            metrics_dict=metrics_dict,
+            accumulated_loss=losses,
+            accumulated_metrics=metrics,
+            over_n_examples=len(dataloader.dataset),
+            batch_size=batch[0].shape[0],
+        )
 
     # Compute final metrics
-    print("Test Set Results:")
-    for key in list(test_stats.keys()):
-        if key.startswith("metric"):
-            if "avg" in key:
-                test_stats[key[7:]] = test_stats.pop(key) / len(test_dataloader.dataset)
-                print(f"  {key[7:]}: {100 * test_stats[key[7:]]:.4f}%")
-            elif "counts" in key:
-                correct, total = test_stats.pop(key)
-                test_stats[key[7:-7]] = float(correct / total)
-                print(f"  {key[7:-7]}: {100 * test_stats[key[7:-7]]:.4f}%")
+    logger.info("Metrics on %s set:", split)
+    for key in list(metrics.keys()):
+        if "counts" in key:
+            new_key = key.replace("counts", "acc")
+            metrics[new_key] = to_scalar(metrics[key][0] / metrics[key][1])
+            metrics.pop(key)
+            key = new_key
+        logger.info("%s: %s%", key, 100 * metrics[key])
 
-    # Save this so we can map g{i} to the corresponding spurious correlation
-    test_stats["subgroups"] = get_grouping_object(config.dataset.groupings).subgroup_attributes
-    with open(json_file, 'w') as fp:
-        json.dump(test_stats, fp)
+    with open(save_json, "w") as fp:
+        json.dump({**losses, **metrics}, fp)
 
 
 if __name__ == "__main__":

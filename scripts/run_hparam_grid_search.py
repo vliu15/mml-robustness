@@ -75,7 +75,7 @@ def submit_erm_grid_jobs(args):
                 job_name = f"task:{task},wd:{wd},lr:{lr}"
                 log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
                 command = (
-                    f"python train_erm.py exp=erm "
+                    "python train_erm.py exp=erm "
                     f"exp.optimizer.weight_decay={wd} "
                     f"exp.optimizer.lr={lr} "
                     f"exp.dataset.groupings='[{task}]' "
