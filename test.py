@@ -82,7 +82,7 @@ def main():
     model.load_state_dict(ckpt["model"])
     model.eval()
 
-    # Run test on trained grouping
+    # Run eval on specified split
     if args.split == "train":
         dataloader, _ = init_dataloaders(config)
     elif args.split == "val":
@@ -90,7 +90,7 @@ def main():
     else:
         dataloader = init_test_dataloader(config)
 
-    # Dsefaults to the same save format as val_stats from training
+    # Defaults to the same save format as val_stats from training
     if args.save_json == "":
         results_dir = os.path.join(args.log_dir, "results")
         os.makedirs(results_dir, exist_ok=True)
