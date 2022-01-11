@@ -98,13 +98,116 @@ def submit_erm_grid_jobs(args):
                     subprocess.run(f"sbatch {uniq_id}.sh", shell=True, check=True)
                     os.remove(f"{uniq_id}.sh")
 
+def submit_mtl_erm_2_grid_jobs(args):
+    ## DECLARE MACROS HERE ##
+    WD_GRID = [1e-4, 1e-3, 1e-2, 1e-1]
+    LR_GRID = [1e-5, 5e-5, 1e-4]
+    ALPHA_GRID = [0.1, 0.5, 1]
+    TASK_GRID = [
+        "Attractive:Eyeglasses,Smiling:High_Cheekbones",
+        "Young:Attractive,Smiling:High_Cheekbones",
+        "Blond_Hair:Male,Pointy_Nose:Male",
+        "Pointy_Nose:Rosy_Cheeks,Attractive:Heavy_Makeup"
+    ]
+    LOG_DIR = "/farmshare/user_data/jsparmar/mml-robustness/logs"
+
+    # Load SBATCH template if specified
+    template = ""
+    if args.mode == "sbatch":
+        with open(args.template, "r") as f:
+            template = f.read()
+
+    total_commands = len(WD_GRID) * len(LR_GRID) * len(TASK_GRID)  len(ALPHA_GRID)
+    counter = 0
+
+    for task in TASK_GRID:
+        for wd in WD_GRID:
+            for lr in LR_GRID:
+                for alpha in ALPHA_GRID:
+                    job_name = f"task:{task},wd:{wd},lr:{lr},alpha:{alpha}"
+                    log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+                    command = (
+                        "python train_erm.py exp=erm "
+                        f"exp.optimizer.weight_decay={wd} "
+                        f"exp.optimizer.lr={lr} "
+                        f"exp.dataset.groupings='[{task}]' "
+                        f"exp.dataset.lbtw_alpha={alpha}"
+                        f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                    )
+                    counter += 1
+
+                    if args.mode == "debug":
+                        print(command)
+                    elif args.mode == "shell":
+                        message = f"RUNNING COMMAND {counter} / {total_commands}"
+                        print(f"{Color.BOLD}{Color.GREEN}{message}{Color.END}{Color.END}")
+                        subprocess.run(command, shell=True, check=True)
+                    elif args.mode == "sbatch":
+                        sbatch = template.replace("$JOB_NAME", job_name).replace("$LOG_FILE",
+                                                                                log_file).replace("$COMMAND", command)
+                        uniq_id = uuid.uuid4()
+                        with open(f"{uniq_id}.sh", "w") as f:
+                            f.write(sbatch)
+                        subprocess.run(f"sbatch {uniq_id}.sh", shell=True, check=True)
+                        os.remove(f"{uniq_id}.sh")
+
+def submit_mtl_erm_3_grid_jobs(args):
+    ## DECLARE MACROS HERE ##
+    WD_GRID = [1e-4, 1e-3, 1e-2, 1e-1]
+    LR_GRID = [1e-5, 5e-5, 1e-4]
+    ALPHA_GRID = [0.1, 0.5, 1]
+    TASK_GRID = [
+        "Oval_Face:Rosy_Cheeks,Attractive:Bald,Young:Gray_Hair",
+    ]
+    LOG_DIR = "/farmshare/user_data/vliu15/mml-robustness/logs"
+
+    # Load SBATCH template if specified
+    template = ""
+    if args.mode == "sbatch":
+        with open(args.template, "r") as f:
+            template = f.read()
+
+    total_commands = len(WD_GRID) * len(LR_GRID) * len(TASK_GRID)  len(ALPHA_GRID)
+    counter = 0
+
+    for task in TASK_GRID:
+        for wd in WD_GRID:
+            for lr in LR_GRID:
+                for alpha in ALPHA_GRID:
+                    job_name = f"task:{task},wd:{wd},lr:{lr},alpha:{alpha}"
+                    log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+                    command = (
+                        "python train_erm.py exp=erm "
+                        f"exp.optimizer.weight_decay={wd} "
+                        f"exp.optimizer.lr={lr} "
+                        f"exp.dataset.groupings='[{task}]' "
+                        f"exp.dataset.lbtw_alpha={alpha}"
+                        f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                    )
+                    counter += 1
+
+                    if args.mode == "debug":
+                        print(command)
+                    elif args.mode == "shell":
+                        message = f"RUNNING COMMAND {counter} / {total_commands}"
+                        print(f"{Color.BOLD}{Color.GREEN}{message}{Color.END}{Color.END}")
+                        subprocess.run(command, shell=True, check=True)
+                    elif args.mode == "sbatch":
+                        sbatch = template.replace("$JOB_NAME", job_name).replace("$LOG_FILE",
+                                                                                log_file).replace("$COMMAND", command)
+                        uniq_id = uuid.uuid4()
+                        with open(f"{uniq_id}.sh", "w") as f:
+                            f.write(sbatch)
+                        subprocess.run(f"sbatch {uniq_id}.sh", shell=True, check=True)
+                        os.remove(f"{uniq_id}.sh")
+
 
 def main():
     args = parse_args()
     if args.mode == "sbatch":
         os.makedirs(args.slurm_logs, exist_ok=True)
 
-    submit_erm_grid_jobs(args)
+    submit_mtl_erm_2_grid_jobs(args)
 
 
 if __name__ == "__main__":
