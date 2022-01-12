@@ -117,8 +117,8 @@ def submit_mtl_erm_2_grid_jobs(args):
         with open(args.template, "r") as f:
             template = f.read()
 
-    total_commands = len(WD_GRID) * len(LR_GRID) * len(TASK_GRID)  len(ALPHA_GRID)
-    
+    total_commands = len(WD_GRID) * len(LR_GRID) * len(TASK_GRID) * len(ALPHA_GRID)
+
     counter = 0
 
     for task in TASK_GRID:
