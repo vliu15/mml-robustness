@@ -132,7 +132,7 @@ def submit_mtl_erm_2_grid_jobs(args):
                         f"exp.optimizer.weight_decay={wd} "
                         f"exp.optimizer.lr={lr} "
                         f"exp.dataset.groupings='[{task}]' "
-                        f"exp.dataset.lbtw_alpha={alpha}"
+                        f"exp.dataset.lbtw_alpha={alpha} "
                         f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
                     )
                     counter += 1
@@ -182,7 +182,7 @@ def submit_mtl_erm_3_grid_jobs(args):
                         f"exp.optimizer.weight_decay={wd} "
                         f"exp.optimizer.lr={lr} "
                         f"exp.dataset.groupings='[{task}]' "
-                        f"exp.dataset.lbtw_alpha={alpha}"
+                        f"exp.dataset.lbtw_alpha={alpha} "
                         f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
                     )
                     counter += 1
