@@ -84,7 +84,7 @@ def train_step(
             batch, subgroup=config.dataset.subgroup_labels, first_batch_loss=first_batch_loss
         )
         loss = loss_dict["loss"]
-       
+
         if torch.isnan(loss):
             print(
                 dict(

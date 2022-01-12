@@ -98,16 +98,15 @@ def submit_erm_grid_jobs(args):
                     subprocess.run(f"sbatch {uniq_id}.sh", shell=True, check=True)
                     os.remove(f"{uniq_id}.sh")
 
+
 def submit_mtl_erm_2_grid_jobs(args):
     ## DECLARE MACROS HERE ##
     WD_GRID = [1e-4, 1e-3, 1e-2, 1e-1]
     LR_GRID = [1e-5, 5e-5, 1e-4]
     ALPHA_GRID = [0.1, 0.5, 1]
     TASK_GRID = [
-        "Attractive:Eyeglasses,Smiling:High_Cheekbones",
-        "Young:Attractive,Smiling:High_Cheekbones",
-        "Blond_Hair:Male,Pointy_Nose:Male",
-        "Pointy_Nose:Rosy_Cheeks,Attractive:Heavy_Makeup"
+        "Attractive:Eyeglasses,Smiling:High_Cheekbones", "Young:Attractive,Smiling:High_Cheekbones",
+        "Blond_Hair:Male,Pointy_Nose:Male", "Pointy_Nose:Rosy_Cheeks,Attractive:Heavy_Makeup"
     ]
     LOG_DIR = "/farmshare/user_data/jsparmar/mml-robustness/logs"
 
@@ -145,13 +144,13 @@ def submit_mtl_erm_2_grid_jobs(args):
                         subprocess.run(command, shell=True, check=True)
                     elif args.mode == "sbatch":
                         sbatch = template.replace("$JOB_NAME", job_name).replace("$LOG_FILE",
-                                                                                log_file).replace("$COMMAND", command)
+                                                                                 log_file).replace("$COMMAND", command)
                         uniq_id = uuid.uuid4()
                         with open(f"{uniq_id}.sh", "w") as f:
                             f.write(sbatch)
                         subprocess.run(f"sbatch {uniq_id}.sh", shell=True, check=True)
                         os.remove(f"{uniq_id}.sh")
-                    
+
 
 def submit_mtl_erm_3_grid_jobs(args):
     ## DECLARE MACROS HERE ##
@@ -196,7 +195,7 @@ def submit_mtl_erm_3_grid_jobs(args):
                         subprocess.run(command, shell=True, check=True)
                     elif args.mode == "sbatch":
                         sbatch = template.replace("$JOB_NAME", job_name).replace("$LOG_FILE",
-                                                                                log_file).replace("$COMMAND", command)
+                                                                                 log_file).replace("$COMMAND", command)
                         uniq_id = uuid.uuid4()
                         with open(f"{uniq_id}.sh", "w") as f:
                             f.write(sbatch)
