@@ -153,8 +153,6 @@ def train_epoch(
                 first_batch_loss=first_batch_loss,
             )
 
-            print(first_batch_loss)
-
             if first_batch_loss is None and config.dataset.loss_based_task_weighting:
                 first_batch_loss = loss_dict["first_batch_loss"].data
 
