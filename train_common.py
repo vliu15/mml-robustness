@@ -84,8 +84,7 @@ def train_step(
             batch, subgroup=config.dataset.subgroup_labels, first_batch_loss=first_batch_loss
         )
         loss = loss_dict["loss"]
-        if first_batch_loss is None and config.dataset.loss_based_task_weighting:
-            first_batch_loss.data = loss_dict["first_batch_loss"].data
+
         if torch.isnan(loss):
             print(
                 dict(
@@ -153,6 +152,9 @@ def train_epoch(
                 rank=rank,
                 first_batch_loss=first_batch_loss,
             )
+
+            if first_batch_loss is None and config.dataset.loss_based_task_weighting:
+                first_batch_loss = loss_dict["first_batch_loss"].data
 
             # Update per-rank stepwise averages
             global_step = global_step + 1

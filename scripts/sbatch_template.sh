@@ -8,13 +8,13 @@
 #SBATCH --mem=32GB                  # Job memory request
 #SBATCH --time=48:00:00             # Time limit hrs:min:sec
 #SBATCH --output=$LOG_FILE          # Standard output and error log
-#SBATCH --partition=gpu             # Request a specific partition for the resource allocation
+#SBATCH --partition=gpu,normal      # Request a specific partition for the resource allocation
 #SBATCH --gres=gpu:1                # Specifies a comma-delimited list of generic consumable resources
 #SBATCH --qos=gpu                   # Request a quality of service for the job
 
 export OMP_NUM_THREADS=8            # Set parallel threads to --cpus-per-task
 
-source /home/vliu15/.bashrc         # Load anaconda and other jazz
-source activate py37                # Activate the training environment
+source /home/jsparmar/.bashrc         # Load anaconda and other jazz
+conda activate mml-robustness               # Activate the training environment
 
 $COMMAND

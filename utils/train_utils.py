@@ -107,7 +107,8 @@ def accumulate_stats(
 ) -> None:
     """Accumulates loss into `accumulated_loss` and metrics into `accumulated_metrics` in-place"""
     for key in loss_dict.keys():
-        accumulated_loss[key] += to_scalar(loss_dict[key] * batch_size / over_n_examples)
+        if key != "first_batch_loss":
+            accumulated_loss[key] += to_scalar(loss_dict[key] * batch_size / over_n_examples)
     for key in metrics_dict.keys():
         if "counts" in key:
             accumulated_metrics[key] += to_array(metrics_dict[key])
