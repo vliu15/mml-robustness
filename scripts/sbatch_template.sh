@@ -8,7 +8,7 @@
 #SBATCH --mem=32GB                  # Job memory request
 #SBATCH --time=48:00:00             # Time limit hrs:min:sec
 #SBATCH --output=$LOG_FILE          # Standard output and error log
-#SBATCH --partition=gpu             # Request a specific partition for the resource allocation
+#SBATCH --partition=gpu,normal      # Request a specific partition for the resource allocation
 #SBATCH --gres=gpu:1                # Specifies a comma-delimited list of generic consumable resources
 #SBATCH --qos=gpu                   # Request a quality of service for the job
 

@@ -151,7 +151,7 @@ def submit_mtl_erm_2_grid_jobs(args):
                             f.write(sbatch)
                         subprocess.run(f"sbatch {uniq_id}.sh", shell=True, check=True)
                         os.remove(f"{uniq_id}.sh")
-                    return
+                    
 
 def submit_mtl_erm_3_grid_jobs(args):
     ## DECLARE MACROS HERE ##
