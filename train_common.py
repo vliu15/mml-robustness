@@ -230,6 +230,11 @@ def val_epoch(
             )
 
             # Accumulate losses, ground truths, and predictions
+            print("TEST")
+            print(loss_dict.keys())
+            print(loss_dict)
+            print(metrics_dict.keys())
+            print(metrics_dict)
             accumulate_stats(
                 loss_dict=loss_dict,
                 metrics_dict=metrics_dict,
