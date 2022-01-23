@@ -1,0 +1,58 @@
+seed: 0
+
+dataloader:
+    batch_size: 32  # [RWG] 36.8 \pm 26.3 
+    num_workers: 20
+    sampler: rwg  # ONLY FOR TRAIN SET: could be [null, rwy, rwg]
+
+dataset:
+    name: celeba
+    root: ./data
+
+    data_augmentation: false
+    target_resolution: [224, 224]
+
+    subgroup_labels: true
+    groupings: [Blond_Hair:Male]
+
+    ### these correspond directly to tasks specified in task labels, ensure they are either all 1 (no weighting) or sum up to 1 (weighting)
+    task_weights: [1]
+    loss_based_task_weighting: true
+    lbtw_alpha: 0.5
+
+model:
+    name: resnet50
+    pretrained: true
+    num_classes: null  # should be len(config.dataset.groupings)
+
+    # Defaults for ResNet
+    zero_init_residual: False
+    groups: 1
+    width_per_group: 64
+    replace_stride_with_dilation: null
+    norm_layer: null
+
+optimizer:
+    name: sgd
+    lr: 0.00001  # [RWG] 10^{-5.0 \pm 0.0}
+    weight_decay: 0.1  # [RWG] 10^{-1.0 \pm 0.0}
+    momentum: 0.9
+
+train:
+    n_gpus: 1
+    total_epochs: 60  # [RWG] 6.0 \pm 4.1
+    load_ckpt: null
+    ckpt_every_n_epochs: 1
+    log_every_n_steps: 25
+    eval_every_n_epochs: 1
+    log_dir: ./logs/rwy/Blond_Hair:Male
+    grad_clip_norm: null
+    ema: false
+    fp16: true
+    run_sanity_val_epoch: true
+
+    # fields used by jtt, do not change for erm #
+    up_type: null  # one of [upsample, upweight, null]
+    lambda_up: 1
+    load_up_pkl: null
+    #############################################
