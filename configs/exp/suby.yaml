@@ -1,7 +1,7 @@
 seed: 0
 
 dataloader:
-    batch_size: 128
+    batch_size: 64
     num_workers: 20
 
 dataset:
@@ -20,8 +20,8 @@ dataset:
     lbtw_alpha: 0.5
 
     ### subsampling/reweighting dataset 
-    subsample: false
-    subsample_type: null
+    subsample: true
+    subsample_type: "suby"
 
 model:
     name: resnet50
@@ -37,18 +37,18 @@ model:
 
 optimizer:
     name: sgd
-    lr: 0.0001
-    weight_decay: 0.0001 
+    lr: 0.00003981071 # 10^(-4.4 pm 0.9)
+    weight_decay: 0.06309573444  #10^(-1.2 pm 0.4)
     momentum: 0.9
 
 train:
     n_gpus: 1
-    total_epochs: 25
+    total_epochs: 60
     load_ckpt: null
     ckpt_every_n_epochs: 1
     log_every_n_steps: 25
     eval_every_n_epochs: 1
-    log_dir: ./logs/mtl_attractive_smiling
+    log_dir: ./logs/suby_blond
     grad_clip_norm: null
     ema: false
     fp16: true
