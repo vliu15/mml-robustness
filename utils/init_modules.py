@@ -66,8 +66,13 @@ def init_dataloaders(config):
     train_dataset, val_dataset = init_datasets(config)
 
     # Init (DDP) train dataloader
-    from torch.utils.data import DataLoader
+    from torch.utils.data import DataLoader, WeightedRandomSampler
     if distributed.is_initialized():
+
+        # FIXME: probably not necessary to implement this for standard experiments
+        if config.dataloader.sampler is not None:
+            raise RuntimeError("Other samplers not implemented for DDP.")
+
         world_size = distributed.get_world_size()
         rank = distributed.get_rank()
         from torch.utils.data.distributed import DistributedSampler
@@ -81,13 +86,25 @@ def init_dataloaders(config):
         )
     else:
         rank = 0
+        if config.dataloader.sampler == "rwy":
+            logger.info("Using dataloader sampler RWY")
+            sampler = WeightedRandomSampler(train_dataset.wy, len(train_dataset.wy))
+            shuffle = False
+        elif config.dataloader.sampler == "rwg":
+            logger.info("Using dataloader sampler RWG")
+            sampler = WeightedRandomSampler(train_dataset.wg, len(train_dataset.wg))
+            shuffle = False
+        else:
+            shuffle = True
+            sampler = None
         train_dataloader = DataLoader(
             train_dataset,
             batch_size=config.dataloader.batch_size,
             num_workers=config.dataloader.num_workers,
-            shuffle=True,
+            shuffle=shuffle,
             pin_memory=True,
             drop_last=False,
+            sampler=sampler,
         )
 
     # Init (Rank 0) val dataloader

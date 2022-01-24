@@ -1,9 +1,9 @@
 seed: 0
 
 dataloader:
-    batch_size: 128
+    batch_size: 4  # [RWY] 2.8 \pm 1.1
     num_workers: 20
-    sampler: null  # ONLY FOR TRAIN SET: could be [null, rwy, rwg]
+    sampler: rwy  # ONLY FOR TRAIN SET: could be [null, rwy, rwg]
 
 dataset:
     name: celeba
@@ -34,18 +34,18 @@ model:
 
 optimizer:
     name: sgd
-    lr: 0.0001
-    weight_decay: 0.0001 
+    lr: 0.00002511886  # [RWY] 10^{-4.6 \pm 0.5}
+    weight_decay: 0.03981071705  # [RWY] 10^{-1.4 \pm 0.5}
     momentum: 0.9
 
 train:
     n_gpus: 1
-    total_epochs: 25
+    total_epochs: 60  # [RWY] 14.0 \pm 8.7
     load_ckpt: null
     ckpt_every_n_epochs: 1
     log_every_n_steps: 25
     eval_every_n_epochs: 1
-    log_dir: ./logs/erm/Blond_Hair:Male
+    log_dir: ./logs/rwy/Blond_Hair:Male
     grad_clip_norm: null
     ema: false
     fp16: true
