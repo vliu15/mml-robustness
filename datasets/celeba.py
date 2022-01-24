@@ -1,6 +1,8 @@
 import itertools
 import logging
 import os
+from re import sub
+from turtle import pos
 
 import numpy as np
 import pandas
@@ -120,6 +122,66 @@ class CelebA(Dataset):
                 bin_counts.append(torch.bincount(self.subgroups[:, channel]))
             counts = torch.stack(bin_counts, dim=0)
             logger.info(f'Subgroup counts: {counts.detach().cpu().numpy()}')
+
+        if config.dataset.subsample is True and split == "train": 
+            
+            task_labels = self.attr[:, self.task_label_indices]
+            task_sizes = torch.zeros((len(self.task_label_indices), 2)).type(torch.LongTensor)
+
+            pos_counts = torch.sum(task_labels, dim=0)
+            neg_counts = self.attr.shape[0] - pos_counts
+
+            task_sizes[:, 0] = pos_counts
+            task_sizes[:,1] = neg_counts 
+
+            if self.subgroup_labels:
+                
+                self.subsample(config, task_sizes, counts)
+                
+            else:
+                self.subsample(config, task_sizes, None) 
+
+    def subsample(self, config, class_sizes, group_sizes = None):
+        # sample by minimum sample in each group
+
+        if len(self.task_label_indices) > 1:
+            ## MTL Setting
+            raise ValueError("Semantics need to be discussed with Tatsu")
+
+        else:
+            ## stl setting
+            perm = torch.randperm(len(self)).tolist()
+
+            if config.dataset.subsample_type == "subg":
+                min_size = torch.amin(group_sizes).item()
+                counts_g = [0] * group_sizes.shape[1]
+            else:
+                min_size = torch.amin(class_sizes).item()
+
+            counts_y = [0] * (len(self.task_label_indices) + 1)
+
+            sub_indices = []
+            for p in perm:
+                
+
+                if config.dataset.subsample_type == "subg":
+                    g = self.subgroups[p, 0].item()
+                    if counts_g[g] < min_size:
+                        counts_g[g] += 1
+                        sub_indices.append(p)
+
+                else:
+                    y = self.attr[p, self.task_label_indices].item()
+                    if counts_y[y] < min_size:
+                        counts_y[y] += 1
+                        sub_indices.append(p)
+
+
+            self.attr = self.attr[sub_indices, :]
+            self.filename = self.filename[sub_indices]
+       
+            if self.subgroup_labels:
+                self.subgroups = self.subgroups[sub_indices, :]
 
     def __getitem__(self, index):
         image = Image.open(os.path.join(self.root, "img_align_celeba", self.filename[index]))
