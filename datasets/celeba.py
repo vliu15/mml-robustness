@@ -162,8 +162,6 @@ class CelebA(Dataset):
 
             sub_indices = []
             for p in perm:
-                
-
                 if config.dataset.subsample_type == "subg":
                     g = self.subgroups[p, 0].item()
                     if counts_g[g] < min_size:

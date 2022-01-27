@@ -1,7 +1,7 @@
 seed: 0
 
 dataloader:
-    batch_size: 64
+    batch_size: 32
     num_workers: 20
 
 dataset:
@@ -48,7 +48,7 @@ train:
     ckpt_every_n_epochs: 1
     log_every_n_steps: 25
     eval_every_n_epochs: 1
-    log_dir: ./logs/suby_blond
+    log_dir: ./logs/suby_blond_b32
     grad_clip_norm: null
     ema: false
     fp16: true

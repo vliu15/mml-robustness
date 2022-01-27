@@ -1,7 +1,7 @@
 # A default yaml that populates `exp` with per-experiment configs
 defaults:
     - _self_
-    - exp: subg
+    - exp: suby
     - override hydra/job_logging: disabled
     - override hydra/hydra_logging: default
 
