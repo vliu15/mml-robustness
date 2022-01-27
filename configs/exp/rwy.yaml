@@ -40,7 +40,7 @@ optimizer:
 
 train:
     n_gpus: 1
-    total_epochs: 60  # [RWY] 14.0 \pm 8.7
+    total_epochs: 25  # [RWY] 14.0 \pm 8.7
     load_ckpt: null
     ckpt_every_n_epochs: 1
     log_every_n_steps: 25

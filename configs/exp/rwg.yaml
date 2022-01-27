@@ -40,12 +40,12 @@ optimizer:
 
 train:
     n_gpus: 1
-    total_epochs: 60  # [RWG] 6.0 \pm 4.1
+    total_epochs: 15  # [RWG] 6.0 \pm 4.1
     load_ckpt: null
     ckpt_every_n_epochs: 1
     log_every_n_steps: 25
     eval_every_n_epochs: 1
-    log_dir: ./logs/rwy/Blond_Hair:Male
+    log_dir: ./logs/rwg/Blond_Hair:Male
     grad_clip_norm: null
     ema: false
     fp16: true

@@ -14,7 +14,7 @@ val_stats = {
 Sample usage:
 python -m scripts.find_best_ckpt \
     --log_dir logs/erm/Blond_Hair:Male \
-    --run_test --test_groupings [Blond_Hair:Male]
+    --run_test --test_groupings [\"Blond_Hair:Male\"]
 """
 
 import argparse
@@ -47,9 +47,20 @@ def parse_args():
 
 def main():
     args = parse_args()
-    with open(os.path.join(args.log_dir, "val_stats.json"), "r") as f:
-        val_stats = json.load(f)
+    results_dir = os.path.join(args.log_dir, "results")
 
+    val_stats_json_regex = re.compile(r"val_stats_[0-9]+\.json")
+    val_stats = {}
+    for results_file in sorted(os.listdir(results_dir)):
+        if val_stats_json_regex.match(results_file):
+            epoch = int(results_file.split(".")[0].split("_")[-1])
+            if epoch in val_stats:
+                logger.info(f"Warning: detected a duplicate val_stats json at epoch {epoch}")
+            with open(os.path.join(results_dir, results_file), "r") as f:
+                val_stats[epoch] = json.load(f)
+
+    # Sort dict by epoch for readability
+    val_stats = {k: val_stats[k] for k in sorted(val_stats.keys())}
     logger.info("Found the following epochs with validation results: %s", list(map(int, val_stats.keys())))
 
     # Find epoch with best worst-group accuracy
