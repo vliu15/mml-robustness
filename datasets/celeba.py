@@ -123,8 +123,8 @@ class CelebA(Dataset):
             counts = torch.stack(bin_counts, dim=0)
             logger.info(f'Subgroup counts: {counts.detach().cpu().numpy()}')
 
-        if config.dataset.subsample is True and split == "train": 
-            
+        if config.dataset.subsample is True and split == "train":
+
             task_labels = self.attr[:, self.task_label_indices]
             task_sizes = torch.zeros((len(self.task_label_indices), 2)).type(torch.LongTensor)
 
@@ -132,16 +132,16 @@ class CelebA(Dataset):
             neg_counts = self.attr.shape[0] - pos_counts
 
             task_sizes[:, 0] = pos_counts
-            task_sizes[:,1] = neg_counts 
+            task_sizes[:, 1] = neg_counts
 
             if self.subgroup_labels:
-                
-                self.subsample(config, task_sizes, counts)
-                
-            else:
-                self.subsample(config, task_sizes, None) 
 
-    def subsample(self, config, class_sizes, group_sizes = None):
+                self.subsample(config, task_sizes, counts)
+
+            else:
+                self.subsample(config, task_sizes, None)
+
+    def subsample(self, config, class_sizes, group_sizes=None):
         # sample by minimum sample in each group
 
         if len(self.task_label_indices) > 1:
@@ -174,10 +174,9 @@ class CelebA(Dataset):
                         counts_y[y] += 1
                         sub_indices.append(p)
 
-
             self.attr = self.attr[sub_indices, :]
             self.filename = self.filename[sub_indices]
-       
+
             if self.subgroup_labels:
                 self.subgroups = self.subgroups[sub_indices, :]
 
