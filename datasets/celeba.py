@@ -122,6 +122,23 @@ class CelebA(Dataset):
                 bin_counts.append(torch.bincount(self.subgroups[:, channel]))
             counts = torch.stack(bin_counts, dim=0)
             logger.info(f'Subgroup counts: {counts.detach().cpu().numpy()}')
+            # NOTE: wg only implemented for single task for now
+            if len(self.task_labels) == 1:
+                self.wg = [float(len(self)) / counts[0][subgroup].float() for subgroup in self.subgroups]
+            else:
+                logger.info("WG only for single task, but multiple are detected. Setting all weights to 1.")
+                self.wg = [1.0] * len(self.subgroups)
+
+        # NOTE: wy only implemented for single task for now
+        # Label 0 is groups [0,1]; Label 1 is groups [2,3]
+        if len(self.task_labels) == 1:
+            self.wy = [
+                float(len(self)) / (counts[0][2 * attr] + counts[0][2 * attr + 1]).float()
+                for attr in self.attr[:, self.task_label_indices[0]]
+            ]
+        else:
+            logger.info("WY only for single task, but multiple are detected. Setting all weights to 1.")
+            self.wy = [1.0] * len(self.attr)
 
         if config.dataset.subsample is True and split == "train":
 
