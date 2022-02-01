@@ -63,7 +63,7 @@ def train_step(
             )
             loss = loss_dict["loss"]
             #if first_batch_loss is None and config.dataset.loss_based_task_weighting:
-                #first_batch_loss.data = loss_dict["first_batch_loss"].data
+            #first_batch_loss.data = loss_dict["first_batch_loss"].data
             scaler.scale(loss).backward()
             # Optionally apply gradient clipping
             if config.train.grad_clip_norm:
