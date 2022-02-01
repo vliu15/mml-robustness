@@ -17,7 +17,7 @@ dataset:
 
     ### these correspond directly to tasks specified in task labels, ensure they are either all 1 (no weighting) or sum up to 1 (weighting)
     task_weights: [1]
-    loss_based_task_weighting: true
+    loss_based_task_weighting: false
     lbtw_alpha: 0.5
 
 model:
@@ -40,12 +40,12 @@ optimizer:
 
 train:
     n_gpus: 1
-    total_epochs: 60  # [RWG] 6.0 \pm 4.1
+    total_epochs: 15  # [RWG] 6.0 \pm 4.1
     load_ckpt: null
     ckpt_every_n_epochs: 1
     log_every_n_steps: 25
     eval_every_n_epochs: 1
-    log_dir: ./logs/rwy/Blond_Hair:Male
+    log_dir: ./logs/rwg/Blond_Hair:Male
     grad_clip_norm: null
     ema: false
     fp16: true
