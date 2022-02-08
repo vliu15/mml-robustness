@@ -20,6 +20,10 @@ dataset:
     loss_based_task_weighting: false
     lbtw_alpha: 0.5
 
+    ### subsampling/reweighting dataset 
+    subsample: false
+    subsample_type: "subg"
+
 model:
     name: resnet50
     pretrained: true

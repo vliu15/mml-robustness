@@ -3,6 +3,7 @@ seed: 0
 dataloader:
     batch_size: 32
     num_workers: 20
+    sampler: null  # ONLY FOR TRAIN SET: could be [null, rwy, rwg]
 
 dataset:
     name: celeba

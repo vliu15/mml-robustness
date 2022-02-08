@@ -423,7 +423,7 @@ def train_single(config):
     cuda = torch.cuda.is_available()
     seed_all_rng(config.seed, cuda=cuda)
 
-    device = torch.device("cuda:1") if cuda else torch.device("cpu")
+    device = torch.device("cuda") if cuda else torch.device("cpu")
 
     # Init modules
     writer = SummaryWriter(config.train.log_dir)
