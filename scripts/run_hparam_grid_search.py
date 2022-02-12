@@ -263,9 +263,10 @@ def submit_suby_tuning_jobs(args):
         "Attractive:Eyeglasses",
         "Smiling:High_Cheekbones",
         "Young:Attractive",
-        "Oval_Face:Rosy_Cheeks",
-        "Pointy_Nose:Rosy_Cheeks",
     ]
+
+    ## "Oval_Face:Rosy_Cheeks", still need these to tune
+    ##"Pointy_Nose:Rosy_Cheeks",
     LOG_DIR = "/farmshare/user_data/jsparmar/mml-robustness/logs"
 
     # Load SBATCH template if specified
