@@ -208,7 +208,7 @@ def submit_suby_blond_tuning_jobs(args):
     LR_GRID = [1e-5, 1e-4]
     BATCH_SIZE_GRID = [8, 32, 64]
     TASK_GRID = ["Blond_Hair:Male"]
-    LOG_DIR = "/mnt/data/mml_robustness_results"
+    LOG_DIR = "/farmshare/user_data/jsparmar/mml-robustness/logs"
 
     # Load SBATCH template if specified
     template = ""
