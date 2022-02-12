@@ -106,6 +106,21 @@ def submit_suby_tuning_jobs(args):
         "Smiling:High_Cheekbones",
         "Young:Attractive",
     ]
+<<<<<<< HEAD
+=======
+
+    ## "Oval_Face:Rosy_Cheeks", still need these to tune
+    ##"Pointy_Nose:Rosy_Cheeks",
+    LOG_DIR = "/farmshare/user_data/jsparmar/mml-robustness/logs"
+
+    # Load SBATCH template if specified
+    template = ""
+    if args.mode == "sbatch":
+        with open(args.template, "r") as f:
+            template = f.read()
+
+    total_commands = len(WD_GRID) * len(LR_GRID) * len(TASK_GRID) * len(BATCH_SIZE_GRID) 
+>>>>>>> rice tuning
 
     ## "Oval_Face:Rosy_Cheeks", still need these to tune
     ##"Pointy_Nose:Rosy_Cheeks",
