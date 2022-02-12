@@ -168,10 +168,10 @@ class CelebA(Dataset):
             perm = torch.randperm(len(self)).tolist()
 
             if config.dataset.subsample_type == "subg":
-                min_size = torch.amin(group_sizes).item()
+                min_size = torch.min(group_sizes).item()
                 counts_g = [0] * group_sizes.shape[1]
             else:
-                min_size = torch.amin(class_sizes).item()
+                min_size = torch.min(class_sizes).item()
 
             counts_y = [0] * (len(self.task_label_indices) + 1)
 
