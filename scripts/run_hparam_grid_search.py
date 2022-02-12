@@ -254,6 +254,62 @@ def submit_suby_blond_tuning_jobs(args):
                             subprocess.run(f"sbatch {uniq_id}.sh", shell=True, check=True)
                             os.remove(f"{uniq_id}.sh")
 
+def submit_suby_blond_tuning_jobs(args):
+    ## DECLARE MACROS HERE ##
+    WD_GRID = [1e-2, 1e-1, 1] # 10−4, 10−3, 10−2, 10−1, 1
+    LR_GRID = [1e-5, 1e-4, 1e-3] # 10−5, 10−4, 10−3
+    BATCH_SIZE_GRID = [32, 64] # 2, 4, 8, 16, 32, 64, 128
+    TASK_GRID = [
+        "Attractive:Eyeglasses",
+        "Smiling:High_Cheekbones",
+        "Young:Attractive",
+        "Oval_Face:Rosy_Cheeks",
+        "Pointy_Nose:Rosy_Cheeks",
+    ]
+    LOG_DIR = "/farmshare/user_data/jsparmar/mml-robustness/logs"
+
+    # Load SBATCH template if specified
+    template = ""
+    if args.mode == "sbatch":
+        with open(args.template, "r") as f:
+            template = f.read()
+
+    total_commands = len(WD_GRID) * len(LR_GRID) * len(TASK_GRID) * len(BATCH_SIZE_GRID) 
+
+    counter = 0
+
+    for task in TASK_GRID:
+        for wd in WD_GRID:
+            for lr in LR_GRID:
+                for batch_size in BATCH_SIZE_GRID:
+                    job_name = f"task:{task},wd:{wd},lr:{lr},batch_size:{batch_size}"
+
+            
+                    log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+                    command = (
+                        "python train_erm.py exp=suby "
+                        f"exp.optimizer.weight_decay={wd} "
+                        f"exp.optimizer.lr={lr} "
+                        f"exp.dataset.groupings='[{task}]' "
+                        f"exp.dataloader.batch_size={batch_size} "
+                        f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                    )
+                    counter += 1
+
+                    if args.mode == "debug":
+                        print(command)
+                    elif args.mode == "shell":
+                        message = f"RUNNING COMMAND {counter} / {total_commands}"
+                        print(f"{Color.BOLD}{Color.GREEN}{message}{Color.END}{Color.END}")
+                        subprocess.run(command, shell=True, check=True)
+                    elif args.mode == "sbatch":
+                        sbatch = template.replace("$JOB_NAME", job_name).replace("$LOG_FILE",
+                                                                                log_file).replace("$COMMAND", command)
+                        uniq_id = uuid.uuid4()
+                        with open(f"{uniq_id}.sh", "w") as f:
+                            f.write(sbatch)
+                        subprocess.run(f"sbatch {uniq_id}.sh", shell=True, check=True)
+                        os.remove(f"{uniq_id}.sh")
 
 
 def main():
@@ -261,7 +317,7 @@ def main():
     if args.mode == "sbatch":
         os.makedirs(args.slurm_logs, exist_ok=True)
 
-    submit_suby_blond_tuning_jobs(args)
+    submit_suby_tuning_jobs(args)
 
 
 if __name__ == "__main__":
