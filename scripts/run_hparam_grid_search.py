@@ -254,7 +254,7 @@ def submit_suby_blond_tuning_jobs(args):
                             subprocess.run(f"sbatch {uniq_id}.sh", shell=True, check=True)
                             os.remove(f"{uniq_id}.sh")
 
-def submit_suby_blond_tuning_jobs(args):
+def submit_suby_tuning_jobs(args):
     ## DECLARE MACROS HERE ##
     WD_GRID = [1e-2, 1e-1, 1] # 10−4, 10−3, 10−2, 10−1, 1
     LR_GRID = [1e-5, 1e-4, 1e-3] # 10−5, 10−4, 10−3
