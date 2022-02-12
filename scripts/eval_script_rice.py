@@ -74,11 +74,7 @@ def eval_suby_blond_tuning_jobs(args):
                                         "eval_task:Blond_Hair:Male,wd:0.01,lr:1e-05,batch_size:64", "eval_task:Blond_Hair:Male,wd:0.01,lr:0.0001,batch_size:8"]:
                         log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
                         command = (
-<<<<<<< HEAD
                             f"python scripts/find_best_ckpt.py --run_test --log_dir ./logs/{job_name[5:]}"
-=======
-                            f"python scripts/find_best_ckpt.py --run_test --logdir {job_name[5:]}"
->>>>>>> rice changes
                         )
                         counter += 1
 
