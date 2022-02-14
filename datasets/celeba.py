@@ -82,52 +82,51 @@ class CelebA(Dataset):
         else:
             self.task_label_indices = np.array([self.attr_names.index(tl) for tl in self.task_labels])
 
-        if self.subgroup_labels:
-            self.subgroup_combinations = {}
-            self.task_comb_indices = {}
-            self.subgroups = []
+        self.subgroup_combinations = {}
+        self.task_comb_indices = {}
+        self.subgroups = []
 
-            if len(self.subgroup_attributes.keys()) != len(self.task_labels):
-                raise ValueError("Not enough task labels in subgroups attributes")
+        if len(self.subgroup_attributes.keys()) != len(self.task_labels):
+            raise ValueError("Not enough task labels in subgroups attributes")
 
-            for key in self.subgroup_attributes.keys():
-                if key not in self.task_labels:
-                    raise ValueError("Incorrectly denoted task label")
+        for key in self.subgroup_attributes.keys():
+            if key not in self.task_labels:
+                raise ValueError("Incorrectly denoted task label")
 
-                cols = [key] + list(self.subgroup_attributes[key])
-                self.task_comb_indices[key] = [self.attr_names.index(col) for col in cols]
+            cols = [key] + list(self.subgroup_attributes[key])
+            self.task_comb_indices[key] = [self.attr_names.index(col) for col in cols]
 
-                subgroup_len = len(self.subgroup_attributes[key])
-                combinations = list(itertools.product([0, 1], repeat=subgroup_len + 1))
-                comb_group_label = {combinations[i]: i for i in range(len(combinations))}
-                self.subgroup_combinations[key] = comb_group_label
+            subgroup_len = len(self.subgroup_attributes[key])
+            combinations = list(itertools.product([0, 1], repeat=subgroup_len + 1))
+            comb_group_label = {combinations[i]: i for i in range(len(combinations))}
+            self.subgroup_combinations[key] = comb_group_label
 
-            for ind_attr in self.attr:
-                group_label = []
-                for key in self.task_comb_indices.keys():
-                    indices = self.task_comb_indices[key]
-                    tup_to_group_label = tuple(ind_attr[indices].tolist())
-                    group_label.append(self.subgroup_combinations[key][tup_to_group_label])
+        for ind_attr in self.attr:
+            group_label = []
+            for key in self.task_comb_indices.keys():
+                indices = self.task_comb_indices[key]
+                tup_to_group_label = tuple(ind_attr[indices].tolist())
+                group_label.append(self.subgroup_combinations[key][tup_to_group_label])
 
-                self.subgroups.append(group_label)
+            self.subgroups.append(group_label)
 
-            self.subgroups = torch.tensor(self.subgroups, dtype=torch.long)
+        self.subgroups = torch.tensor(self.subgroups, dtype=torch.long)
 
-            logger.info(f"Split                : {split}")
-            logger.info(f"Subgroup attributes  : {self.subgroup_attributes}")
-            logger.info(f"Subgroup combinations: {self.subgroup_combinations}")
+        logger.info(f"Split                : {split}")
+        logger.info(f"Subgroup attributes  : {self.subgroup_attributes}")
+        logger.info(f"Subgroup combinations: {self.subgroup_combinations}")
 
-            bin_counts = []
-            for channel in range(self.subgroups.shape[1]):
-                bin_counts.append(torch.bincount(self.subgroups[:, channel]))
-            counts = torch.stack(bin_counts, dim=0)
-            logger.info(f'Subgroup counts: {counts.detach().cpu().numpy()}')
-            # NOTE: wg only implemented for single task for now
-            if len(self.task_labels) == 1:
-                self.wg = [float(len(self)) / counts[0][subgroup].float() for subgroup in self.subgroups]
-            else:
-                logger.info("WG only for single task, but multiple are detected. Setting all weights to 1.")
-                self.wg = [1.0] * len(self.subgroups)
+        bin_counts = []
+        for channel in range(self.subgroups.shape[1]):
+            bin_counts.append(torch.bincount(self.subgroups[:, channel]))
+        counts = torch.stack(bin_counts, dim=0)
+        logger.info(f'Subgroup counts: {counts.detach().cpu().numpy()}')
+        # NOTE: wg only implemented for single task for now
+        if len(self.task_labels) == 1:
+            self.wg = [float(len(self)) / counts[0][subgroup].float() for subgroup in self.subgroups]
+        else:
+            logger.info("WG only for single task, but multiple are detected. Setting all weights to 1.")
+            self.wg = [1.0] * len(self.subgroups)
 
         # NOTE: wy only implemented for single task for now
         # Label 0 is groups [0,1]; Label 1 is groups [2,3]
