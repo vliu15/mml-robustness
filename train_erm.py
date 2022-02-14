@@ -24,6 +24,12 @@ def main(config):
     if config.train.n_gpus == -1:
         config.train.n_gpus = max_gpus
 
+    ### PATCH EVERYTHING WE DEPRECATE HERE ###
+    # [DEPRECATE] manual task weighting
+    config.dataset.task_weights = [1] * len(config.dataset.groupings)
+    config.dataset.loss_based_task_weighting = True
+    ### ################################## ###
+
     ## make sure task weights are correctly specified
     if len(config.dataset.task_weights) != len(config.dataset.groupings):
         raise ValueError("Task weights must be the same length as task labels")
