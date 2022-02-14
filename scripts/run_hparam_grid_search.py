@@ -10,8 +10,6 @@ python -m scripts.run_hparam_grid_search \
 
 import argparse
 import os
-import subprocess
-import uuid
 
 from submit_job import JobManager
 
