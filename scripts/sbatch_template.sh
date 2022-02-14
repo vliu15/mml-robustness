@@ -10,11 +10,16 @@
 #SBATCH --output=$LOG_FILE          # Standard output and error log
 #SBATCH --partition=gpu,normal      # Request a specific partition for the resource allocation
 #SBATCH --gres=gpu:1                # Specifies a comma-delimited list of generic consumable resources
-#SBATCH --qos=gpu                   # Request a quality of service for the job
 
 export OMP_NUM_THREADS=8            # Set parallel threads to --cpus-per-task
 
-source /home/jsparmar/.bashrc         # Load anaconda and other jazz
-conda activate mml-robustness               # Activate the training environment
+# conda init bash
+cd /farmshare/user_data/$USER/mml-robustness
+
+# Activate the training environment
+if [[ $USER == "vliu15" ]]; then
+    export PATH=/usr/local/cuda-10.0/bin${PATH:+:${PATH}}
+    export LD_LIBRARY_PATH=/usr/local/cuda-10.0/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+fi
 
 $COMMAND

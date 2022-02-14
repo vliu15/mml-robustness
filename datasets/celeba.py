@@ -1,8 +1,6 @@
 import itertools
 import logging
 import os
-from re import sub
-from turtle import pos
 
 import numpy as np
 import pandas
@@ -82,11 +80,11 @@ class CelebA(Dataset):
         else:
             self.task_label_indices = np.array([self.attr_names.index(tl) for tl in self.task_labels])
 
-        if self.subgroup_labels:
-            self.subgroup_combinations = {}
-            self.task_comb_indices = {}
-            self.subgroups = []
+        self.subgroup_combinations = {}
+        self.task_comb_indices = {}
+        self.subgroups = []
 
+        if config.dataset.subgroup_labels:
             if len(self.subgroup_attributes.keys()) != len(self.task_labels):
                 raise ValueError("Not enough task labels in subgroups attributes")
 
@@ -132,16 +130,16 @@ class CelebA(Dataset):
         # NOTE: wy only implemented for single task for now
         # Label 0 is groups [0,1]; Label 1 is groups [2,3]
         if len(self.task_labels) == 1:
-            self.wy = [
-                float(len(self)) / (counts[0][2 * attr] + counts[0][2 * attr + 1]).float()
-                for attr in self.attr[:, self.task_label_indices[0]]
-            ]
+            ones = self.attr[:, self.task_label_indices[0]].sum()
+            zeros = len(self.attr[:, self.task_label_indices[0]]) - ones
+            ones_w = float(len(self)) / float(ones)
+            zeros_w = float(len(self)) / float(zeros)
+            self.wy = [(attr * ones_w + (1 - attr) * zeros_w).item() for attr in self.attr[:, self.task_label_indices[0]]]
         else:
             logger.info("WY only for single task, but multiple are detected. Setting all weights to 1.")
             self.wy = [1.0] * len(self.attr)
 
         if config.dataset.subsample is True and split == "train":
-
             task_labels = self.attr[:, self.task_label_indices]
             task_sizes = torch.zeros((len(self.task_label_indices), 2)).type(torch.LongTensor)
 
