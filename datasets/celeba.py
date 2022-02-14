@@ -134,9 +134,7 @@ class CelebA(Dataset):
             zeros = len(self.attr[:, self.task_label_indices[0]]) - ones
             ones_w = float(len(self)) / float(ones)
             zeros_w = float(len(self)) / float(zeros)
-            self.wy = [
-                (attr * ones_w + (1 - attr) * zeros_w).item() for attr in self.attr[:, self.task_label_indices[0]]
-            ]
+            self.wy = [(attr * ones_w + (1 - attr) * zeros_w).item() for attr in self.attr[:, self.task_label_indices[0]]]
         else:
             logger.info("WY only for single task, but multiple are detected. Setting all weights to 1.")
             self.wy = [1.0] * len(self.attr)
