@@ -62,8 +62,8 @@ def train_step(
                 batch, subgroup=config.dataset.subgroup_labels, first_batch_loss=first_batch_loss
             )
             loss = loss_dict["loss"]
-            if first_batch_loss is None and config.dataset.loss_based_task_weighting:
-                first_batch_loss.data = loss_dict["first_batch_loss"].data
+            #if first_batch_loss is None and config.dataset.loss_based_task_weighting:
+            #first_batch_loss.data = loss_dict["first_batch_loss"].data
             scaler.scale(loss).backward()
             # Optionally apply gradient clipping
             if config.train.grad_clip_norm:
@@ -423,7 +423,7 @@ def train_single(config):
     cuda = torch.cuda.is_available()
     seed_all_rng(config.seed, cuda=cuda)
 
-    device = torch.device("cuda") if cuda else torch.device("cpu")
+    device = torch.device("cuda:1") if cuda else torch.device("cpu")
 
     # Init modules
     writer = SummaryWriter(config.train.log_dir)
