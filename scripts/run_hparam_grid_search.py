@@ -110,7 +110,6 @@ def submit_reweighted_subsampled_tuning_jobs(args):
     ## "Oval_Face:Rosy_Cheeks", still need these to tune
     ##"Pointy_Nose:Rosy_Cheeks",
     method = "suby"
-    on = True
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
 
@@ -124,8 +123,6 @@ def submit_reweighted_subsampled_tuning_jobs(args):
                     log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
                     command = (
                         f"python train_erm.py exp={method} "
-                        f"exp.dataset.subsample={on}"
-                        f"exp.dataset.subsample_type={method}"
                         f"exp.optimizer.weight_decay={wd} "
                         f"exp.optimizer.lr={lr} "
                         f"exp.dataset.groupings='[{task}]' "
