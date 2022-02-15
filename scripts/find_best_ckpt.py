@@ -42,6 +42,9 @@ def parse_args():
         default="",
         help="JSON-string list of {{task}}:{{subgroup}} to run additional evaluation on"
     )
+    parser.add_argument(
+        "--metric", type=str, required=True, choices=["group", "avg"], help="Type of metric/accuracy to compare checkpoints"
+    )
     return parser.parse_args()
 
 
@@ -66,14 +69,28 @@ def main():
     # Find epoch with best worst-group accuracy
     best_epoch, best_acc = None, 0.0
     group_acc_key_regex = re.compile(r".*_g[0-9]+_acc")
+    avg_acc_key_regex = re.compile(r".*_avg_acc")
     for epoch in val_stats.keys():
-        worst_group_acc = min(val_stats[epoch][key] for key in val_stats[epoch].keys() if group_acc_key_regex.match(key))
-        if worst_group_acc > best_acc:
-            best_epoch = epoch
-            best_acc = worst_group_acc
+        if args.metric == "group":
+            worst_group_acc = min(val_stats[epoch][key] for key in val_stats[epoch].keys() if group_acc_key_regex.match(key))
+            if worst_group_acc > best_acc:
+                best_epoch = epoch
+                best_acc = worst_group_acc
+        elif args.metric == "avg":
+            avg_group_acc = min(val_stats[epoch][key] for key in val_stats[epoch].keys() if avg_acc_key_regex.match(key))
+            if avg_group_acc > best_acc:
+                best_epoch = epoch
+                best_acc = avg_group_acc
+        else:
+            raise ValueError("Incorrect metric format. Only supports 'group' and 'acc'. ")
 
     logger.info("Best validation epoch: %s", best_epoch)
-    logger.info("Best worst-group accuracy: %s", best_acc)
+    logger.info("Best %s accuracy: %s", args.metric, best_acc)
+
+    if best_epoch is None:
+        logger.info("Detected an empty val_stats. Skipping")
+        return
+
     for key in val_stats[best_epoch].keys():
         if "acc" in key:
             logger.info("  %s: %s", key, val_stats[best_epoch][key])
