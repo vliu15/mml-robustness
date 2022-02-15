@@ -96,7 +96,7 @@ def submit_mtl_erm_grid_jobs(args):
                     job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 
-def submit_suby_tuning_jobs(args):
+def submit_reweighted_subsampled_tuning_jobs(args):
     ## DECLARE MACROS HERE ##
     WD_GRID = [1e-2, 1e-1, 1] # 10−4, 10−3, 10−2, 10−1, 1
     LR_GRID = [1e-5, 1e-4, 1e-3] # 10−5, 10−4, 10−3
@@ -109,6 +109,9 @@ def submit_suby_tuning_jobs(args):
 
     ## "Oval_Face:Rosy_Cheeks", still need these to tune
     ##"Pointy_Nose:Rosy_Cheeks",
+    method = "suby"
+    on = True
+
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
 
     for task in TASK_GRID:
@@ -120,7 +123,9 @@ def submit_suby_tuning_jobs(args):
             
                     log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
                     command = (
-                        "python train_erm.py exp=suby "
+                        f"python train_erm.py exp={method} "
+                        f"exp.dataset.subsample={on}"
+                        f"exp.dataset.subsample_type={method}"
                         f"exp.optimizer.weight_decay={wd} "
                         f"exp.optimizer.lr={lr} "
                         f"exp.dataset.groupings='[{task}]' "
@@ -135,7 +140,7 @@ def main():
     if args.mode == "sbatch":
         os.makedirs(args.slurm_logs, exist_ok=True)
 
-    submit_suby_tuning_jobs(args)
+    submit_reweighted_subsampled_tuning_jobs(args)
 
 
 if __name__ == "__main__":
