@@ -118,14 +118,18 @@ class CelebA(Dataset):
             bin_counts = []
             for channel in range(self.subgroups.shape[1]):
                 bin_counts.append(torch.bincount(self.subgroups[:, channel]))
-            counts = torch.stack(bin_counts, dim=0)
-            logger.info(f'Subgroup counts: {counts.detach().cpu().numpy()}')
+            self.counts = torch.stack(bin_counts, dim=0)
+            logger.info(f'Subgroup counts: {self.counts.detach().cpu().numpy()}')
             # NOTE: wg only implemented for single task for now
             if len(self.task_labels) == 1:
-                self.wg = [float(len(self)) / counts[0][subgroup].float() for subgroup in self.subgroups]
+                self.wg = [float(len(self)) / self.counts[0][subgroup].float() for subgroup in self.subgroups]
             else:
                 logger.info("WG only for single task, but multiple are detected. Setting all weights to 1.")
                 self.wg = [1.0] * len(self.subgroups)
+
+        else:
+            self.counts = None
+            self.wg = None
 
         # NOTE: wy only implemented for single task for now
         # Label 0 is groups [0,1]; Label 1 is groups [2,3]
