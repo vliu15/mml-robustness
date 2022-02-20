@@ -1,5 +1,6 @@
 data/
 logs/
+outputs/
 slurm_logs/
 *.json
 *.png

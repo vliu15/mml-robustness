@@ -65,6 +65,7 @@ def main():
     """Entry point into testing script"""
     args = parse_args()
     config = OmegaConf.load(os.path.join(args.log_dir, "config.yaml"))
+    config.dataset.subgroup_labels = True  # cuz some models are trained without subgroup labels (i.e. for spurious ID)
 
     if args.groupings:
         # Check that the specified groupings contain the exact tasks that were trained on
@@ -139,7 +140,7 @@ def evaluate(
     for key in list(metrics.keys()):
         if "counts" in key:
             new_key = key.replace("counts", "acc")
-            metrics[new_key] = to_scalar(metrics[key][0] / metrics[key][1])
+            metrics[new_key] = to_scalar(metrics[key][0] / metrics[key][1]) if metrics[key][1] > 0 else None
             metrics.pop(key)
             key = new_key
         logger.info("%s: %s%", key, 100 * metrics[key])

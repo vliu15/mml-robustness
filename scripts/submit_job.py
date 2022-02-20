@@ -1,8 +1,13 @@
 """Helper file to submit shell/sbatch jobs"""
 
+import logging
+import logging.config
 import os
 import subprocess
 import uuid
+
+logging.config.fileConfig("logger.conf")
+logger = logging.getLogger(__name__)
 
 
 class Color(object):
@@ -31,11 +36,11 @@ class JobManager(object):
 
     def submit(self, command, job_name=None, log_file=None):
         if self.mode == "debug":
-            print(command)
+            logger.info(command)
 
         elif self.mode == "shell":
             message = f"RUNNING COMMAND {self.counter}"
-            print(f"{Color.BOLD}{Color.GREEN}{message}{Color.END}{Color.END}")
+            logger.info(f"{Color.BOLD}{Color.GREEN}{message}{Color.END}{Color.END}")
             subprocess.run(command, shell=True, check=True)
 
         elif self.mode == "sbatch":
