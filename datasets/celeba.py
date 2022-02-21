@@ -70,7 +70,9 @@ class CelebA(Dataset):
 
         self.filename = splits[mask].index.values
         self.attr = torch.as_tensor(attr[mask].values)
-        self.attr = (self.attr + 1) // 2  # map from {-1, 1} to {0, 1}
+        #self.attr = (self.attr + 1) // 2  # map from {-1, 1} to {0, 1}
+        self.attr = torch.where(self.attr > 0, torch.ones(self.attr.shape), torch.zeros(self.attr.shape)).to(torch.long)
+    
         self.attr_names = list(attr.columns)
         ## for task labels x subgroup labels
 

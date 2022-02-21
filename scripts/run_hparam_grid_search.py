@@ -15,8 +15,9 @@ from submit_job import JobManager
 
 # RICE MACROS
 USER = os.environ["USER"]
-LOG_DIR = f"/farmshare/user_data/{USER}/mml-robustness/logs"
+#LOG_DIR = f"/farmshare/user_data/{USER}/mml-robustness/logs"
 #LOG_DIR = "./logs"
+LOG_DIR = "/home/Jupinder_Parmar/mml-robustness/logs"
 
 
 def parse_args():
@@ -103,14 +104,14 @@ def submit_reweighted_subsampled_tuning_jobs(args):
     LR_GRID = [1e-5, 1e-4, 1e-3] # 10−5, 10−4, 10−3
     BATCH_SIZE_GRID = [32, 64] # 2, 4, 8, 16, 32, 64, 128
     TASK_GRID = [
-        "Pointy_Nose:Rosy_Cheeks",
-        "Oval_Face:Rosy_Cheeks",
-        "Young:Attractive",
+        "Smiling:High_Cheekbones",
     ]
 
-    ## "Oval_Face:Rosy_Cheeks", still need these to tune
-    ##"Smiling:High_Cheekbones",
-    # "Attractive:Eyeglasses",
+    ## "Pointy_Nose:Rosy_Cheeks", rice
+    ##"Smiling:High_Cheekbones", rice (running)
+    #"Oval_Face:Rosy_Cheeks", rice
+    #"Young:Attractive", rice
+    # "Attractive:Eyeglasses", gcp
     method = "suby"
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
