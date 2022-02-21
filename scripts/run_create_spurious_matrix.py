@@ -20,7 +20,9 @@ from scripts.submit_job import JobManager
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--meta_log_dir", type=str, required=True, help="Directory of all log directories to create spurious matrix on")
+    parser.add_argument(
+        "--meta_log_dir", type=str, required=True, help="Directory of all log directories to create spurious matrix on"
+    )
     parser.add_argument(
         "--json_dir",
         type=str,
@@ -41,11 +43,7 @@ def main():
         job_name = f"SPURIOUS_{log_dir}"
         log_file = os.path.join("./slurm_logs", f"{job_name}.log")
         log_dir = os.path.join(args.meta_log_dir, log_dir)
-        command = (
-            "python -m scripts.create_spurious_matrix "
-            f"--log_dir {log_dir} "
-            f"--json_dir {args.json_dir} "
-        )
+        command = ("python -m scripts.create_spurious_matrix " f"--log_dir {log_dir} " f"--json_dir {args.json_dir} ")
         job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 
