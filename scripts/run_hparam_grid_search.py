@@ -107,11 +107,11 @@ def submit_reweighted_subsampled_tuning_jobs(args):
         "Smiling:High_Cheekbones",
     ]
 
-    ## "Pointy_Nose:Rosy_Cheeks", rice
-    ##"Smiling:High_Cheekbones", rice (running)
-    #"Oval_Face:Rosy_Cheeks", rice
-    #"Young:Attractive", rice
-    # "Attractive:Eyeglasses", gcp
+    ## "Pointy_Nose:Rosy_Cheeks", rice (done)
+    ##"Smiling:High_Cheekbones", rice, last two on GCP (running)
+    #"Oval_Face:Rosy_Cheeks", rice (done)
+    #"Young:Attractive", rice (done)
+    # "Attractive:Eyeglasses", gcp (done)
     method = "suby"
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
