@@ -48,9 +48,8 @@ def parse_args():
     return parser.parse_args()
 
 
-def main():
-    args = parse_args()
-    results_dir = os.path.join(args.log_dir, "results")
+def main(log_dir, run_test=False, test_groupings="", metric="avg"):
+    results_dir = os.path.join(log_dir, "results")
 
     val_stats_json_regex = re.compile(r"val_stats_[0-9]+\.json")
     val_stats = {}
@@ -71,12 +70,12 @@ def main():
     group_acc_key_regex = re.compile(r".*_g[0-9]+_acc")
     avg_acc_key_regex = re.compile(r".*_avg_acc")
     for epoch in val_stats.keys():
-        if args.metric == "group":
+        if metric == "group":
             worst_group_acc = min(val_stats[epoch][key] for key in val_stats[epoch].keys() if group_acc_key_regex.match(key))
             if worst_group_acc > best_acc:
                 best_epoch = epoch
                 best_acc = worst_group_acc
-        elif args.metric == "avg":
+        elif metric == "avg":
             avg_group_acc = min(val_stats[epoch][key] for key in val_stats[epoch].keys() if avg_acc_key_regex.match(key))
             if avg_group_acc > best_acc:
                 best_epoch = epoch
@@ -85,7 +84,7 @@ def main():
             raise ValueError("Incorrect metric format. Only supports 'group' and 'acc'. ")
 
     logger.info("Best validation epoch: %s", best_epoch)
-    logger.info("Best %s accuracy: %s", args.metric, best_acc)
+    logger.info("Best %s accuracy: %s", metric, best_acc)
 
     if best_epoch is None:
         logger.info("Detected an empty val_stats. Skipping")
@@ -96,14 +95,18 @@ def main():
             logger.info("  %s: %s", key, val_stats[best_epoch][key])
 
     # Actually run evaluation on test set with this checkpoint
-    if args.run_test:
+    if run_test:
         logger.info(f"Running evaluation on test set with checkpoint {best_epoch}")
-        command = ("python test.py " f"--log_dir {args.log_dir} " f"--ckpt_num {int(best_epoch)} " f"--split test")
-        if args.test_groupings:
-            command = f"{command} --groupings {args.test_groupings}"
+        command = ("python test.py " f"--log_dir {log_dir} " f"--ckpt_num {int(best_epoch)} " f"--split test")
+        if test_groupings:
+            command = f"{command} --groupings {test_groupings}"
 
         subprocess.run(command, shell=True, check=True)
 
+    return int(best_epoch)
+
 
 if __name__ == "__main__":
-    main()
+    # In this script, call argparse outside of main so it can be imported by generate_spurious_matrix
+    args = parse_args()
+    main(log_dir=args.log_dir, run_test=args.run_test, test_groupings=args.test_groupings, metric=args.metric)
