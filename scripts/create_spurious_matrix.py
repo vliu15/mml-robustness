@@ -85,7 +85,7 @@ def create_group_acc_heatmap(group_acc_dict, json_dir, task_label, class_accurac
     # Create and save heatplot
     _, ax = plt.subplots(figsize=(13, 13))
     heatmap = sns.heatmap(group_acc_df, annot=True, fmt=".4f", linewidths=1.0, ax=ax, vmin=0, vmax=100)
-    ax.set_title(f"Task Label: {task_label}, Class 0 Acc: {class_accuracies[0]}, Class 1 Acc: {class_accuracies[1]}", fontsize=18, pad=20)
+    ax.set_title(f"Task Label: {task_label}, Class 0 Acc: {round(class_accuracies[0],4)}, Class 1 Acc: {round(class_accuracies[1],4)}", fontsize=18, pad=20)
     plt.xlabel("Subgroup Accuracy", labelpad=20, fontweight="bold")
     plt.ylabel("Potential Spurious Correlates", labelpad=20, fontweight="bold")
     plt.tight_layout()
@@ -155,7 +155,7 @@ def main():
 
     # Prepare task x attr
     task_label = config.dataset.groupings[0].split(":")[0]
-    attributes.remove(task_label)
+    #attributes.remove(task_label)
     json_dir = os.path.join(args.json_dir, task_label)
 
     # Set up save dir
@@ -184,7 +184,7 @@ def main():
     assert len(list(filter(lambda f: f.endswith(".json"), os.listdir(json_dir)))) == len(attributes), \
         f"There should be {len(attributes)} JSON files"
 
-    class_acuracies = None 
+    class_accuracies = None 
 
     # Aggregate JSON files and compute the Agresti-Coull Interval for a 95% CI
     group_acc_dict = defaultdict(list)
@@ -205,10 +205,9 @@ def main():
                 class_one_correct = float(data[f"{task_label}_g2_correct_counts"] + data[f"{task_label}_g3_correct_counts"])
                 class_accuracies = [(class_zero_correct/class_zero_total), (class_one_correct/class_one_total)]
                 
-
             for i in range(4):
 
-                class_acuracy = class_accuracies[int(i/2)] 
+                class_accuracy = class_accuracies[int(i/2)] 
                 group_size = float(group_sizes[i])
                 group_correct_counts = float(data[f"{task_label}_g{i}_correct_counts"])
                 n_tilde = group_size + z**2
@@ -218,19 +217,19 @@ def main():
                 upper_ci = p_tilde + ci_range 
 
                 if class_accuracy >= lower_ci and class_accuracy <= upper_ci:
-                    group_acc_dict[f"Group {i}"].append(class_accuracy)
+                    group_acc_dict[f"Group {i}"].append(round(class_accuracy,4))
                 else:
                     ## upper is closer
                     if np.abs(class_accuracy - lower_ci) > np.abs(upper_ci - class_accuracy):
-                        group_acc_dict[f"Group {i}"].append(upper_ci)
+                        group_acc_dict[f"Group {i}"].append(round(upper_ci,4))
                     else:
-                        group_acc_dict[f"Group {i}"].append(lower_ci)
+                        group_acc_dict[f"Group {i}"].append(round(lower_ci,4))
 
                 #group_acc_dict[f"Group {i}"].append(round(100 * data[f"{task_label}_g{i}_acc"], 4))
                 group_size_dict[f"Group {i}"].append(group_sizes[i])
 
     # Create and save heatmaps
-    create_group_acc_heatmap(group_acc_dict, json_dir, task_label)
+    create_group_acc_heatmap(group_acc_dict, json_dir, task_label, class_accuracies)
     create_group_size_heatmap(group_size_dict, json_dir, task_label)
     create_spurious_eval_heatmap(group_acc_dict, group_size_dict, avg_task_acc, json_dir, task_label)
 
