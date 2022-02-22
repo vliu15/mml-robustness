@@ -210,7 +210,7 @@ def main():
 
                 class_acuracy = class_accuracies[int(i/2)] 
                 group_size = float(group_sizes[i])
-                group_correct_counts = float(data[f"{task_label}_g{i}_correct_counts""])
+                group_correct_counts = float(data[f"{task_label}_g{i}_correct_counts"])
                 n_tilde = group_size + z**2
                 p_tilde = (1/n_tilde)*(group_correct_counts + ((z**2)/2))
                 ci_range = z*np.sqrt((p_tilde / n_tilde) * (1 - p_tilde))

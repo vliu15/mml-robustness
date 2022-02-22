@@ -5,7 +5,7 @@ Sample usage:
 python test.py \
     --log_dir logs/erm/Blond_Hair:Male \
     --ckpt_num 20 \
-    --groupings [Blond_Hair:Male] \
+    --groupings '["Blond_Hair:Male"]' \
     --split test
 """
 
