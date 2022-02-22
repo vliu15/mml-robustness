@@ -155,7 +155,7 @@ class CelebA(Dataset):
 
             if self.subgroup_labels:
 
-                self.subsample(config, task_sizes, counts)
+                self.subsample(config, task_sizes, self.counts)
 
             else:
                 self.subsample(config, task_sizes, None)
