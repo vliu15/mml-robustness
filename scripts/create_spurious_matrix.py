@@ -24,6 +24,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from omegaconf import OmegaConf
+from scipy import stats
 from tqdm import tqdm
 
 from datasets.celeba import CelebA
@@ -44,6 +45,8 @@ attributes = [
     "Wavy_Hair", "Wearing_Earrings", "Wearing_Hat", "Wearing_Lipstick", "Wearing_Necklace", "Wearing_Necktie", "Young"
 ]
 
+alpha = 0.05 ## Change this if something other than a 95% CI is desired
+z = stats.norm.ppf(1 - alpha/2)
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -74,8 +77,7 @@ def get_group_sizes(config, task, attr):
     counts = counts + [0] * (4 - len(counts))
     return counts
 
-
-def create_group_acc_heatmap(group_acc_dict, json_dir, task_label):
+def create_group_acc_heatmap(group_acc_dict, json_dir, task_label, class_accuracies):
     # Create PD dataframe
     group_acc_df = pd.DataFrame.from_dict(group_acc_dict)
     group_acc_df = group_acc_df.rename(index={ind: v for ind, v in enumerate(attributes)})
@@ -83,7 +85,7 @@ def create_group_acc_heatmap(group_acc_dict, json_dir, task_label):
     # Create and save heatplot
     _, ax = plt.subplots(figsize=(13, 13))
     heatmap = sns.heatmap(group_acc_df, annot=True, fmt=".4f", linewidths=1.0, ax=ax, vmin=0, vmax=100)
-    ax.set_title(f"Task Label: {task_label}", fontsize=18, pad=20)
+    ax.set_title(f"Task Label: {task_label}, Class 0 Acc: {class_accuracies[0]}, Class 1 Acc: {class_accuracies[1]}", fontsize=18, pad=20)
     plt.xlabel("Subgroup Accuracy", labelpad=20, fontweight="bold")
     plt.ylabel("Potential Spurious Correlates", labelpad=20, fontweight="bold")
     plt.tight_layout()
@@ -121,6 +123,7 @@ def create_spurious_eval_heatmap(group_acc_dict, group_size_dict, avg_task_acc, 
         delta = np.nan if np.isnan(group_accs).any() else abs(group_accs[0] + group_accs[3] - group_accs[1] - group_accs[2])
         spurious_eval_list.append(delta)
 
+
     spurious_eval_df = pd.DataFrame({f"Average Accuracy: {avg_task_acc:.4f}": spurious_eval_list}, index=attributes)
     _, ax = plt.subplots(figsize=(6, 13))
     heatmap = sns.heatmap(spurious_eval_df, annot=True, fmt=".4f", linewidths=1.0, ax=ax, vmin=0, vmax=100)
@@ -128,6 +131,15 @@ def create_spurious_eval_heatmap(group_acc_dict, group_size_dict, avg_task_acc, 
     plt.xlabel("Spurious Correlate $\delta = |g_0 + g_3 - g_1 - g_2|$", labelpad=20, fontweight="bold")
     plt.ylabel("Potential Spurious Correlates", labelpad=20, fontweight="bold")
     plt.tight_layout()
+
+    ### save spurious_eval_list with attribute information 
+    spurious_eval_list = [None if np.isnan(delta) else delta for delta in spurious_eval_list]
+    spurious_eval_dict = {attr:delta for attr,delta in zip(attributes,spurious_eval_list)}
+    spurious_eval_file = os.path.join(json_dir, f"{task_label}_spurious_eval.json")
+    f = open(spurious_eval_file, "w")
+    json.dump(spurious_eval_dict, f)
+    f.close()
+
     heatmap_file = os.path.join(json_dir, f"{task_label}_heatmap_spurious_eval.png")
     heatmap.figure.savefig(heatmap_file)
     logger.info(f"Saved group sizes heatmap to {heatmap_file}")
@@ -172,7 +184,9 @@ def main():
     assert len(list(filter(lambda f: f.endswith(".json"), os.listdir(json_dir)))) == len(attributes), \
         f"There should be {len(attributes)} JSON files"
 
-    # Aggregate JSON files
+    class_acuracies = None 
+
+    # Aggregate JSON files and compute the Agresti-Coull Interval for a 95% CI
     group_acc_dict = defaultdict(list)
     group_size_dict = defaultdict(list)
     avg_task_acc = None
@@ -182,8 +196,37 @@ def main():
         with open(os.path.join(json_dir, f"{task_label}:{attr}.json"), "r") as f:
             data = json.load(f)
             avg_task_acc = round(100 * data[f"{task_label}_avg_acc"], 4)  # should be the same for all attributes
+
+            if class_accuracies is None:
+                class_zero_total = float(group_sizes[0] + group_sizes[1])
+                class_zero_correct = float(data[f"{task_label}_g0_correct_counts"] + data[f"{task_label}_g1_correct_counts"])
+
+                class_one_total = float(group_sizes[2] + group_sizes[3])
+                class_one_correct = float(data[f"{task_label}_g2_correct_counts"] + data[f"{task_label}_g3_correct_counts"])
+                class_accuracies = [(class_zero_correct/class_zero_total), (class_one_correct/class_one_total)]
+                
+
             for i in range(4):
-                group_acc_dict[f"Group {i}"].append(round(100 * data[f"{task_label}_g{i}_acc"], 4))
+
+                class_acuracy = class_accuracies[int(i/2)] 
+                group_size = float(group_sizes[i])
+                group_correct_counts = float(data[f"{task_label}_g{i}_correct_counts""])
+                n_tilde = group_size + z**2
+                p_tilde = (1/n_tilde)*(group_correct_counts + ((z**2)/2))
+                ci_range = z*np.sqrt((p_tilde / n_tilde) * (1 - p_tilde))
+                lower_ci = p_tilde - ci_range
+                upper_ci = p_tilde + ci_range 
+
+                if class_accuracy >= lower_ci and class_accuracy <= upper_ci:
+                    group_acc_dict[f"Group {i}"].append(class_accuracy)
+                else:
+                    ## upper is closer
+                    if np.abs(class_accuracy - lower_ci) > np.abs(upper_ci - class_accuracy):
+                        group_acc_dict[f"Group {i}"].append(upper_ci)
+                    else:
+                        group_acc_dict[f"Group {i}"].append(lower_ci)
+
+                #group_acc_dict[f"Group {i}"].append(round(100 * data[f"{task_label}_g{i}_acc"], 4))
                 group_size_dict[f"Group {i}"].append(group_sizes[i])
 
     # Create and save heatmaps

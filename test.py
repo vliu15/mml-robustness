@@ -140,8 +140,10 @@ def evaluate(
     for key in list(metrics.keys()):
         if "counts" in key:
             new_key = key.replace("counts", "acc")
+            group_correct_counts_key = key.replace("counts", "correct_counts")
             metrics[new_key] = to_scalar(metrics[key][0] / metrics[key][1]) if metrics[key][1] > 0 else None
-            metrics.pop(key)
+            metrics[group_correct_counts_key] = to_scalar(metrics[key][0])
+            metrics.pop(key) 
             key = new_key
         logger.info("%s: %s%", key, 100 * metrics[key] if metrics[key] is not None else None)
 
