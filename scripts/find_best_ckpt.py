@@ -84,6 +84,7 @@ def main():
         else:
             raise ValueError("Incorrect metric format. Only supports 'group' and 'acc'. ")
 
+    best_epoch += 1
     logger.info("Best validation epoch: %s", best_epoch)
     logger.info("Best %s accuracy: %s", args.metric, best_acc)
 

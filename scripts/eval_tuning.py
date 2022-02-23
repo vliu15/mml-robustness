@@ -62,7 +62,7 @@ def eval_suby_tuning_jobs(args):
                 for batch_size in BATCH_SIZE_GRID:
                     job_name = f"eval_task:{task},wd:{wd},lr:{lr},batch_size:{batch_size}"
 
-                    #if job_name not in ['task:Smiling:High_Cheekbones,wd:1,lr:0.001,batch_size:32', 'task:Smiling:High_Cheekbones,wd:1,lr:0.001,batch_size:64']:
+                    #if job_name in ['eval_task:Smiling:High_Cheekbones,wd:1,lr:0.001,batch_size:32', 'eval_task:Smiling:High_Cheekbones,wd:1,lr:0.001,batch_size:64']:
 
                     log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
                     command = (
