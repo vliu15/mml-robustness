@@ -52,7 +52,6 @@ def eval_suby_tuning_jobs(args):
     #"Oval_Face:Rosy_Cheeks", rice (done)
     #"Young:Attractive", rice (done)
     # "Attractive:Eyeglasses", gcp (done)
-    method = "suby"
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
 
