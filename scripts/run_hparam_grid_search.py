@@ -67,7 +67,7 @@ def submit_erm_grid_jobs(args):
                 job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 
-def submit_mtl_erm_2_grid_jobs(args):
+def submit_mtl_erm_grid_jobs(args):
     ## DECLARE MACROS HERE ##
     WD_GRID = [1e-4, 1e-3, 1e-2, 1e-1]
     LR_GRID = [1e-5, 5e-5, 1e-4]
@@ -96,32 +96,36 @@ def submit_mtl_erm_2_grid_jobs(args):
                     job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 
-def submit_mtl_erm_3_grid_jobs(args):
+def submit_reweighted_subsampled_tuning_jobs(args):
     ## DECLARE MACROS HERE ##
-    WD_GRID = [1e-4, 1e-3, 1e-2, 1e-1]
-    LR_GRID = [1e-5, 5e-5, 1e-4]
-    ALPHA_GRID = [0.1, 0.5, 1]
+    WD_GRID = [1e-2, 1e-1, 1]  # 10−4, 10−3, 10−2, 10−1, 1
+    LR_GRID = [1e-5, 1e-4, 1e-3]  # 10−5, 10−4, 10−3
+    BATCH_SIZE_GRID = [32, 64]  # 2, 4, 8, 16, 32, 64, 128
     TASK_GRID = [
-        "Oval_Face:Rosy_Cheeks,Attractive:Bald,Young:Gray_Hair",
+        "Smiling:High_Cheekbones", "Pointy_Nose:Rosy_Cheeks", "Oval_Face:Rosy_Cheeks", "Young:Attractive",
+        "Attractive:Eyeglasses"
     ]
+
+    method = "suby"
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
 
     for task in TASK_GRID:
         for wd in WD_GRID:
             for lr in LR_GRID:
-                for alpha in ALPHA_GRID:
-                    job_name = f"task:{task},wd:{wd},lr:{lr},alpha:{alpha}"
+                for batch_size in BATCH_SIZE_GRID:
+                    job_name = f"task:{task},wd:{wd},lr:{lr},batch_size:{batch_size}"
+
                     log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
                     command = (
-                        "python train_erm.py exp=erm "
+                        f"python train_erm.py exp={method} "
                         f"exp.optimizer.weight_decay={wd} "
                         f"exp.optimizer.lr={lr} "
                         f"exp.dataset.groupings='[{task}]' "
-                        f"exp.dataset.lbtw_alpha={alpha} "
+                        f"exp.dataloader.batch_size={batch_size} "
+                        f"exp.train.load_ckpt=\\'/farmshare/user_data/{USER}/mml-robustness/logs/{job_name}/ckpts/ckpt.52.pt\\' "
                         f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
                     )
-
                     job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 
@@ -130,8 +134,7 @@ def main():
     if args.mode == "sbatch":
         os.makedirs(args.slurm_logs, exist_ok=True)
 
-    ## CALL FUNCS HERE ##
-    # submit_erm_grid_jobs(args)
+    submit_reweighted_subsampled_tuning_jobs(args)
 
 
 if __name__ == "__main__":

@@ -83,6 +83,7 @@ def main(log_dir, run_test=False, test_groupings="", metric="avg"):
         else:
             raise ValueError("Incorrect metric format. Only supports 'group' and 'acc'. ")
 
+    best_epoch += 1
     logger.info("Best validation epoch: %s", best_epoch)
     logger.info("Best %s accuracy: %s", metric, best_acc)
 
