@@ -122,18 +122,20 @@ def submit_reweighted_subsampled_tuning_jobs(args):
                 for batch_size in BATCH_SIZE_GRID:
                     job_name = f"task:{task},wd:{wd},lr:{lr},batch_size:{batch_size}"
 
-            
-                    log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
-                    command = (
-                        f"python train_erm.py exp={method} "
-                        f"exp.optimizer.weight_decay={wd} "
-                        f"exp.optimizer.lr={lr} "
-                        f"exp.dataset.groupings='[{task}]' "
-                        f"exp.dataloader.batch_size={batch_size} "
-                        f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
-                    )
-                    job_manager.submit(command, job_name=job_name, log_file=log_file)
+                    if job_name not in ['task:Smiling:High_Cheekbones,wd:1,lr:0.001,batch_size:32', 'task:Smiling:High_Cheekbones,wd:1,lr:0.001,batch_size:64']:
 
+            
+                        log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+                        command = (
+                            f"python train_erm.py exp={method} "
+                            f"exp.optimizer.weight_decay={wd} "
+                            f"exp.optimizer.lr={lr} "
+                            f"exp.dataset.groupings='[{task}]' "
+                            f"exp.dataloader.batch_size={batch_size} "
+                            f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                            f"exp.train.load_cpt=/farmshare/user_data/jsparmar/mml-robustness/logs/{job_name}/ckpts/ckpt.52.pt"
+                        )
+                        job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 def main():
     args = parse_args()
