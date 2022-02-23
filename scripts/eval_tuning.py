@@ -15,8 +15,7 @@ from submit_job import JobManager
 
 # RICE MACROS
 USER = os.environ["USER"]
-#LOG_DIR = f"/farmshare/user_data/{USER}/mml-robustness/logs"
-LOG_DIR = "/home/Jupinder_Parmar/mml-robustness/logs"
+LOG_DIR = f"/farmshare/user_data/{USER}/mml-robustness/logs"
 
 
 def parse_args():

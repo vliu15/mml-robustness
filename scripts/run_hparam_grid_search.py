@@ -15,9 +15,8 @@ from submit_job import JobManager
 
 # RICE MACROS
 USER = os.environ["USER"]
-#LOG_DIR = f"/farmshare/user_data/{USER}/mml-robustness/logs"
-#LOG_DIR = "./logs"
-LOG_DIR = "/home/Jupinder_Parmar/mml-robustness/logs"
+LOG_DIR = f"/farmshare/user_data/{USER}/mml-robustness/logs"
+
 
 
 def parse_args():
@@ -104,14 +103,10 @@ def submit_reweighted_subsampled_tuning_jobs(args):
     LR_GRID = [1e-5, 1e-4, 1e-3] # 10−5, 10−4, 10−3
     BATCH_SIZE_GRID = [32, 64] # 2, 4, 8, 16, 32, 64, 128
     TASK_GRID = [
-        "Smiling:High_Cheekbones",
+        "Smiling:High_Cheekbones", "Pointy_Nose:Rosy_Cheeks", "Oval_Face:Rosy_Cheeks", 
+        "Young:Attractive", "Attractive:Eyeglasses"
     ]
 
-    ## "Pointy_Nose:Rosy_Cheeks", rice (done)
-    ##"Smiling:High_Cheekbones", rice, last two on GCP (running)
-    #"Oval_Face:Rosy_Cheeks", rice (done)
-    #"Young:Attractive", rice (done)
-    # "Attractive:Eyeglasses", gcp (done)
     method = "suby"
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
@@ -122,20 +117,19 @@ def submit_reweighted_subsampled_tuning_jobs(args):
                 for batch_size in BATCH_SIZE_GRID:
                     job_name = f"task:{task},wd:{wd},lr:{lr},batch_size:{batch_size}"
 
-                    if job_name not in ['task:Smiling:High_Cheekbones,wd:1,lr:0.001,batch_size:32', 'task:Smiling:High_Cheekbones,wd:1,lr:0.001,batch_size:64']:
-
+        
             
-                        log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
-                        command = (
-                            f"python train_erm.py exp={method} "
-                            f"exp.optimizer.weight_decay={wd} "
-                            f"exp.optimizer.lr={lr} "
-                            f"exp.dataset.groupings='[{task}]' "
-                            f"exp.dataloader.batch_size={batch_size} "
-                            f"exp.train.load_ckpt=\\'/farmshare/user_data/jsparmar/mml-robustness/logs/{job_name}/ckpts/ckpt.52.pt\\' "
-                            f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
-                        )
-                        job_manager.submit(command, job_name=job_name, log_file=log_file)
+                    log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+                    command = (
+                        f"python train_erm.py exp={method} "
+                        f"exp.optimizer.weight_decay={wd} "
+                        f"exp.optimizer.lr={lr} "
+                        f"exp.dataset.groupings='[{task}]' "
+                        f"exp.dataloader.batch_size={batch_size} "
+                        f"exp.train.load_ckpt=\\'/farmshare/user_data/{USER}/mml-robustness/logs/{job_name}/ckpts/ckpt.52.pt\\' "
+                        f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                    )
+                    job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 def main():
     args = parse_args()
