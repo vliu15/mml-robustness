@@ -23,7 +23,8 @@ attributes = [
 ]
 
 #used_for_tuning = ["Blond_Hair", "Young", "Smiling", "Oval_Face", "Pointy_Nose", "Attractive"]
-used_for_tuning = [] #if we simply want to re-run for all attributes 
+used_for_tuning = []  #if we simply want to re-run for all attributes
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -41,6 +42,7 @@ def parse_args():
     parser.add_argument("--slurm_logs", type=str, default="slurm_logs", required=False, help="Directory to output slurm logs")
     parser.add_argument("--log_dir", type=str, required=False, default="./logs/spurious_id", help="Log directory for all runs")
     return parser.parse_args()
+
 
 def erm_spurious_id(args, attributes_to_train):
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
@@ -80,6 +82,7 @@ def suby_spurious_id(args, attributes_to_train):
         )
 
         job_manager.submit(command, job_name=job_name, log_file=log_file)
+
 
 def main():
     args = parse_args()

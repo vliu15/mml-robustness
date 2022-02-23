@@ -18,7 +18,6 @@ USER = os.environ["USER"]
 LOG_DIR = f"/farmshare/user_data/{USER}/mml-robustness/logs"
 
 
-
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -99,12 +98,12 @@ def submit_mtl_erm_grid_jobs(args):
 
 def submit_reweighted_subsampled_tuning_jobs(args):
     ## DECLARE MACROS HERE ##
-    WD_GRID = [1e-2, 1e-1, 1] # 10−4, 10−3, 10−2, 10−1, 1
-    LR_GRID = [1e-5, 1e-4, 1e-3] # 10−5, 10−4, 10−3
-    BATCH_SIZE_GRID = [32, 64] # 2, 4, 8, 16, 32, 64, 128
+    WD_GRID = [1e-2, 1e-1, 1]  # 10−4, 10−3, 10−2, 10−1, 1
+    LR_GRID = [1e-5, 1e-4, 1e-3]  # 10−5, 10−4, 10−3
+    BATCH_SIZE_GRID = [32, 64]  # 2, 4, 8, 16, 32, 64, 128
     TASK_GRID = [
-        "Smiling:High_Cheekbones", "Pointy_Nose:Rosy_Cheeks", "Oval_Face:Rosy_Cheeks", 
-        "Young:Attractive", "Attractive:Eyeglasses"
+        "Smiling:High_Cheekbones", "Pointy_Nose:Rosy_Cheeks", "Oval_Face:Rosy_Cheeks", "Young:Attractive",
+        "Attractive:Eyeglasses"
     ]
 
     method = "suby"
@@ -117,8 +116,6 @@ def submit_reweighted_subsampled_tuning_jobs(args):
                 for batch_size in BATCH_SIZE_GRID:
                     job_name = f"task:{task},wd:{wd},lr:{lr},batch_size:{batch_size}"
 
-        
-            
                     log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
                     command = (
                         f"python train_erm.py exp={method} "
@@ -130,6 +127,7 @@ def submit_reweighted_subsampled_tuning_jobs(args):
                         f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
                     )
                     job_manager.submit(command, job_name=job_name, log_file=log_file)
+
 
 def main():
     args = parse_args()

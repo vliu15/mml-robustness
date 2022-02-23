@@ -37,11 +37,12 @@ def parse_args():
     args.slurm_logs = os.path.abspath(args.slurm_logs)
     return args
 
+
 def eval_suby_tuning_jobs(args):
     ## DECLARE MACROS HERE ##
-    WD_GRID = [1e-2, 1e-1, 1] # 10−4, 10−3, 10−2, 10−1, 1
-    LR_GRID = [1e-5, 1e-4, 1e-3] # 10−5, 10−4, 10−3
-    BATCH_SIZE_GRID = [32, 64] # 2, 4, 8, 16, 32, 64, 128
+    WD_GRID = [1e-2, 1e-1, 1]  # 10−4, 10−3, 10−2, 10−1, 1
+    LR_GRID = [1e-5, 1e-4, 1e-3]  # 10−5, 10−4, 10−3
+    BATCH_SIZE_GRID = [32, 64]  # 2, 4, 8, 16, 32, 64, 128
     TASK_GRID = [
         "Attractive:Eyeglasses",
     ]
@@ -64,11 +65,8 @@ def eval_suby_tuning_jobs(args):
                     #if job_name in ['eval_task:Smiling:High_Cheekbones,wd:1,lr:0.001,batch_size:32', 'eval_task:Smiling:High_Cheekbones,wd:1,lr:0.001,batch_size:64']:
 
                     log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
-                    command = (
-                        f"python scripts/find_best_ckpt.py --run_test --log_dir ./logs/{job_name[5:]} --metric avg"
-                    )
+                    command = (f"python scripts/find_best_ckpt.py --run_test --log_dir ./logs/{job_name[5:]} --metric avg")
                     job_manager.submit(command, job_name=job_name, log_file=log_file)
-
 
 
 def main():
