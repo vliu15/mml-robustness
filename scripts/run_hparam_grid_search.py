@@ -132,8 +132,8 @@ def submit_reweighted_subsampled_tuning_jobs(args):
                             f"exp.optimizer.lr={lr} "
                             f"exp.dataset.groupings='[{task}]' "
                             f"exp.dataloader.batch_size={batch_size} "
+                            f"exp.train.load_ckpt=\\'/farmshare/user_data/jsparmar/mml-robustness/logs/{job_name}/ckpts/ckpt.52.pt\\' "
                             f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
-                            f"exp.train.load_cpt=/farmshare/user_data/jsparmar/mml-robustness/logs/{job_name}/ckpts/ckpt.52.pt"
                         )
                         job_manager.submit(command, job_name=job_name, log_file=log_file)
 
