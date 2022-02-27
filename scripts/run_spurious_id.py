@@ -77,7 +77,7 @@ def suby_spurious_id(args, attributes_to_train):
             f"exp.optimizer.weight_decay={args.wd} "
             f"exp.train.total_epochs={args.epochs} "
             f"exp.dataloader.batch_size={args.batch_size} "
-            f"exp.train.load_ckpt=\\'/farmshare/user_data/{USER}/mml-robustness/logs/{job_name}/ckpts/ckpt.54.pt\\' "
+            f"exp.train.load_ckpt=\\'/farmshare/user_data/{USER}/mml-robustness/logs/spurious_id/{job_name}/ckpts/ckpt.54.pt\\' "
             f"exp.train.log_dir=\\'{os.path.join(args.log_dir, job_name)}\\' "
             "exp.dataset.subgroup_labels=False"
         )
