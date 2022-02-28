@@ -15,6 +15,7 @@ import json
 import logging
 import logging.config
 import os
+import re
 import subprocess
 from collections import defaultdict
 from copy import deepcopy
@@ -72,7 +73,7 @@ def get_group_sizes(config, task, attr):
 
     # In the event that there are subgroups with size 0, there are two cases:
     #   1. if len(counts) == 4: then these 0-count groups are not group 3
-    #   2. if len(counts) < 4 : then these 0-count groups are at least group 3
+    #   2. if len(counts) < 4 : then these 0-count groups are at least group 3, 2, 1, 0, etc
     # Since we count subgroup sizes with torch.bincount, the only time we end up with <4
     # subgroups is when the instances are missing in reverse order (3, 2, 1, 0)
     counts = counts + [0] * (4 - len(counts))
@@ -85,12 +86,13 @@ def create_group_acc_heatmap(group_acc_dict, json_dir, task_label, class_accurac
     group_acc_df = group_acc_df.rename(index={ind: v for ind, v in enumerate(attributes)})
 
     # Create and save heatplot
-    _, ax = plt.subplots(figsize=(13, 13))
+    fig, ax = plt.subplots(figsize=(13, 13))
     heatmap = sns.heatmap(group_acc_df, annot=True, fmt=".4f", linewidths=1.0, ax=ax, vmin=0, vmax=100)
+    fig.suptitle(f"Task Label: {task_label}", fontsize=18)
     ax.set_title(
-        f"Task Label: {task_label}, Class 0 Acc: {round(class_accuracies[0],4)}, Class 1 Acc: {round(class_accuracies[1],4)}",
-        fontsize=18,
-        pad=20
+        f"Class 0 Acc: {round(100 * class_accuracies[0],4)}, Class 1 Acc: {round(100 * class_accuracies[1],4)}",
+        fontsize=14,
+        pad=15
     )
     plt.xlabel("Subgroup Accuracy", labelpad=20, fontweight="bold")
     plt.ylabel("Potential Spurious Correlates", labelpad=20, fontweight="bold")
@@ -160,7 +162,6 @@ def main():
 
     # Prepare task x attr
     task_label = config.dataset.groupings[0].split(":")[0]
-    #attributes.remove(task_label)
     json_dir = os.path.join(args.json_dir, task_label)
 
     # Set up save dir
@@ -186,7 +187,8 @@ def main():
         subprocess.run(command, shell=True, check=True)
 
     # Some checks before we aggregate JSON files
-    assert len(list(filter(lambda f: f.endswith(".json"), os.listdir(json_dir)))) == len(attributes), \
+    spurious_regex = re.compile(fr"{task_label}:.*\.json")
+    assert len(list(filter(lambda f: spurious_regex.match(f), os.listdir(json_dir)))) == len(attributes), \
         f"There should be {len(attributes)} JSON files"
 
     class_accuracies = None
@@ -195,7 +197,7 @@ def main():
     group_acc_dict = defaultdict(list)
     group_size_dict = defaultdict(list)
     avg_task_acc = None
-    for attr in tqdm(attributes, desc="Aggregating JSON files", total=len(attributes)):
+    for attr in tqdm(attributes, desc="Aggregating test.py JSON files", total=len(attributes)):
         group_sizes = get_group_sizes(config, task_label, attr)
 
         with open(os.path.join(json_dir, f"{task_label}:{attr}.json"), "r") as f:
@@ -222,15 +224,14 @@ def main():
                 upper_ci = p_tilde + ci_range
 
                 if class_accuracy >= lower_ci and class_accuracy <= upper_ci:
-                    group_acc_dict[f"Group {i}"].append(round(class_accuracy, 4))
+                    group_acc_dict[f"Group {i}"].append(100 * round(class_accuracy, 4))
                 else:
                     ## upper is closer
                     if np.abs(class_accuracy - lower_ci) > np.abs(upper_ci - class_accuracy):
-                        group_acc_dict[f"Group {i}"].append(round(upper_ci, 4))
+                        group_acc_dict[f"Group {i}"].append(100 * round(upper_ci, 4))
                     else:
-                        group_acc_dict[f"Group {i}"].append(round(lower_ci, 4))
+                        group_acc_dict[f"Group {i}"].append(100 * round(lower_ci, 4))
 
-                #group_acc_dict[f"Group {i}"].append(round(100 * data[f"{task_label}_g{i}_acc"], 4))
                 group_size_dict[f"Group {i}"].append(group_sizes[i])
 
     # Create and save heatmaps
