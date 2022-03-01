@@ -30,10 +30,12 @@ def parse_args():
         choices=["debug", "shell", "sbatch"],
         help="Whether to run this script in debug mode, run in shell, or submit as sbatch"
     )
-    parser.add_argument("--slurm_logs", type=str, default="slurm_logs", required=False, help="Directory to output slurm logs")
+    parser.add_argument("--slurm_logs", type=str, default="./slurm_logs", required=False, help="Directory to output slurm logs")
+
+    parser.add_argument("--opt", type=str, required=True, help="The name of the submit_*_grid_jobs function to call.")
     args = parser.parse_args()
 
-    # Convert relative papths to absolute paths to help slurm out
+    # Convert relative paths to absolute paths to help slurm out
     args.slurm_logs = os.path.abspath(args.slurm_logs)
     return args
 
@@ -134,7 +136,14 @@ def main():
     if args.mode == "sbatch":
         os.makedirs(args.slurm_logs, exist_ok=True)
 
-    submit_reweighted_subsampled_tuning_jobs(args)
+    if args.opt == "erm":
+        submit_erm_grid_jobs(args)
+    elif args.opt == "mlt_erm":
+        submit_mtl_erm_grid_jobs(args)
+    elif args.opt == "rw_sub":
+        submit_reweighted_subsampled_tuning_jobs(args)
+    else:
+        raise ValueError(f"Didn't recognize opt={args.opt}. Did you forget to add a check for this function?")
 
 
 if __name__ == "__main__":
