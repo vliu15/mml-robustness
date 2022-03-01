@@ -13,7 +13,7 @@ Run
 ```bash
 python train_erm.py exp=erm
 ```
-where default hyperparameters are specified in [configs/exp/erm.yaml](https://github.com/vliu15/mml-robustness/blob/main/configs/exp/erm.yaml). Command-line control of config fields can be done with flags like
+where default hyperparameters are specified in `configs/exp/erm.yaml`. Command-line control of config fields can be done with flags like
 ```bash
 python train_erm.py exp=erm exp.optimizer.lr=0.0001 exp.train.total_epochs=50
 ```
@@ -26,10 +26,10 @@ python train_jtt.py exp=jtt
 ```
 > We implement `train_jtt.py` as two subprocess calls to `train_erm.py` with error set construction in between, so running this optimization procedure requires its own script and config format.
 
-where default hyperparameters are specified in [configs/exp/jtt.yaml](https://github.com/vliu15/mml-robustness/blob/main/configs/exp/jtt.yaml), which loads `configs/exp/jtt_stage_1.yaml` and `configs/exp/jtt_stage_2.yaml` as subconfigs for each stage of training, respectively.
+where default hyperparameters are specified in `configs/exp/jtt.yaml`, which loads `configs/exp/jtt_stage_1.yaml` and `configs/exp/jtt_stage_2.yaml` as subconfigs for each stage of training, respectively.
 
 ### Simple Data Rebalancing
-We also implement all 4 methods described in [Simple Data Rebalancing](https://arxiv.org/abs/2110.14503), which showed that simply reweighting or subsampling across class or group labels can close worst-group accuracy gaps significantly.
+We also implement all 4 methods described in [Simple Data Rebalancing](https://arxiv.org/abs/2110.14503), which shows that simply reweighting or subsampling across class or group labels can close worst-group accuracy gaps significantly.
 
 #### Reweighting
 Reweighting refers to sampling examples from the dataloader such that in expectation, all subsets of examples are uniformly represented per batch. Specifically, we implement reweighting by class label (RWY) and reweighting by group label (RWG). These can both be specified from the ERM config as
@@ -58,7 +58,7 @@ python train_erm.py exp=rwy
 # RWG
 python train_erm.py exp=rwg
 ```
-where default hyperparameters for RWY and RWG are specified in [configs/exp/rwy.yaml](https://github.com/vliu15/mml-robustness/blob/main/configs/exp/rwy.yaml) and [configs/exp/rwg.yaml](https://github.com/vliu15/mml-robustness/blob/main/configs/exp/rwg.yaml), respectively.
+where default hyperparameters for RWY and RWG are specified in `configs/exp/rwy.yaml` and `configs/exp/rwg.yaml`, respectively.
 
 #### Subsampling
 Subsampling refers to creating a truncated version of the original dataset such that all subsets of examples have the same size. The neural network is then trained on this truncated dataset where all subsets are equally represented. Specifically, we implement subsampling by class label (SUBY) and subsampling by group label (SUBG). These can both be specified from the ERM config as
@@ -89,13 +89,14 @@ python train_erm.py exp=suby
 # SUBG
 python train_erm.py exp=subg
 ```
-where default hyperparameters for SUBY and SUBG are specified in [configs/exp/suby.yaml](https://github.com/vliu15/mml-robustness/blob/main/configs/exp/suby.yaml) and [configs/exp/subg.yaml](https://github.com/vliu15/mml-robustness/blob/main/configs/exp/subg.yaml), respectively.
+where default hyperparameters for SUBY and SUBG are specified in `configs/exp/suby.yaml` and `configs/exp/subg.yaml`, respectively.
 
 ## Spurious Correlation Identification
 Multi-task learning requires additional groupings of spurious correlations in addition to the default `Blond_Hair` x `Male` studied in literature. Therefore, we provide a comprehensive set of scripts to
 1. Tune and train ERM neural networks on all 40 attributes of CelebA,
 2. Evaluate them on all attribute pairs and measure worst-group performance gaps, and
 3. Exhaustively extract all pairs of spurious correlations
+
 In all large-scale scripts that require GPU workload asynchronously across tasks, we provide parallel `sbatch` job submission options in addition to sequential `shell` calls. To adjust the job submission type, append `--mode sbatch` or `--mode shell` to the command (which will default to printing out the commands as `--mode debug`). Our `JobManager` can be found in `scripts/submit_job.py`.
 
 ### Tuning and Training
@@ -105,7 +106,7 @@ python -m scripts.run_hparam_grid_search --opt erm
 ```
 > These runs will get saved to `./logs`
 
-From these 60 ($5 \times 12$) experiments, we find that `lr=0.0001` with `weight_decay=0.1` works the best. Then train 40 ERM neural networks for 25 epochs, one for each task:
+From these 60 experiments, we find that `lr=0.0001` with `weight_decay=0.1` works the best. Then train 40 ERM neural networks for 25 epochs, one for each task:
 ```bash
 python -m scripts.run_spurious_id --lr 0.0001 --wd 0.1 --batch_size 128 --epochs 25 --mode sbatch
 ```
@@ -118,20 +119,20 @@ python -m scripts.run_create_spurious_matrix --meta_log_dir ./logs/spurious_id -
 ```
 > The outputs for each task will get saved to `./outputs/spurious_eval/$TASK`
 
-For each task, this will call `test.py` to run inference on each `$TASK` x `$ATTR` pair and then aggregate all 40 into heatmaps showing group performances, group sizes, and our spurious correlation delta metric: $\delta = |g_0 + g_3 - g_1 - g_2|$.
+For each task, this will call `test.py` to run inference on each `$TASK` x `$ATTR` pair and then aggregate all 40 into heatmaps showing group performances, group sizes, and our spurious correlation delta metric: `delta = |g0 + g3 - g1 - g2|`.
 
 ### Spurious Correlation Extraction (EXPERIMENTAL)
-Finally, we take all $40 \times 39$ possible pairs of spurious correlations (namely, their $\delta$ metrics) and systematically identify which attributes are spuriously correlated with which tasks. We observe that attributes aren't IID - specifically, there are a lot of labelled attributes that are correlated with gender. Therefore, we use biclustering and SVD-based methods to extract correlations across/between attributes/tasks:
+Finally, we take all 40x39 possible pairs of spurious correlations (namely, their `delta` metrics) and systematically identify which attributes are spuriously correlated with which tasks. We observe that attributes aren't IID - specifically, there are a lot of labelled attributes that are correlated with gender. Therefore, we use biclustering and SVD-based methods to extract correlations across/between attributes/tasks:
 ```bash
 python -m scripts.spurious_svd --json_dir outputs/spurious_eval --out_dir outputs/svd --gamma 0.9 --k 10
 ```
-> `--gamma` sets the threshold of variance, $\gamma$, that the $d$ largest singular values must account for, used to reduce the feature dimension
+> `--gamma` sets the threshold of variance, `gamma`, that the `d` largest singular values must account for, used to reduce the feature dimension
 > `--k` sets the number clusters that biclustering clustering should identify
 > The outputs from this script will get saved to `./outputs/svd`
 
 This script runs two methods:
-1. Biclustering: The $T = 40 \times 40$ matrix is column-normalized with softmax to emphasize larger values of $\delta$, which is then put through `SpectralCoclustering`. Various combinations of $T$ and $A = T^\top$ are biclustered.
-2. SVD + Clustering: The $T = 40 \times 40$ matrix is column-normalized with L2 norm and passed into SVD for feature dimension reduction according to the specified $\gamma$ value. These are clustered with KMeans
+1. Biclustering: The 40x40 `T` matrix is column-normalized with softmax to emphasize larger values of `delta`, which is then put through `SpectralCoclustering`. Various combinations of `T` and `A = transpose(T)` are biclustered.
+2. SVD + Clustering: The 40x40 `T` matrix is column-normalized with L2 norm and passed into SVD for feature dimension reduction according to the specified `gamma` value. These are clustered with KMeans
 
 ## Multi-Task Learning (EXPERIMENTAL)
 TODO
