@@ -30,7 +30,9 @@ def parse_args():
         choices=["debug", "shell", "sbatch"],
         help="Whether to run this script in debug mode, run in shell, or submit as sbatch"
     )
-    parser.add_argument("--slurm_logs", type=str, default="./slurm_logs", required=False, help="Directory to output slurm logs")
+    parser.add_argument(
+        "--slurm_logs", type=str, default="./slurm_logs", required=False, help="Directory to output slurm logs"
+    )
 
     parser.add_argument("--opt", type=str, required=True, help="The name of the submit_*_grid_jobs function to call.")
     args = parser.parse_args()
