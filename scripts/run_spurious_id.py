@@ -26,6 +26,7 @@ attributes = [
 used_for_tuning = []  #if we simply want to re-run for all attributes
 USER = os.environ["USER"]
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--wd", type=float, required=True, help="Weight decay value")
