@@ -26,7 +26,6 @@ NOTE: source loc should be a folder that contains results directories within it
 import argparse
 import logging
 import os
-import re
 import subprocess
 
 import find_best_ckpt
