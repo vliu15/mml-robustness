@@ -15,7 +15,7 @@ python -m scripts.run_create_spurious_matrix \
 import argparse
 import os
 
-from scripts.submit_job import JobManager
+from submit_job import JobManager
 
 
 def parse_args():
