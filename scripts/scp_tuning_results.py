@@ -82,7 +82,7 @@ def port_tuning_results(args):
             subprocess.run(scp_ckpt_command, shell=True, check=True)
 
             val_results_path = os.path.join(results_path, 'results') 
-            scp_results_command = f'scp {val_results_path} {args.remote}:{destination_path}'
+            scp_results_command = f'scp -r {val_results_path} {args.remote}:{destination_path}'
             subprocess.run(scp_results_command, shell=True, check=True)
 
             results_files = (file for file in os.listdir(results_path) if os.path.isfile(os.path.join(results_path, file)))
