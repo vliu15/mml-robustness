@@ -19,6 +19,7 @@ python ./scripts/scp_tuning_results.py \
     --remote Jupinder_Parmar@mml-robustness.us-west1-b.hai-gcp-robust:
     --dest_loc ~/mml-robustness/logs 
     --source_loc /farmshare/user_data/jsparmar/mml-robustness/logs/spurious_id
+    --results_type tuning
 
    
 NOTE: source loc should be a folder that contains results directories within it 
@@ -64,12 +65,18 @@ def parse_args():
         help="The folder which contains all results directories from the source that the user seeks to port to the destination"
     )
     parser.add_argument("--remote", type=str, default="user@ip", required=True, help="The remote location to copy files to")
+    parser.add_argument(
+        "--results_type",
+        type=str,
+        default="tuning",
+        choices=["tuning", "heatplot"],
+        help="Whether to port the tuning results or the heatplot results"
+    )
     args = parser.parse_args()
 
     return args
 
-
-def port_tuning_results(args):
+def port_results(args):
     for result_dir in os.listdir(args.source_loc):
 
         results_path = os.path.join(args.source_loc, result_dir)
@@ -81,18 +88,20 @@ def port_tuning_results(args):
             message = f"SCP FOLDER: {results_path}"
             logger.info(f"{Color.BOLD}{Color.BLUE}{message}{Color.END}{Color.END}")
 
-            best_epoch = find_best_ckpt.main(results_path, run_test=False, test_groupings="", metric="avg")
-            best_checkpoint_path_dest = os.path.join(destination_path, 'ckpts')
-            dest_ckpt_folder_command = f'ssh {args.remote} "mkdir -p {best_checkpoint_path_dest}"'
-            subprocess.run(dest_ckpt_folder_command, shell=True, check=True)
+            if args.results_type == "tuning":
 
-            best_checkpoint_path_src = os.path.join(results_path, 'ckpts', f'ckpt.{best_epoch}.pt')
-            scp_ckpt_command = f'scp {best_checkpoint_path_src} {args.remote}:{best_checkpoint_path_dest}'
-            subprocess.run(scp_ckpt_command, shell=True, check=True)
+                best_epoch = find_best_ckpt.main(results_path, run_test=False, test_groupings="", metric="avg")
+                best_checkpoint_path_dest = os.path.join(destination_path, 'ckpts')
+                dest_ckpt_folder_command = f'ssh {args.remote} "mkdir -p {best_checkpoint_path_dest}"'
+                subprocess.run(dest_ckpt_folder_command, shell=True, check=True)
 
-            val_results_path = os.path.join(results_path, 'results')
-            scp_results_command = f'scp -r {val_results_path} {args.remote}:{destination_path}'
-            subprocess.run(scp_results_command, shell=True, check=True)
+                best_checkpoint_path_src = os.path.join(results_path, 'ckpts', f'ckpt.{best_epoch}.pt')
+                scp_ckpt_command = f'scp {best_checkpoint_path_src} {args.remote}:{best_checkpoint_path_dest}'
+                subprocess.run(scp_ckpt_command, shell=True, check=True)
+
+                val_results_path = os.path.join(results_path, 'results')
+                scp_results_command = f'scp -r {val_results_path} {args.remote}:{destination_path}'
+                subprocess.run(scp_results_command, shell=True, check=True)
 
             results_files = (file for file in os.listdir(results_path) if os.path.isfile(os.path.join(results_path, file)))
             for file in results_files:
@@ -104,7 +113,7 @@ def port_tuning_results(args):
 def main():
     args = parse_args()
 
-    port_tuning_results(args)
+    port_results(args)
 
 
 if __name__ == "__main__":
