@@ -24,6 +24,7 @@ attributes = [
 
 #used_for_tuning = ["Blond_Hair", "Young", "Smiling", "Oval_Face", "Pointy_Nose", "Attractive"]
 used_for_tuning = []  #if we simply want to re-run for all attributes
+USER = os.environ["USER"]
 
 
 def parse_args():
@@ -77,6 +78,7 @@ def suby_spurious_id(args, attributes_to_train):
             f"exp.optimizer.weight_decay={args.wd} "
             f"exp.train.total_epochs={args.epochs} "
             f"exp.dataloader.batch_size={args.batch_size} "
+            f"exp.train.load_ckpt=\\'/farmshare/user_data/{USER}/mml-robustness/logs/spurious_id/{job_name}/ckpts/ckpt.54.pt\\' "
             f"exp.train.log_dir=\\'{os.path.join(args.log_dir, job_name)}\\' "
             "exp.dataset.subgroup_labels=False"
         )
