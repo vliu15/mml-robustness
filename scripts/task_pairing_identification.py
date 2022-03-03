@@ -19,6 +19,9 @@ from create_spurious_matrix import attributes
 import json
 import numpy as np
 import itertools 
+import os
+from tqdm import tqdm
+import random
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -96,7 +99,7 @@ def main():
             column = np.array([data[attr] for attr in attributes], dtype=np.float32)
             T.append(column)
 
-        with open(os.path.join(spurious_eval_dir, task, f"{task}:{task}.json"), "r") as f:
+        with open(os.path.join(args.spurious_eval_dir, task, f"{task}:{task}.json"), "r") as f:
             data = json.load(f)
             task_performance.append(data[f"{task}_avg_acc"])
 
@@ -119,10 +122,11 @@ def main():
     poor_tasks = []
     task_to_correlates = {}
 
-    poor_tasks = [attributes[ind] for ind in np.where(task_performance==True)]
+
+    poor_tasks = [attributes[ind] for ind in np.where(task_performance==True)[0]]
     for ind, attr in enumerate(attributes):
         row = T[ind]
-        spurious_correlates = set([attributes[ind] for ind in np.where(row==True)])
+        spurious_correlates = set([attributes[ind] for ind in np.where(row==True)[0]])
 
         if args.svd_clusters is not None:
             correlates_to_add = set()
@@ -159,17 +163,21 @@ def main():
         if args.pairing_type == "disjoint":
             correlate_set_computation = task_to_correlates[pairing[0]]
             num_sets = len(correlate_set_computation)
-            for task in pairing[1:]:
-                correlates = task_to_correlates[task]
-                num_sets += len(correlates)
-                correlate_set_computation = correlate_set_computation.union(correlates)
+            if num_sets != 0:
+                for task in pairing[1:]:
+                    correlates = task_to_correlates[task]
+                    if len(correlates) == 0:
+                        num_sets = -1
+                        break
+                    num_sets += len(correlates)
+                    correlate_set_computation = correlate_set_computation.union(correlates)
 
-            if num_sets == len(correlate_set_computation):
-                possible_task = {}
-                for task in pairing:
-                    possible_task[task] = random.sample(task_to_correlates[task], 1)
+                if num_sets == len(correlate_set_computation):
+                    possible_task = {}
+                    for task in pairing:
+                        possible_task[task] = random.sample(task_to_correlates[task], 1)
 
-                possible_tasks.append(possible_task)
+                    possible_tasks.append(possible_task)
 
 
         ### we want that their intersection is not empty and we will use it 
@@ -187,11 +195,10 @@ def main():
                 possible_tasks.append(possible_task)
 
                  
-
     ### sample the number of pairings we want to return if 0 return none, if less than return all
 
     if len(possible_tasks) == 0:
-        return "There are no task pairings which satisfy the specified constraints"
+        raise ValueError("There are no task pairings which satisfy the specified constraints")
 
     chosen_task_pairings = possible_tasks
     if len(possible_tasks) > args.num_pairings:
@@ -207,6 +214,7 @@ def main():
         mtl_grouping = groupings.MTLGrouping(*task_groupings)
         mtl_json_string = repr(mtl_grouping)
         json_serialize.append(mtl_json_string)
+
 
     task_pairing_file = os.path.join(args.out_dir, f"{args.pairing_type}_task_pairings_n_tasks_{args.num_tasks}.json")
     f = open(task_pairing_file, "w")
