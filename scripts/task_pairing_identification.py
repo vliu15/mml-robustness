@@ -8,7 +8,7 @@ python -m scripts.task_pairing_identification \
     --spurious_epsilon 30 \
     --out_dir ./outputs/suby_task_pairings\
     --pairing_type disjoint \
-    --svd_pairings None \
+    --svd_clusters None \
     --num_tasks 2 \
     --num_pairings 5 \
 """
@@ -16,6 +16,9 @@ python -m scripts.task_pairing_identification \
 import argparse
 import datasets.groupings as groupings
 from create_spurious_matrix import attributes
+import json
+import numpy as np
+import itertools 
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -49,7 +52,7 @@ def parse_args():
         help="Whether to port the tuning results or the heatplot results"
     )
     parser.add_argument(
-        "--svd_pairings",
+        "--svd_clusters",
         type=str,
         default=None,
         required=False,
@@ -81,26 +84,134 @@ def main():
     args = parse_args()
     os.makedirs(args.out_dir, exist_ok=True)
 
+    if args.num_tasks > len(attributes):
+        raise ValueError(f"There are only {len(attributes)} possible tasks but the user provided a num tasks value greater than this.")
+
     # Load JSON files for each task
     T = []
+    task_performance = []
     for task in tqdm(attributes, desc="Loading JSONs", total=len(attributes)):
         with open(os.path.join(args.spurious_eval_dir, task, f"{task}_spurious_eval.json"), "r") as f:
             data = json.load(f)
             column = np.array([data[attr] for attr in attributes], dtype=np.float32)
             T.append(column)
 
-    # Also define average performance above
+        with open(os.path.join(spurious_eval_dir, task, f"{task}:{task}.json"), "r") as f:
+            data = json.load(f)
+            task_performance.append(data[f"{task}_avg_acc"])
+
+    svd_clusters = None
+    if args.svd_clusters is not None:
+         with open(args.svd_clusters, "r") as f:
+             svd_clusters = json.load(f) ## dict
+
 
     # Vectorize and Define Spurious Correlations
 
     T = np.array(T)  # shape (40, 40) that corresponds to (task, attr)
     T = T >= args.spurious_epsilon
 
-    ## i
+    task_performance = np.array(task_performance)
+    task_performance = task_performance < np.percentile(task_performance, 33)
 
+
+    ## deliniate correlates for each task and poor performing tasks
+    poor_tasks = []
     task_to_correlates = {}
 
-    ### find all groupings of task
+    poor_tasks = [attributes[ind] for ind in np.where(task_performance==True)]
+    for ind, attr in enumerate(attributes):
+        row = T[ind]
+        spurious_correlates = set([attributes[ind] for ind in np.where(row==True)])
+
+        if args.svd_clusters is not None:
+            correlates_to_add = set()
+            for key, cluster_members in svd_clusters.items():
+                for correlate in spurious_correlates:
+                    if correlate in cluster_members:
+                        correlates_to_add.add(correlate)
+
+            spurious_correlates.update(correlates_to_add)
+
+
+        task_to_correlates[attr] = spurious_correlates
+
+
+    # find all groupings of tasks in the desired quantity in a pairing
+
+    if args.pairing_type in ["ndpoor", "dpoor"]:
+        attributes = poor_tasks
+        if args.num_tasks > len(poor_tasks):
+                raise ValueError(f"There are only {len(poor_tasks)} possible poor performing tasks but the user provided a num tasks value greater than this.")
+
+
+    possible_task_pairings = list(itertools.combinations(attributes, args.num_tasks))
+
+    if len(possible_task_pairings) > 1e6:
+        possible_task_pairings = random.sample(possible_task_pairings, int(1e6))
+
+    ## find all possible pairings that satisfy constraints
+    possible_tasks = [] ### should be a dict of key to list that we can form groupings from
+
+    for pairing in possible_task_pairings:
+        
+        ### we want that pairwise intersection is empty 
+        if args.pairing_type == "disjoint":
+            correlate_set_computation = task_to_correlates[pairing[0]]
+            num_sets = len(correlate_set_computation)
+            for task in pairing[1:]:
+                correlates = task_to_correlates[task]
+                num_sets += len(correlates)
+                correlate_set_computation = correlate_set_computation.union(correlates)
+
+            if num_sets == len(correlate_set_computation):
+                possible_task = {}
+                for task in pairing:
+                    possible_task[task] = random.sample(task_to_correlates[task], 1)
+
+                possible_tasks.append(possible_task)
+
+
+        ### we want that their intersection is not empty and we will use it 
+        elif args.pairing_type == "nondisjoint":
+            correlate_set_computation = task_to_correlates[pairing[0]]
+            for task in pairing[1:]:
+                correlates = task_to_correlates[task]
+                correlate_set_computation = correlate_set_computation.intersection(correaltes)
+
+            if len(correlate_set_computation) > 0:
+                possible_task = {}
+                for task in pairing:
+                    possible_task[task] = random.sample(correlate_set_computation, 1)
+
+                possible_tasks.append(possible_task)
+
+                 
+
+    ### sample the number of pairings we want to return if 0 return none, if less than return all
+
+    if len(possible_tasks) == 0:
+        return "There are no task pairings which satisfy the specified constraints"
+
+    chosen_task_pairings = possible_tasks
+    if len(possible_tasks) > args.num_pairings:
+        chosen_task_pairings = random.sample(possible_tasks, args.num_pairings)
+        
+    ## greate MTL groupings from each, serialize into list of json strings to save
+    json_serialize = []
+    for task_pairing in chosen_task_pairings:
+        task_groupings = []
+        for task, spurious in task_pairing.items():
+            task_groupings.append(groupings.Grouping(task_label=task,subgroup_attributes=spurious))
+        
+        mtl_grouping = groupings.MTLGrouping(*task_groupings)
+        mtl_json_string = repr(mtl_grouping)
+        json_serialize.append(mtl_json_string)
+
+    task_pairing_file = os.path.join(args.out_dir, f"{args.pairing_type}_task_pairings_n_tasks_{args.num_tasks}.json")
+    f = open(task_pairing_file, "w")
+    json.dump(json_serialize, f)
+    f.close()
 
 if __name__ == "__main__":
     main()
