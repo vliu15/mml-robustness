@@ -87,7 +87,7 @@ class MTLGrouping(object):
 
         mtl_grouping_string = mtl_grouping_string[:-1]
         mtl_grouping_string += ']'
-        return json.loads(mtl_grouping_string)
+        return json.dumps(json.loads(mtl_grouping_string))
 
 
 

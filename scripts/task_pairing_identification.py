@@ -15,7 +15,7 @@ python -m scripts.task_pairing_identification \
 
 import argparse
 import datasets.groupings as groupings
-from create_spurious_matrix import attributes
+from scripts.create_spurious_matrix import attributes 
 import json
 import numpy as np
 import itertools 
@@ -37,7 +37,7 @@ def parse_args():
         type=int,
         default=30,
         required=True,
-        help="The epsilon value with which to define spurious correaltes per task by"
+        help="The epsilon value with which to define spurious correlates per task by"
     )
     parser.add_argument(
         "--out_dir",
@@ -80,7 +80,7 @@ def parse_args():
 
     return args
 
-def main():
+def main(attributes):
     args = parse_args()
 
     ### for all attributes, store all spurious correlations dict of attribute to set of spurious correlations
@@ -160,7 +160,7 @@ def main():
     for pairing in possible_task_pairings:
         
         ### we want that pairwise intersection is empty 
-        if args.pairing_type == "disjoint":
+        if args.pairing_type in ["disjoint", 'dpoor']:
             correlate_set_computation = task_to_correlates[pairing[0]]
             num_sets = len(correlate_set_computation)
             if num_sets != 0:
@@ -175,22 +175,22 @@ def main():
                 if num_sets == len(correlate_set_computation):
                     possible_task = {}
                     for task in pairing:
-                        possible_task[task] = random.sample(task_to_correlates[task], 1)
+                        possible_task[task] = random.sample([*task_to_correlates[task]], 1)
 
                     possible_tasks.append(possible_task)
 
 
         ### we want that their intersection is not empty and we will use it 
-        elif args.pairing_type == "nondisjoint":
+        elif args.pairing_type in ["nondisjoint", 'ndpoor']:
             correlate_set_computation = task_to_correlates[pairing[0]]
             for task in pairing[1:]:
                 correlates = task_to_correlates[task]
-                correlate_set_computation = correlate_set_computation.intersection(correaltes)
+                correlate_set_computation = correlate_set_computation.intersection(correlates)
 
             if len(correlate_set_computation) > 0:
                 possible_task = {}
                 for task in pairing:
-                    possible_task[task] = random.sample(correlate_set_computation, 1)
+                    possible_task[task] = random.sample([*correlate_set_computation], 1)
 
                 possible_tasks.append(possible_task)
 
@@ -222,4 +222,4 @@ def main():
     f.close()
 
 if __name__ == "__main__":
-    main()
+    main(attributes)
