@@ -1,8 +1,8 @@
 """Contains groupings for experiments"""
 
+import json
 from dataclasses import dataclass
 from typing import Iterable, List
-import json
 
 ATTRIBUTES = [
     "5_o_Clock_Shadow",
@@ -72,12 +72,12 @@ class MTLGrouping(object):
         self.subgroup_attributes = subgroup_attributes
 
     def __repr__(self):
-        
+
         ## OR UTILIZE JSON DUMPS
         mtl_grouping_string = '['
 
         for task in self.task_labels:
-            
+
             subgroups = ''
             for subgroup_attribute in self.subgroup_attributes[task]:
                 subgroups += f'{subgroup_attribute},'
@@ -88,7 +88,6 @@ class MTLGrouping(object):
         mtl_grouping_string = mtl_grouping_string[:-1]
         mtl_grouping_string += ']'
         return json.dumps(json.loads(mtl_grouping_string))
-
 
 
 # DEPRECATED
