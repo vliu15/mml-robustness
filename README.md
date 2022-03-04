@@ -97,7 +97,7 @@ Multi-task learning requires additional groupings of spurious correlations in ad
 2. Evaluate them on all attribute pairs and measure worst-group performance gaps, and
 3. Exhaustively extract all pairs of spurious correlations
 
-In all large-scale scripts that require GPU workload asynchronously across tasks, we provide parallel `sbatch` job submission options in addition to sequential `shell` calls. To adjust the job submission type, append `--mode sbatch` or `--mode shell` to the command (which will default to printing out the commands as `--mode debug`). Our `JobManager` can be found in `scripts/submit_job.py`.
+In all large-scale scripts that require GPU workload asynchronously across tasks, we provide parallel `sbatch` job submission options in addition to sequential `shell` calls. To adjust the job submission type, append `--mode sbatch` or `--mode shell` to the command (which will default to printing out the commands as `--mode debug`). Our `JobManager` can be found in `scripts/job_manager.py`.
 
 ### Tuning and Training
 Because tuning on hyperparameter grids on all tasks is very expensive, we instead tune on 5 tasks and apply these hyperparameters to neural networks for all tasks:
@@ -108,7 +108,7 @@ python -m scripts.run_hparam_grid_search --opt erm
 
 From these 60 experiments, we find that `lr=0.0001` with `weight_decay=0.1` works the best. Then train 40 ERM neural networks for 25 epochs, one for each task:
 ```bash
-python -m scripts.run_spurious_id --lr 0.0001 --wd 0.1 --batch_size 128 --epochs 25 --mode sbatch
+python -m scripts.run_spurious_train --lr 0.0001 --wd 0.1 --batch_size 128 --epochs 25 --mode sbatch
 ```
 > These runs will get saved to`./logs/spurious_id`
 
@@ -124,10 +124,12 @@ For each task, this will call `test.py` to run inference on each `$TASK` x `$ATT
 ### Spurious Correlation Extraction (EXPERIMENTAL)
 Finally, we take all 40x39 possible pairs of spurious correlations (namely, their `delta` metrics) and systematically identify which attributes are spuriously correlated with which tasks. We observe that attributes aren't IID - specifically, there are a lot of labelled attributes that are correlated with gender. Therefore, we use biclustering and SVD-based methods to extract correlations across/between attributes/tasks:
 ```bash
-python -m scripts.spurious_svd --json_dir outputs/spurious_eval --out_dir outputs/svd --gamma 0.9 --k 10
+python -m scripts.spurious_eval --json_dir outputs/spurious_eval --out_dir outputs/svd --gamma 0.9 --k 10
 ```
 > `--gamma` sets the threshold of variance, `gamma`, that the `d` largest singular values must account for, used to reduce the feature dimension
+
 > `--k` sets the number clusters that biclustering clustering should identify
+
 > The outputs from this script will get saved to `./outputs/svd`
 
 This script runs two methods:

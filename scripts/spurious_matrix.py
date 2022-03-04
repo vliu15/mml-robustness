@@ -1,10 +1,9 @@
 """
 Script that runs spurious identification and saves the heatmap
-All per-attribute JSON files are saved in {log_dir}/spurious/
-and the heatmap is saved into {log_dir}/spurious_heatmap.png
+All per-attribute JSON files and PNG heatmaps are saved in {json_dir}/$TASK
 
 Sample usage for running spurious idenfication inference:
-python -m scripts.generate_spurious_matrix \
+python -m scripts.spurious_matrix \
     --log_dir logs/erm/Blond_Hair:Male \
     --json_dir outputs/spurious_eval \
     --mode debug
@@ -124,9 +123,6 @@ def create_spurious_eval_heatmap(group_acc_dict, group_size_dict, avg_task_acc, 
     spurious_eval_list = []
     for i in range(len(attributes)):
         group_accs = np.array([group_acc_dict[f"Group {j}"][i] for j in range(4)])
-
-        # NOTE Bootstrapping for CI currently not implemented
-        # group_sizes = np.array([group_size_dict[f"Group {j}"][i] for j in range(4)])
 
         delta = np.nan if np.isnan(group_accs).any() else abs(group_accs[0] + group_accs[3] - group_accs[1] - group_accs[2])
         spurious_eval_list.append(delta)

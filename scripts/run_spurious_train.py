@@ -2,17 +2,18 @@
 Spawns jobs for spurious correlation identification
 
 Sample usage:
-python -m scripts.run_spurious_id \
+python -m scripts.run_spurious_train \
     --wd 0.1 \
     --lr 0.0001 \
     --epochs 25 \
-    --mode debug
+    --mode debug \
+    --opt erm
 """
 
 import argparse
 import os
 
-from submit_job import JobManager
+from scripts.job_manager import JobManager
 
 attributes = [
     "5_o_Clock_Shadow", "Arched_Eyebrows", "Attractive", "Bags_Under_Eyes", "Bald", "Bangs", "Big_Lips", "Big_Nose",
@@ -35,6 +36,7 @@ def parse_args():
     parser.add_argument("--epochs", type=int, required=False, default=25, help="Number of epochs to train for")
 
     parser.add_argument("--mode", type=str, choices=["debug", "shell", "sbatch"], default="debug", help="Spawn job mode")
+    parser.add_argument("--opt", type=str, required=True, help="Type of optimization run to spawn")
 
     # No need to change any of these tbh
     parser.add_argument(
@@ -92,7 +94,12 @@ def main():
     attributes_to_train = sorted(set(attributes).difference(used_for_tuning))
     print(f"Number of tasks: {len(attributes_to_train)}")
 
-    suby_spurious_id(args, attributes_to_train)
+    if args.opt == "erm":
+        erm_spurious_id(args, attributes_to_train)
+    elif args.opt == "suby":
+        suby_spurious_id(args, attributes_to_train)
+    else:
+        raise ValueError(f"Didn't recognize opt={args.opt}. Did you forget to add a check for this function?")
 
 
 if __name__ == "__main__":

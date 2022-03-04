@@ -1,12 +1,11 @@
 """
-Batched version of scripts/create_spurious_matrix.py.
-
+Batched version of scripts/spurious_matrix.py.
 
 `meta_log_dir` should point to a folder that contains all the log directories
-that should be run through scripts/create_spurious_matrix.py
+that should be run through scripts/spurious_matrix.py
 
 Sample usage:
-python -m scripts.run_create_spurious_matrix \
+python -m scripts.run_spurious_matrix \
     --meta_log_dir logs/spurious_id \
     --json_dir outputs/spurious_eval \
     --mode debug
@@ -15,7 +14,7 @@ python -m scripts.run_create_spurious_matrix \
 import argparse
 import os
 
-from submit_job import JobManager
+from scripts.job_manager import JobManager
 
 
 def parse_args():
