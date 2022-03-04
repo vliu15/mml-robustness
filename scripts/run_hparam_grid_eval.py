@@ -12,8 +12,8 @@ python -m scripts.run_hparam_grid_eval \
 import argparse
 import os
 
-from job_manager import JobManager
-from find_best_ckpt import main as find_best_ckpt
+from scripts.job_manager import JobManager
+from scripts.find_best_ckpt import main as find_best_ckpt
 import json
 
 # RICE MACROS
