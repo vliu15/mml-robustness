@@ -13,6 +13,8 @@ import argparse
 import os
 
 from scripts.job_manager import JobManager
+from scripts.find_best_ckpt import main as find_best_ckpt
+import json
 
 # RICE MACROS
 USER = os.environ["USER"]
@@ -40,7 +42,7 @@ def parse_args():
     return args
 
 
-def submit_suby_eval(args):
+def submit_suby_eval_test(args):
     ## DECLARE MACROS HERE ##
     WD_GRID = [1e-2, 1e-1, 1]  # 10−4, 10−3, 10−2, 10−1, 1
     LR_GRID = [1e-5, 1e-4, 1e-3]  # 10−5, 10−4, 10−3
@@ -60,6 +62,33 @@ def submit_suby_eval(args):
                     command = f"python -m scripts.find_best_ckpt --run_test --log_dir ./logs/{job_name[5:]} --metric avg"
                     job_manager.submit(command, job_name=job_name, log_file=log_file)
 
+def submit_suby_eval_val(args):
+    ## DECLARE MACROS HERE ##
+    WD_GRID = [1e-2, 1e-1, 1]  # 10−4, 10−3, 10−2, 10−1, 1
+    LR_GRID = [1e-5, 1e-4, 1e-3]  # 10−5, 10−4, 10−3
+    BATCH_SIZE_GRID = [32, 64]  # 2, 4, 8, 16, 32, 64, 128
+    TASK_GRID = [
+        "Attractive:Eyeglasses",
+    ]
+
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+
+    for task in TASK_GRID:
+        for wd in WD_GRID:
+            for lr in LR_GRID:
+                for batch_size in BATCH_SIZE_GRID:
+                    job_name = f"eval_task:{task},wd:{wd},lr:{lr},batch_size:{batch_size}"
+
+                    ckpt_num = find_best_ckpt(f'./logs/{job_name[5:]}', run_test=False, test_groupings="", metric="avg")
+
+                    with open(os.path.join(f"./logs/{job_name[5:]}", "results", f"val_stats_{ckpt_num}.json"), "r") as f:
+                        best_val_stats = json.load(f)
+
+                    with open(os.path.join(f"./logs/{job_name[5:]}", "results", f"best_val_stats_{ckpt_num}.json"), "w") as fp:
+                        json.dump(best_val_stats, fp)
+
+
+
 
 def main():
     args = parse_args()
@@ -67,7 +96,7 @@ def main():
         os.makedirs(args.slurm_logs, exist_ok=True)
 
     if args.opt == "suby":
-        submit_suby_eval(args)
+        submit_suby_eval_val(args)
     else:
         raise ValueError(f"Didn't recognize opt={args.opt}. Did you forget to add a check for this function?")
 
