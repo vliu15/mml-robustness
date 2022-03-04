@@ -2,11 +2,11 @@
 Runs SVD on the entire matrix of spurious deltas created by
 create_spurious_matrix.py for all tasks.
 
-python -m scripts.spurious_svd \
+python -m scripts.spurious_eval \
     --json_dir outputs/spurious_eval \
     --out_dir outputs/svd \
     --gamma 0.9 \
-    --k 10
+    --k 8
 """
 
 import argparse
@@ -14,7 +14,6 @@ import json
 import logging
 import os
 from collections import defaultdict
-from copy import deepcopy
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -23,7 +22,7 @@ from scipy.special import softmax
 from sklearn.cluster import KMeans, SpectralCoclustering
 from tqdm import tqdm
 
-from scripts.create_spurious_matrix import attributes
+from scripts.spurious_matrix import attributes
 
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger(__name__)
@@ -52,6 +51,7 @@ def parse_args():
         help="Percent variance threshold: $$d = \min_j \max{(\sum_i^j \sigma_i^2) / (\sum_i^n \sigma_i^2) > \gamma}$$"
     )
     parser.add_argument("--k", type=int, required=False, default=16, help="Number of KMeans clusters")
+    parser.add_argument("--eps", type=float, required=False, default=33, help="Spurious correlation metric threshold")
     args = parser.parse_args()
 
     # Some additional checks
@@ -67,49 +67,37 @@ def cosine_similarity(A: np.ndarray, B: np.ndarray):
     return dot / (norm_A * norm_B)
 
 
-def column_normalize(X: np.ndarray, how="norm", eps=1e-7):
+def column_normalize(X: np.ndarray, how="norm"):
+    eps = 1e-7
     norm = np.linalg.norm(X, axis=-1, keepdims=True)
     mask = (norm > eps).astype(np.float32)
 
+    # Normalize to be unit vectors (with the exception of 0-vectors)
     if how == "norm":
         X = (X / np.clip(norm, a_min=eps, a_max=None)) * mask
         X = np.clip(X, a_min=eps, a_max=None)
 
+    # Softmax-normalize
     elif how == "softmax":
         X = softmax(X, axis=-1) * mask + eps * (1. - mask)
 
-    elif how == "max":
-        X = X / X.max()
-        X = np.clip(X, a_min=eps, a_max=None)
-
+    # Scale by 1/100 since these are percentages
     elif how == "scale":
         X = X / 100.
         X = np.clip(X, a_min=eps, a_max=None)
 
+    # Normalize to standard Gaussian
+    elif how == "gaussian":
+        mean = np.mean(X, axis=-1, keepdims=True)
+        std = np.std(X, axis=-1, keepdims=True)
+
+        # Replace 0 std values with large values
+        mask = (std > 0).astype(np.float32)
+        std = std + (1. / eps) * (1 - mask)
+
+        X = (X - mean) / std + eps * (1 - mask)
+
     return X
-
-
-def deltas_histogram(save_name: str, X: np.ndarray):
-    """X can be an arbitrary matrix whose values are between [0, 100]"""
-    plt.clf()
-    plt.cla()
-
-    _, ax = plt.subplots(figsize=(15, 6))
-    histogram = sns.histplot(X, binwidth=1.0, binrange=(0, 100), ax=ax)
-    ax.set_title("Histogram of $\delta$ values, raw percentages")
-
-    # Revise legend
-    legend = ax.get_legend()
-    handles = legend.legendHandles
-    legend.remove()
-    ax.legend(handles, attributes, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., ncol=2)
-
-    # Revise tick marks
-    ax.xaxis.set_ticks(np.arange(0, 100, 10))
-
-    plt.tight_layout()
-    histogram.figure.savefig(save_name)
-    logger.info(f"Saved deltas histogram to {save_name}")
 
 
 def decompose(X: np.ndarray, gamma: float):
@@ -147,7 +135,60 @@ def cluster(save_name: str, X: np.ndarray, k: int):
         json.dump(clusters, f)
 
 
-def bicluster_heatmap(save_name: str, X: np.ndarray, k: int, xlabel: str = None, ylabel: str = None):
+def make_deltas_histogram(save_name: str, X: np.ndarray):
+    """X can be an arbitrary matrix whose values are between [0, 100]"""
+    plt.clf()
+    plt.cla()
+
+    _, ax = plt.subplots(figsize=(15, 6))
+    histogram = sns.histplot(X, binwidth=1.0, binrange=(0, 101), ax=ax, multiple="stack")
+    ax.set_title("Distribution of raw $\delta$ values, bucketed by percent")
+
+    # Revise legend
+    legend = ax.get_legend()
+    handles = legend.legendHandles
+    legend.remove()
+    ax.legend(handles, attributes, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., ncol=2)
+
+    # Revise axes scales and ticks
+    ax.xaxis.set_ticks(np.arange(0, 101, 10))
+    plt.yscale("log")
+
+    plt.tight_layout()
+    histogram.figure.savefig(save_name)
+    logger.info(f"Saved deltas histogram to {save_name}")
+
+
+def make_deltas_heatmap(save_name: str, X: np.ndarray, xlabel: str = None, ylabel: str = None):
+    """X should be an n x n matrix whose values are between [0, 100]"""
+    plt.clf()
+    plt.cla()
+
+    fig, ax = plt.subplots(figsize=(13, 13))
+    heatmap = sns.heatmap(
+        X / 100.,
+        annot=False,
+        linewidths=0.5,
+        ax=ax,
+        vmin=0,
+        vmax=1,
+        square=True,
+        xticklabels=attributes,
+        yticklabels=attributes,
+        cmap=plt.cm.Greens
+    )
+    fig.suptitle(f"Raw $\delta$ values", fontsize=18)
+    if xlabel:
+        plt.xlabel(xlabel, labelpad=20, fontweight="bold")
+    if ylabel:
+        plt.ylabel(ylabel, labelpad=20, fontweight="bold")
+    plt.tight_layout()
+
+    heatmap.figure.savefig(save_name)
+    logger.info(f"Saved deltas heatmap to {save_name}")
+
+
+def make_bicluster_heatmap(save_name: str, X: np.ndarray, k: int, xlabel: str = None, ylabel: str = None):
     """X should be an n x n matrix"""
     plt.clf()
     plt.cla()
@@ -165,8 +206,8 @@ def bicluster_heatmap(save_name: str, X: np.ndarray, k: int, xlabel: str = None,
     cols = np.argsort(clustering.column_labels_)
 
     C = X[rows][:, cols]
-    xticklabels = [attributes[r] for r in rows]
-    yticklabels = [attributes[c] for c in cols]
+    xticklabels = [attributes[c] for c in cols]
+    yticklabels = [attributes[r] for r in rows]
 
     fig, ax = plt.subplots(figsize=(13, 13))
     heatmap = sns.heatmap(
@@ -193,7 +234,7 @@ def bicluster_heatmap(save_name: str, X: np.ndarray, k: int, xlabel: str = None,
     logger.info(f"Saved biclustering heatmap to {save_name}")
 
 
-def cosine_similarity_heatmap(save_name: str, X: np.ndarray, xlabel: str = None, ylabel: str = None):
+def make_cossim_heatmap(save_name: str, X: np.ndarray, xlabel: str = None, ylabel: str = None):
     """A and T should both be n x d matrices"""
     plt.clf()
     plt.cla()
@@ -237,61 +278,58 @@ def main():
             T.append(column)
 
     # Vectorize
-    T = np.array(T)  # shape (40, 40) that corresponds to (task, attr)
-    A = deepcopy(T.T)  # shape (40, 40) that corresponds to (attr, task)
+    T = np.array(T).T  # shape (40, 40) that corresponds to (attr, task)
 
     # Histogram of deltas
-    deltas_histogram(os.path.join(args.out_dir, "deltas_histogram.png"), T)
+    make_deltas_histogram(os.path.join(args.out_dir, "deltas_histogram.png"), T)
+    make_deltas_heatmap(os.path.join(args.out_dir, "deltas_heatmap.png"), T, xlabel="Task Labels", ylabel="Attributes")
 
-    # Normalize
-    nT = column_normalize(T, how="norm")
-    nA = column_normalize(A, how="norm")
-    sT = column_normalize(T, how="softmax")
-    sA = column_normalize(A, how="softmax")
-
-    # Bicluster (Cocluster)
-    bicluster_heatmap(os.path.join(args.out_dir, "bicluster_T.png"), sT, args.k, xlabel="Task Labels", ylabel="Attributes")
-    bicluster_heatmap(os.path.join(args.out_dir, "bicluster_A.png"), sA, args.k, xlabel="Attributes", ylabel="Task Labels")
-    bicluster_heatmap(
-        os.path.join(args.out_dir, "bicluster_TxT.png"),
-        cosine_similarity(sT, sT),
-        args.k,
-        xlabel="Task Labels",
-        ylabel="Task Labels"
+    # Binarize & Bicluster (Cocluster)
+    bT = np.clip((T >= args.eps).astype(np.float32), a_min=1e-7, a_max=None)
+    make_bicluster_heatmap(
+        os.path.join(args.out_dir, "binary_bicluster_T.png"), bT, args.k, xlabel="Task Labels", ylabel="Attributes"
     )
-    bicluster_heatmap(
-        os.path.join(args.out_dir, "bicluster_AxA.png"),
-        cosine_similarity(sA, sA),
-        args.k,
-        xlabel="Attributes",
+    make_deltas_heatmap(
+        os.path.join(args.out_dir, "binary_deltas_heatmap.png"),
+        bT + 99 * (bT == 1),
+        xlabel="Task Labels",
         ylabel="Attributes"
     )
-    bicluster_heatmap(
+
+    # Softmax-Normalize & Bicluster (Cocluster)
+    sT = column_normalize(T, how="gaussian")
+    sA = column_normalize(T.T, how="gaussian")
+    make_bicluster_heatmap(
+        os.path.join(args.out_dir, "bicluster_T.png"), sT, args.k, xlabel="Task Labels", ylabel="Attributes"
+    )
+    make_bicluster_heatmap(
         os.path.join(args.out_dir, "bicluster_TxA.png"),
         cosine_similarity(sT, sA),
         args.k,
         xlabel="Task Labels",
         ylabel="Attributes"
     )
+    make_bicluster_heatmap(
+        os.path.join(args.out_dir, "bicluster_TxT.png"),
+        cosine_similarity(sT, sT),
+        args.k,
+        xlabel="Task Labels",
+        ylabel="Task Labels"
+    )
 
-    # Decompose (SVD)
+    # L2-Normalize & Decompose (SVD)
+    nT = column_normalize(T, how="norm")
+    nA = column_normalize(T.T, how="norm")
     uT = decompose(nT, args.gamma)
     uA = decompose(nA, args.gamma)
 
     # Cluster (KMeans)
     cluster(os.path.join(args.out_dir, "kmeans_T.json"), uT, args.k)
-    cluster(os.path.join(args.out_dir, "kmeans_A.json"), uA, args.k)
 
     # Cosine similarities
-    cosine_similarity_heatmap(
-        os.path.join(args.out_dir, "cosine_similarity_T.png"), uT, xlabel="Task Labels", ylabel="Task Labels"
-    )
-    cosine_similarity_heatmap(
-        os.path.join(args.out_dir, "cosine_similarity_A.png"), uA, xlabel="Attributes", ylabel="Attributes"
-    )
-
+    make_cossim_heatmap(os.path.join(args.out_dir, "cosine_similarity_T.png"), uT, xlabel="Task Labels", ylabel="Task Labels")
     d = min(uT.shape[-1], uA.shape[-1])
-    cosine_similarity_heatmap(
+    make_cossim_heatmap(
         os.path.join(args.out_dir, "cosine_similarity_TxA.png"),
         uT[:, :d] @ uA[:, :d].T,
         xlabel="Task Labels",
