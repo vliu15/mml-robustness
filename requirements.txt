@@ -8,6 +8,7 @@ pillow
 pylint==2.11.0
 scipy
 seaborn
+scikit-learn
 tabulate
 tensorboard
 toml==0.10.2

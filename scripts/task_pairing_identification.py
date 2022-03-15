@@ -23,7 +23,7 @@ import numpy as np
 from tqdm import tqdm
 
 import datasets.groupings as groupings
-from scripts.create_spurious_matrix import attributes
+from scripts.spurious_matrix import attributes
 
 
 def parse_args():

@@ -16,7 +16,7 @@ gcloud compute config-ssh
 
 Sample usage:
 python ./scripts/scp_tuning_results.py \
-    --remote Jupinder_Parmar@mml-robustness.us-west1-b.hai-gcp-robust:
+    --remote Jupinder_Parmar@mml-robustness.us-west1-b.hai-gcp-robust
     --dest_loc ~/mml-robustness/logs 
     --source_loc /farmshare/user_data/jsparmar/mml-robustness/logs/spurious_id
     --results_type tuning
