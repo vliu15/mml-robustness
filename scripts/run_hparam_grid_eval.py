@@ -10,11 +10,11 @@ python -m scripts.run_hparam_grid_eval \
 """
 
 import argparse
+import json
 import os
 
-from scripts.job_manager import JobManager
 from scripts.find_best_ckpt import main as find_best_ckpt
-import json
+from scripts.job_manager import JobManager
 
 # RICE MACROS
 USER = os.environ["USER"]
@@ -62,6 +62,7 @@ def submit_suby_eval_test(args):
                     command = f"python -m scripts.find_best_ckpt --run_test --log_dir ./logs/{job_name[5:]} --metric avg"
                     job_manager.submit(command, job_name=job_name, log_file=log_file)
 
+
 def submit_suby_eval_val(args):
     ## DECLARE MACROS HERE ##
     WD_GRID = [1e-2, 1e-1, 1]  # 10−4, 10−3, 10−2, 10−1, 1
@@ -70,8 +71,6 @@ def submit_suby_eval_val(args):
     TASK_GRID = [
         "Attractive:Eyeglasses",
     ]
-
-    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
 
     for task in TASK_GRID:
         for wd in WD_GRID:
@@ -86,8 +85,6 @@ def submit_suby_eval_val(args):
 
                     with open(os.path.join(f"./logs/{job_name[5:]}", "results", f"best_val_stats_{ckpt_num}.json"), "w") as fp:
                         json.dump(best_val_stats, fp)
-
-
 
 
 def main():
