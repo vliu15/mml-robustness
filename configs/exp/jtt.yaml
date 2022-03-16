@@ -17,3 +17,9 @@ mtl_join_type: inv  # one of [xor, inv, task]
 
 load_stage_1_ckpt: null
 load_stage_2_ckpt: null
+
+weight_decay: 0.1
+lr: 0.00001
+seed: 0
+epochs_stage_1: 1
+epochs_stage_2: 50

@@ -138,6 +138,10 @@ def main(config):
             f"exp.dataset.loss_based_task_weighting={config.loss_based_task_weighting} "
             f"exp.dataset.lbtw_alpha={config.lbtw_alpha} "
             f"exp.train.log_dir={stage_1_log_dir} "
+            f"exp.train.total_epochs={config.epochs_stage_1} "
+            f"exp.optimizer.lr={config.lr} "
+            f"exp.optimizer.weight_decay={config.weight_decay} "
+            f"exp.seed={config.seed} "
             f"exp.train.load_ckpt={config.load_stage_1_ckpt or 'null'}",
             shell=True,
             check=True,
@@ -198,6 +202,10 @@ def main(config):
         f"exp.train.up_type={config.up_type} "
         f"exp.train.load_up_pkl={config.load_up_pkl} "
         f"exp.train.log_dir={stage_2_log_dir} "
+        f"exp.train.total_epochs={config.epochs_stage_2} "
+        f"exp.optimizer.lr={config.lr} "
+        f"exp.optimizer.weight_decay={config.weight_decay} "
+        f"exp.seed={config.seed} "
         f"exp.train.load_ckpt={config.load_stage_2_ckpt or 'null'}",
         shell=True,
         check=True,

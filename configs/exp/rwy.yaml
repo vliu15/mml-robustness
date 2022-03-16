@@ -22,7 +22,7 @@ dataset:
 
     ### subsampling/reweighting dataset 
     subsample: false
-    subsample_type: "subg"
+    subsample_type: null
 
 model:
     name: resnet50

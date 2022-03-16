@@ -3,6 +3,7 @@ seed: 0
 dataloader:
     batch_size: 128
     num_workers: 20
+    sampler: null  # ONLY FOR TRAIN SET: could be [null, rwy, rwg]
 
 dataset:
     name: celeba
@@ -19,6 +20,10 @@ dataset:
     task_weights: [1]
     loss_based_task_weighting: false 
     lbtw_alpha: 0.5
+
+    ### subsampling/reweighting dataset 
+    subsample: false
+    subsample_type: null
 
 model:
     name: resnet50

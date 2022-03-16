@@ -102,6 +102,131 @@ def submit_reweighted_subsampled_train(args):
                     )
                     job_manager.submit(command, job_name=job_name, log_file=log_file)
 
+def submit_erm_baseline_disjoint_tasks_train(args):
+    ## DECLARE MACROS HERE ##
+    WD = 1e-4  
+    LR = 1e-4
+    BATCH_SIZE = 128
+    EPOCHS = 50
+    SEED_GRID = [0, 1, 2]  
+    TASK_GRID = [
+        "Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Goatee:No_Beard", "Gray_Hair:Young",
+        "High_Cheekbones:Smiling", "Wavy_Hair:Straight_Hair", "Wearing_Lipstick:Male"]
+
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+    method = "erm"
+    for task in TASK_GRID:
+        for seed in SEED_GRID:
+            job_name = f"baseline:{method},task:{task},seed:{seed}"
+
+            log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+            command = (
+                f"python train_erm.py exp={method} "
+                f"exp.optimizer.weight_decay={WD} "
+                f"exp.optimizer.lr={LR} "
+                f"exp.seed={seed} "
+                f"exp.train.total_epochs={EPOCHS} "
+                f"exp.dataset.groupings='[{task}]' "
+                f"exp.dataloader.batch_size={BATCH_SIZE} "
+                f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                )
+            job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+def submit_suby_baseline_disjoint_tasks_train(args):
+    ## DECLARE MACROS HERE ##
+    WD = 1e-2  
+    LR = 1e-3
+    BATCH_SIZE = 128
+    EPOCHS = 60
+    SEED_GRID = [0, 1, 2]  
+    TASK_GRID = [
+        "Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Goatee:No_Beard", "Gray_Hair:Young",
+        "High_Cheekbones:Smiling", "Wavy_Hair:Straight_Hair", "Wearing_Lipstick:Male"]
+
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+
+    method = "suby"
+    for task in TASK_GRID:
+        for seed in SEED_GRID:
+            job_name = f"baseline:{method},task:{task},seed:{seed}"
+
+            log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+            command = (
+                f"python train_erm.py exp={method} "
+                f"exp.optimizer.weight_decay={WD} "
+                f"exp.optimizer.lr={LR} "
+                f"exp.seed={seed} "
+                f"exp.train.total_epochs={EPOCHS} "
+                f"exp.dataset.groupings='[{task}]' "
+                f"exp.dataloader.batch_size={BATCH_SIZE} "
+                f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                )
+            job_manager.submit(command, job_name=job_name, log_file=log_file)
+def submit_rwy_baseline_disjoint_tasks_train(args):
+    ## DECLARE MACROS HERE ##
+    WD = 1e-2  
+    LR = 1e-4
+    BATCH_SIZE = 2
+    EPOCHS = 60
+    SEED_GRID = [0, 1, 2]  
+    TASK_GRID = [
+        "Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Goatee:No_Beard", "Gray_Hair:Young",
+        "High_Cheekbones:Smiling", "Wavy_Hair:Straight_Hair", "Wearing_Lipstick:Male"]
+
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+
+    method = "rwy"
+    for task in TASK_GRID:
+        for seed in SEED_GRID:
+            job_name = f"baseline:{method},task:{task},seed:{seed}"
+
+            log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+            command = (
+                f"python train_erm.py exp={method} "
+                f"exp.optimizer.weight_decay={WD} "
+                f"exp.optimizer.lr={LR} "
+                f"exp.seed={seed} "
+                f"exp.train.total_epochs={EPOCHS} "
+                f"exp.dataset.groupings='[{task}]' "
+                f"exp.dataloader.batch_size={BATCH_SIZE} "
+                f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                )
+            job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+
+def submit_jtt_baseline_disjoint_tasks_train(args):
+    ## DECLARE MACROS HERE ##
+    T = 1
+    LAM_UP = 50
+    WD = 1e-1  
+    LR = 1e-5
+    BATCH_SIZE = 128
+    EPOCHS = 50
+    SEED_GRID = [0, 1, 2]  
+    TASK_GRID = [
+        "Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Goatee:No_Beard", "Gray_Hair:Young",
+        "High_Cheekbones:Smiling", "Wavy_Hair:Straight_Hair", "Wearing_Lipstick:Male"]
+
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+
+    method = "jtt"
+    for task in TASK_GRID:
+        for seed in SEED_GRID:
+            job_name = f"baseline:{method},task:{task},seed:{seed}"
+
+            log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+            command = (
+                f"python train_jtt.py exp={method} "
+                f"exp.weight_decay={WD} "
+                f"exp.lr={LR} "
+                f"exp.seed={seed} "
+                f"exp.epochs_stage_1={T} "
+                f"exp.epochs_stage_2={EPOCHS} "
+                f"exp.groupings='[{task}]' "
+                f"exp.lambda_up={LAM_UP} "
+                f"exp.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                )
+            job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 def main():
     args = parse_args()
@@ -112,6 +237,14 @@ def main():
         submit_erm_train(args)
     elif args.opt == "rw_sub":
         submit_reweighted_subsampled_train(args)
+    elif args.opt == "erm_baseline":
+        submit_erm_baseline_disjoint_tasks_train(args)
+    elif args.opt == "suby_baseline":
+        submit_suby_baseline_disjoint_tasks_train(args)
+    elif args.opt == "rwy_baseline":
+        submit_rwy_baseline_disjoint_tasks_train(args)
+     elif args.opt == "jtt_baseline":
+        submit_jtt_baseline_disjoint_tasks_train(args)
     else:
         raise ValueError(f"Didn't recognize opt={args.opt}. Did you forget to add a check for this function?")
 
