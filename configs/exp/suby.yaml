@@ -2,7 +2,7 @@ seed: 0
 
 dataloader:
     batch_size: 32
-    num_workers: 20
+    num_workers: 4
     sampler: null  # ONLY FOR TRAIN SET: could be [null, rwy, rwg]
 
 dataset:

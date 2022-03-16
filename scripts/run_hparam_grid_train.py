@@ -16,8 +16,8 @@ from scripts.job_manager import JobManager
 
 # RICE MACROS
 USER = os.environ["USER"]
-LOG_DIR = f"/farmshare/user_data/{USER}/mml-robustness/logs"
-#LOG_DIR = "./logs"
+#LOG_DIR = f"/farmshare/user_data/{USER}/mml-robustness/logs"
+LOG_DIR = "./logs"
 
 
 def parse_args():
@@ -204,9 +204,8 @@ def submit_jtt_baseline_disjoint_tasks_train(args):
     BATCH_SIZE = 128
     EPOCHS = 50
     SEED_GRID = [0, 1, 2]  
-    TASK_GRID = [
-        "Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Goatee:No_Beard", "Gray_Hair:Young",
-        "High_Cheekbones:Smiling", "Wavy_Hair:Straight_Hair", "Wearing_Lipstick:Male"]
+    TASK_GRID = ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Goatee:No_Beard", "Gray_Hair:Young",
+    "High_Cheekbones:Smiling", "Wavy_Hair:Straight_Hair", "Wearing_Lipstick:Male"]
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
 

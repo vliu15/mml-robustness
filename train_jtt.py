@@ -166,8 +166,8 @@ def main(config):
             pickle_metas[f"Task {task}"] = pickle_meta
 
         # Merge error sets: note that error indices are already upsampled, so dataset doesn't handle upsampling
-        if len(config.groupings):
-            with open(os.path.join(config.log_dir, "stage_1", "final_val_stats.json"), "r") as f:
+        if len(config.groupings) > 1:
+            with open(os.path.join(config.log_dir, "stage_1", "val_stats.json"), "r") as f:
                 val_stats = json.load(f)
             error_indices = merge_error_sets(
                 config=config,
