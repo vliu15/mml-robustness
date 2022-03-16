@@ -200,7 +200,7 @@ def main(config):
         f"exp.dataset.loss_based_task_weighting={config.loss_based_task_weighting} "
         f"exp.dataset.lbtw_alpha={config.lbtw_alpha} "
         f"exp.train.up_type={config.up_type} "
-        f"exp.train.load_up_pkl={config.load_up_pkl} "
+        f"exp.train.load_up_pkl=\\'{config.load_up_pkl}\\' "
         f"exp.train.log_dir=\\'{stage_2_log_dir}\\' "
         f"exp.train.total_epochs={config.epochs_stage_2} "
         f"exp.optimizer.lr={config.lr} "
