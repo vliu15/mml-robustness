@@ -243,7 +243,7 @@ def main():
         submit_suby_baseline_disjoint_tasks_train(args)
     elif args.opt == "rwy_baseline":
         submit_rwy_baseline_disjoint_tasks_train(args)
-     elif args.opt == "jtt_baseline":
+    elif args.opt == "jtt_baseline":
         submit_jtt_baseline_disjoint_tasks_train(args)
     else:
         raise ValueError(f"Didn't recognize opt={args.opt}. Did you forget to add a check for this function?")
