@@ -7,10 +7,14 @@ python -m scripts.run_hparam_grid_train \
     --mode sbatch \
     --slurm_logs ./slurm_logs \
     --opt erm
+
+For runs on any device that has a time limit per job, once the jobs for a given run finish please 
+re-run the script with the --respawn flag to ensure that all jobs completed all checkpoints
 """
 
 import argparse
 import os
+import re
 
 from scripts.job_manager import JobManager
 
@@ -36,12 +40,27 @@ def parse_args():
         "--slurm_logs", type=str, default="./slurm_logs", required=False, help="Directory to output slurm logs"
     )
     parser.add_argument("--opt", type=str, required=True, help="The name of the submit_*_grid_jobs function to call.")
+    parser.add_argument("--respawn", action='store_true', help="Whether to respawn runs from last completed checkpoint")
     args = parser.parse_args()
 
     # Convert relative paths to absolute paths to help slurm out
     args.slurm_logs = os.path.abspath(args.slurm_logs)
     return args
 
+
+def find_last_checkpoint(ckpt_dir):
+
+    ckpt_regex = re.compile(r"ckpt.[0-9]+\.pt")
+    ckpt_epochs = []
+    for ckpt_file in sorted(os.listdir(ckpt_dir)):
+        if ckpt_regex.match(ckpt_file):
+            epoch = int(ckpt_file.split(".")[1])
+            max_ckpts.append(epoch)
+
+    max_epoch = max(ckpt_epochs)
+    max_epoch_path = os.path.join(ckpt_dir, f"ckpt.{max_epoch}.pt")
+
+    return max_epoch_path, max_epoch
 
 def submit_erm_train(args):
     ## DECLARE MACROS HERE ##
@@ -121,17 +140,39 @@ def submit_erm_baseline_disjoint_tasks_train(args):
             job_name = f"baseline:{method},task:{task},seed:{seed}"
 
             log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
-            command = (
-                f"python train_erm.py exp={method} "
-                f"exp.optimizer.weight_decay={WD} "
-                f"exp.optimizer.lr={LR} "
-                f"exp.seed={seed} "
-                f"exp.train.total_epochs={EPOCHS} "
-                f"exp.dataset.groupings='[{task}]' "
-                f"exp.dataloader.batch_size={BATCH_SIZE} "
-                f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
-                )
-            job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+            if args.respawn:
+                ckpt_dir = os.path.join(LOG_DIR, job_name, "ckpts")
+                ckpt_path, ckpt_num = find_last_checkpoint(ckpt_dir)
+
+                if ckp_num != EPOCHS:
+
+                    command = (
+                        f"python train_erm.py exp={method} "
+                        f"exp.optimizer.weight_decay={WD} "
+                        f"exp.optimizer.lr={LR} "
+                        f"exp.seed={seed} "
+                        f"exp.train.total_epochs={EPOCHS} "
+                        f"exp.dataset.groupings='[{task}]' "
+                        f"exp.dataloader.batch_size={BATCH_SIZE} "
+                        f"exp.train.load_ckpt={ckpt_path} "
+                        f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                    )
+                    job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+
+            else:
+                command = (
+                    f"python train_erm.py exp={method} "
+                    f"exp.optimizer.weight_decay={WD} "
+                    f"exp.optimizer.lr={LR} "
+                    f"exp.seed={seed} "
+                    f"exp.train.total_epochs={EPOCHS} "
+                    f"exp.dataset.groupings='[{task}]' "
+                    f"exp.dataloader.batch_size={BATCH_SIZE} "
+                    f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                    )
+                job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 def submit_suby_baseline_disjoint_tasks_train(args):
     ## DECLARE MACROS HERE ##
@@ -152,17 +193,38 @@ def submit_suby_baseline_disjoint_tasks_train(args):
             job_name = f"baseline:{method},task:{task},seed:{seed}"
 
             log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
-            command = (
-                f"python train_erm.py exp={method} "
-                f"exp.optimizer.weight_decay={WD} "
-                f"exp.optimizer.lr={LR} "
-                f"exp.seed={seed} "
-                f"exp.train.total_epochs={EPOCHS} "
-                f"exp.dataset.groupings='[{task}]' "
-                f"exp.dataloader.batch_size={BATCH_SIZE} "
-                f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
-                )
-            job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+             if args.respawn:
+                ckpt_dir = os.path.join(LOG_DIR, job_name, "ckpts")
+                ckpt_path, ckpt_num = find_last_checkpoint(ckpt_dir)
+
+                if ckp_num != EPOCHS:
+
+                    command = (
+                        f"python train_erm.py exp={method} "
+                        f"exp.optimizer.weight_decay={WD} "
+                        f"exp.optimizer.lr={LR} "
+                        f"exp.seed={seed} "
+                        f"exp.train.total_epochs={EPOCHS} "
+                        f"exp.dataset.groupings='[{task}]' "
+                        f"exp.dataloader.batch_size={BATCH_SIZE} "
+                        f"exp.train.load_ckpt={ckpt_path} "
+                        f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                    )
+                    job_manager.submit(command, job_name=job_name, log_file=log_file)
+            else:
+
+                command = (
+                    f"python train_erm.py exp={method} "
+                    f"exp.optimizer.weight_decay={WD} "
+                    f"exp.optimizer.lr={LR} "
+                    f"exp.seed={seed} "
+                    f"exp.train.total_epochs={EPOCHS} "
+                    f"exp.dataset.groupings='[{task}]' "
+                    f"exp.dataloader.batch_size={BATCH_SIZE} "
+                    f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                    )
+                job_manager.submit(command, job_name=job_name, log_file=log_file)
 def submit_rwy_baseline_disjoint_tasks_train(args):
     ## DECLARE MACROS HERE ##
     WD = 1e-2  
@@ -182,17 +244,39 @@ def submit_rwy_baseline_disjoint_tasks_train(args):
             job_name = f"baseline:{method},task:{task},seed:{seed}"
 
             log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
-            command = (
-                f"python train_erm.py exp={method} "
-                f"exp.optimizer.weight_decay={WD} "
-                f"exp.optimizer.lr={LR} "
-                f"exp.seed={seed} "
-                f"exp.train.total_epochs={EPOCHS} "
-                f"exp.dataset.groupings='[{task}]' "
-                f"exp.dataloader.batch_size={BATCH_SIZE} "
-                f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
-                )
-            job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+            if args.respawn:
+                ckpt_dir = os.path.join(LOG_DIR, job_name, "ckpts")
+                ckpt_path, ckpt_num = find_last_checkpoint(ckpt_dir)
+
+                if ckp_num != EPOCHS:
+                    command = (
+                        f"python train_erm.py exp={method} "
+                        f"exp.optimizer.weight_decay={WD} "
+                        f"exp.optimizer.lr={LR} "
+                        f"exp.seed={seed} "
+                        f"exp.train.total_epochs={EPOCHS} "
+                        f"exp.dataset.groupings='[{task}]' "
+                        f"exp.dataloader.batch_size={BATCH_SIZE} "
+                        f"exp.train.load_ckpt={ckpt_path} "
+                        f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                        )
+
+                    job_manager.submit(command, job_name=job_name, log_file=log_file)
+                
+            else:
+                command = (
+                    f"python train_erm.py exp={method} "
+                    f"exp.optimizer.weight_decay={WD} "
+                    f"exp.optimizer.lr={LR} "
+                    f"exp.seed={seed} "
+                    f"exp.train.total_epochs={EPOCHS} "
+                    f"exp.dataset.groupings='[{task}]' "
+                    f"exp.dataloader.batch_size={BATCH_SIZE} "
+                    f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                    )
+
+                job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 
 def submit_jtt_baseline_disjoint_tasks_train(args):
@@ -215,18 +299,48 @@ def submit_jtt_baseline_disjoint_tasks_train(args):
             job_name = f"baseline:{method},task:{task},seed:{seed}"
 
             log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
-            command = (
-                f"python train_jtt.py exp={method} "
-                f"exp.weight_decay={WD} "
-                f"exp.lr={LR} "
-                f"exp.seed={seed} "
-                f"exp.epochs_stage_1={T} "
-                f"exp.epochs_stage_2={EPOCHS} "
-                f"exp.groupings='[{task}]' "
-                f"exp.lambda_up={LAM_UP} "
-                f"exp.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
-                )
-            job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+            if args.respawn:
+                stage_1_ckpt_dir = os.path.join(LOG_DIR, job_name, 'stage_1', "ckpts")
+                stage_1_ckpt_path, stage_1_ckpt_num = find_last_checkpoint(stage_1_ckpt_dir)
+
+                if stage_1_ckpt_num == T:
+                    stage_2_ckpt_dir = os.path.join(LOG_DIR, job_name, 'stage_2', "ckpts")
+                    stage_2_ckpt_path, stage_2_ckpt_num = find_last_checkpoint(stage_2_ckpt_dir)
+                else:
+                    stage_2_ckpt_path, stage_2_ckpt_num = "null", "null"
+
+                if stage_1_ckpt_num != T or stage_2_ckpt_num != EPOCHS:
+                    command = (
+                        f"python train_jtt.py exp={method} "
+                        f"exp.weight_decay={WD} "
+                        f"exp.lr={LR} "
+                        f"exp.seed={seed} "
+                        f"exp.epochs_stage_1={T} "
+                        f"exp.epochs_stage_2={EPOCHS} "
+                        f"exp.groupings='[{task}]' "
+                        f"exp.lambda_up={LAM_UP} "
+                        f"exp.load_stage_1_ckpt={stage_1_ckpt_path} "
+                        f"exp.load_stage_2_ckpt={stage_2_ckpt_path} " 
+                        f"exp.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                    )
+                    job_manager.submit(command, job_name=job_name, log_file=log_file)
+            else:
+                command = (
+                    f"python train_jtt.py exp={method} "
+                    f"exp.weight_decay={WD} "
+                    f"exp.lr={LR} "
+                    f"exp.seed={seed} "
+                    f"exp.epochs_stage_1={T} "
+                    f"exp.epochs_stage_2={EPOCHS} "
+                    f"exp.groupings='[{task}]' "
+                    f"exp.lambda_up={LAM_UP} "
+                    f"exp.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                    )
+                job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+
+
 
 def main():
     args = parse_args()
