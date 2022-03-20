@@ -86,13 +86,9 @@ def init_dataloaders(config):
         )
     else:
         rank = 0
-        if config.dataloader.sampler == "rwy":
+        if config.dataloader.sampler in ["rwg", "rwy"]:
             logger.info("Using dataloader sampler RWY")
-            sampler = WeightedRandomSampler(train_dataset.wy, len(train_dataset.wy))
-            shuffle = False
-        elif config.dataloader.sampler == "rwg":
-            logger.info("Using dataloader sampler RWG")
-            sampler = WeightedRandomSampler(train_dataset.wg, len(train_dataset.wg))
+            sampler = WeightedRandomSampler(train_dataset.rw_labels, len(train_dataset.rw_labels))
             shuffle = False
         else:
             shuffle = True

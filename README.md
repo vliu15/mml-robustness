@@ -29,7 +29,9 @@ python train_jtt.py exp=jtt
 where default hyperparameters are specified in `configs/exp/jtt.yaml`, which loads `configs/exp/jtt_stage_1.yaml` and `configs/exp/jtt_stage_2.yaml` as subconfigs for each stage of training, respectively.
 
 ### Simple Data Rebalancing
-We also implement all 4 methods described in [Simple Data Rebalancing](https://arxiv.org/abs/2110.14503), which shows that simply reweighting or subsampling across class or group labels can close worst-group accuracy gaps significantly.
+We also implement all 4 methods described in [Simple Data Rebalancing](https://arxiv.org/abs/2110.14503), which shows that simply reweighting or subsampling across class or group labels can close worst-group accuracy gaps significantly. We implement these methods with a couple restrictions:
+- It doesn't make sense to apply both reweighting and subsampling in the same training instance, so we catch and throw this error.
+- Reweighting and subsampling are not well-defined for multiple tasks, so we only implement them for single-task learning.
 
 #### Reweighting
 Reweighting refers to sampling examples from the dataloader such that in expectation, all subsets of examples are uniformly represented per batch. Specifically, we implement reweighting by class label (RWY) and reweighting by group label (RWG). These can both be specified from the ERM config as
@@ -66,8 +68,7 @@ Subsampling refers to creating a truncated version of the original dataset such 
 # SUBY
 python train_erm.py exp=erm \
     exp.dataloader.batch_size=32 \
-    exp.dataset.subsample=true \
-    exp.dataset.subsample_type=suby \
+    exp.dataset.subsampler=suby \
     exp.optimizer.lr=0.00003981071 \
     exp.optimizer.weight_decay=0.06309573444 \
     exp.total_epochs=60
@@ -75,8 +76,7 @@ python train_erm.py exp=erm \
 # SUBG
 python train_erm.py exp=erm \
     exp.dataloader.batch_size=4 \
-    exp.dataset.subsample=true \
-    exp.dataset.subsample_type=subg \
+    exp.dataset.subsampler=subg \
     exp.optimizer.lr=0.00006309573 \
     exp.optimizer.weight_decay=0.01 \
     exp.total_epochs=60

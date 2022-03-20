@@ -21,8 +21,7 @@ dataset:
     lbtw_alpha: 0.5
 
     ### subsampling/reweighting dataset 
-    subsample: false
-    subsample_type: "subg"
+    subsampler: null
 
 model:
     name: resnet50

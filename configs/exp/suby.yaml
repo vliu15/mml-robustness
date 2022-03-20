@@ -13,7 +13,7 @@ dataset:
     target_resolution: [224, 224]
 
     subgroup_labels: true
-    groupings: ["Blond_Hair:Male"]
+    groupings: [Blond_Hair:Male]
 
     ### these correspond directly to tasks specified in task labels, ensure they are either all 1 (no weighting) or sum up to 1 (weighting)
     task_weights: [1]
@@ -21,8 +21,7 @@ dataset:
     lbtw_alpha: 0.5
 
     ### subsampling/reweighting dataset 
-    subsample: true
-    subsample_type: "suby"
+    subsampler: suby
 
 model:
     name: resnet50

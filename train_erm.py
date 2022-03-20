@@ -42,6 +42,9 @@ def main(config):
         if len(set(config.dataset.task_weights)) != 1 or 1 not in config.dataset.task_weights:
             raise ValueError("To apply loss based task weighting, the original task weights must be all 1")
 
+    if len(config.dataset.groupings) == 0:
+        raise ValueError("Empty list of groupings passed in. Should have at least 1 element")
+
     if config.train.fp16:
         try:
             import torch.cuda.amp
