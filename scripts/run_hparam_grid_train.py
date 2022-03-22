@@ -20,8 +20,8 @@ from scripts.job_manager import JobManager
 
 # RICE MACROS
 USER = os.environ["USER"]
-#LOG_DIR = f"/farmshare/user_data/{USER}/mml-robustness/logs"
-LOG_DIR = "./logs"
+LOG_DIR = f"/farmshare/user_data/{USER}/mml-robustness/logs"
+#LOG_DIR = "./logs"
 
 
 def parse_args():
@@ -194,7 +194,7 @@ def submit_suby_baseline_disjoint_tasks_train(args):
 
             log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
-             if args.respawn:
+            if args.respawn:
                 ckpt_dir = os.path.join(LOG_DIR, job_name, "ckpts")
                 ckpt_path, ckpt_num = find_last_checkpoint(ckpt_dir)
 
