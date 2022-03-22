@@ -55,7 +55,7 @@ def find_last_checkpoint(ckpt_dir):
     for ckpt_file in sorted(os.listdir(ckpt_dir)):
         if ckpt_regex.match(ckpt_file):
             epoch = int(ckpt_file.split(".")[1])
-            max_ckpts.append(epoch)
+            ckpt_epochs.append(epoch)
 
     max_epoch = max(ckpt_epochs)
     max_epoch_path = os.path.join(ckpt_dir, f"ckpt.{max_epoch}.pt")
