@@ -155,7 +155,7 @@ def submit_erm_baseline_disjoint_tasks_train(args):
                         f"exp.train.total_epochs={EPOCHS} "
                         f"exp.dataset.groupings='[{task}]' "
                         f"exp.dataloader.batch_size={BATCH_SIZE} "
-                        f"exp.train.load_ckpt={ckpt_path} "
+                        f"exp.train.load_ckpt=\\'{ckpt_path}\\' "
                         f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
                     )
                     job_manager.submit(command, job_name=job_name, log_file=log_file)
@@ -208,7 +208,7 @@ def submit_suby_baseline_disjoint_tasks_train(args):
                         f"exp.train.total_epochs={EPOCHS} "
                         f"exp.dataset.groupings='[{task}]' "
                         f"exp.dataloader.batch_size={BATCH_SIZE} "
-                        f"exp.train.load_ckpt={ckpt_path} "
+                        f"exp.train.load_ckpt=\\'{ckpt_path}\\' "
                         f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
                     )
                     job_manager.submit(command, job_name=job_name, log_file=log_file)
@@ -221,7 +221,7 @@ def submit_suby_baseline_disjoint_tasks_train(args):
                     f"exp.seed={seed} "
                     f"exp.train.total_epochs={EPOCHS} "
                     f"exp.dataset.groupings='[{task}]' "
-                    f"exp.dataloader.batch_size={BATCH_SIZE} "
+                    f"exp.dataloader.batch_size=\\'{BATCH_SIZE}\\' "
                     f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
                     )
                 job_manager.submit(command, job_name=job_name, log_file=log_file)
@@ -258,7 +258,7 @@ def submit_rwy_baseline_disjoint_tasks_train(args):
                         f"exp.train.total_epochs={EPOCHS} "
                         f"exp.dataset.groupings='[{task}]' "
                         f"exp.dataloader.batch_size={BATCH_SIZE} "
-                        f"exp.train.load_ckpt={ckpt_path} "
+                        f"exp.train.load_ckpt=\\'{ckpt_path}\\' "
                         f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
                         )
 
@@ -310,7 +310,9 @@ def submit_jtt_baseline_disjoint_tasks_train(args):
                 else:
                     stage_2_ckpt_path, stage_2_ckpt_num = "null", "null"
 
-                if stage_1_ckpt_num != T or stage_2_ckpt_num != EPOCHS:
+                
+
+                if stage_1_ckpt_num != T:
                     command = (
                         f"python train_jtt.py exp={method} "
                         f"exp.weight_decay={WD} "
@@ -320,11 +322,32 @@ def submit_jtt_baseline_disjoint_tasks_train(args):
                         f"exp.epochs_stage_2={EPOCHS} "
                         f"exp.groupings='[{task}]' "
                         f"exp.lambda_up={LAM_UP} "
-                        f"exp.load_stage_1_ckpt={stage_1_ckpt_path} "
+                        f"exp.load_stage_1_ckpt=\\'{stage_1_ckpt_path}\\' "
                         f"exp.load_stage_2_ckpt={stage_2_ckpt_path} " 
                         f"exp.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
                     )
                     job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+                #os.path.join(config.log_dir, f"jtt_error_set_{config.mtl_join_type}.pkl")
+
+                elif stage_1_ckpt_num == T and stage_2_ckpt_num != EPOCHS:
+                    load_up_pkl_path = os.path.join(LOG_DIR, job_name, f"jtt_error_set_inv.pkl")
+                    command = (
+                        f"python train_jtt.py exp={method} "
+                        f"exp.weight_decay={WD} "
+                        f"exp.lr={LR} "
+                        f"exp.seed={seed} "
+                        f"exp.epochs_stage_1={T} "
+                        f"exp.epochs_stage_2={EPOCHS} "
+                        f"exp.groupings='[{task}]' "
+                        f"exp.lambda_up={LAM_UP} "
+                        f"exp.load_stage_1_ckpt=\\'{stage_1_ckpt_path}\\' "
+                        f"exp.load_stage_2_ckpt=\\'{stage_2_ckpt_path}\\' "
+                        f"exp.load_up_pkl=\\'{load_up_pkl_path}\\' "  
+                        f"exp.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                    )
+                    job_manager.submit(command, job_name=job_name, log_file=log_file)
+
             else:
                 command = (
                     f"python train_jtt.py exp={method} "

@@ -142,7 +142,7 @@ def main(config):
             f"exp.optimizer.lr={config.lr} "
             f"exp.optimizer.weight_decay={config.weight_decay} "
             f"exp.seed={config.seed} "
-            f"exp.train.load_ckpt={config.load_stage_1_ckpt or 'null'}",
+            f"exp.train.load_ckpt=\\'{config.load_stage_1_ckpt or 'null'}\\'",
             shell=True,
             check=True,
         )
@@ -206,7 +206,7 @@ def main(config):
         f"exp.optimizer.lr={config.lr} "
         f"exp.optimizer.weight_decay={config.weight_decay} "
         f"exp.seed={config.seed} "
-        f"exp.train.load_ckpt={config.load_stage_2_ckpt or 'null'}",
+        f"exp.train.load_ckpt=\\'{config.load_stage_2_ckpt or 'null'}\\'",
         shell=True,
         check=True,
     )
