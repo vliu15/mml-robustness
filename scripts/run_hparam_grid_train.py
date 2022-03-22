@@ -145,7 +145,7 @@ def submit_erm_baseline_disjoint_tasks_train(args):
                 ckpt_dir = os.path.join(LOG_DIR, job_name, "ckpts")
                 ckpt_path, ckpt_num = find_last_checkpoint(ckpt_dir)
 
-                if ckp_num != EPOCHS:
+                if ckpt_num != EPOCHS:
 
                     command = (
                         f"python train_erm.py exp={method} "
@@ -198,7 +198,7 @@ def submit_suby_baseline_disjoint_tasks_train(args):
                 ckpt_dir = os.path.join(LOG_DIR, job_name, "ckpts")
                 ckpt_path, ckpt_num = find_last_checkpoint(ckpt_dir)
 
-                if ckp_num != EPOCHS:
+                if ckpt_num != EPOCHS:
 
                     command = (
                         f"python train_erm.py exp={method} "
@@ -249,7 +249,7 @@ def submit_rwy_baseline_disjoint_tasks_train(args):
                 ckpt_dir = os.path.join(LOG_DIR, job_name, "ckpts")
                 ckpt_path, ckpt_num = find_last_checkpoint(ckpt_dir)
 
-                if ckp_num != EPOCHS:
+                if ckpt_num != EPOCHS:
                     command = (
                         f"python train_erm.py exp={method} "
                         f"exp.optimizer.weight_decay={WD} "
