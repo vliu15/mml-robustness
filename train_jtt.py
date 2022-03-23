@@ -185,6 +185,7 @@ def main(config):
     ###########
     # Stage 2 #
     ###########
+    torch.cuda.empty_cache()
     stage_2_log_dir = os.path.join(config.log_dir, "stage_2")
 
     # 3. Construct upsampled dataset D_up containing examples in the error set λ_up times and all other examples once
