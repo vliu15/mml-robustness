@@ -58,8 +58,7 @@ def find_last_checkpoint(ckpt_dir):
             ckpt_epochs.append(epoch)
 
     max_epoch = max(ckpt_epochs)
-    test = max_epoch - 1
-    max_epoch_path = os.path.join(ckpt_dir, f"ckpt.{test}.pt")
+    max_epoch_path = os.path.join(ckpt_dir, f"ckpt.{max_epoch}.pt")
 
     return max_epoch_path, max_epoch
 

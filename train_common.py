@@ -435,8 +435,8 @@ def train_single(config):
 
     # Load checkpoint
     if config.train.load_ckpt:
-        ckpt = torch.load(config.train.load_ckpt, map_location=device)
-        model.load_state_dict(ckpt["model"])
+        ckpt = torch.load(config.train.load_ckpt, map_location='cpu')
+        model.load_state_dict(ckpt["model"]).to(device)
         optimizer.load_state_dict(ckpt["optim"])
         scheduler.load_state_dict(ckpt["sched"])
         ema.load_state_dict(ckpt["ema"])
