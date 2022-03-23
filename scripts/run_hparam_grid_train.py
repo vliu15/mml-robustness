@@ -53,12 +53,13 @@ def find_last_checkpoint(ckpt_dir):
     ckpt_regex = re.compile(r"ckpt.[0-9]+\.pt")
     ckpt_epochs = []
     for ckpt_file in sorted(os.listdir(ckpt_dir)):
-        print(ckpt_dir)
-        print(ckp_file)
         if ckpt_regex.match(ckpt_file):
             epoch = int(ckpt_file.split(".")[1])
             ckpt_epochs.append(epoch)
 
+    if len(ckpt_epochs) == 0:
+        return None, None
+        
     max_epoch = max(ckpt_epochs)
     max_epoch_path = os.path.join(ckpt_dir, f"ckpt.{max_epoch}.pt")
 
@@ -330,7 +331,23 @@ def submit_jtt_baseline_disjoint_tasks_train(args):
                     )
                     job_manager.submit(command, job_name=job_name, log_file=log_file)
 
-                #os.path.join(config.log_dir, f"jtt_error_set_{config.mtl_join_type}.pkl")
+                elif stage_1_ckpt_num == T and stage_2_ckpt_num == None:
+                    load_up_pkl_path = os.path.join(LOG_DIR, job_name, f"jtt_error_set_inv.pkl")
+                    command = (
+                        f"python train_jtt.py exp={method} "
+                        f"exp.weight_decay={WD} "
+                        f"exp.lr={LR} "
+                        f"exp.seed={seed} "
+                        f"exp.epochs_stage_1={T} "
+                        f"exp.epochs_stage_2={EPOCHS} "
+                        f"exp.groupings='[{task}]' "
+                        f"exp.lambda_up={LAM_UP} "
+                        f"exp.load_stage_1_ckpt=\\'{stage_1_ckpt_path}\\' "
+                        f"exp.load_stage_2_ckpt={'null'} "
+                        f"exp.load_up_pkl=\\'{load_up_pkl_path}\\' "  
+                        f"exp.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                    )
+                    job_manager.submit(command, job_name=job_name, log_file=log_file)
 
                 elif stage_1_ckpt_num == T and stage_2_ckpt_num != EPOCHS:
                     load_up_pkl_path = os.path.join(LOG_DIR, job_name, f"jtt_error_set_inv.pkl")
