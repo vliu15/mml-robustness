@@ -53,6 +53,8 @@ def find_last_checkpoint(ckpt_dir):
     ckpt_regex = re.compile(r"ckpt.[0-9]+\.pt")
     ckpt_epochs = []
     for ckpt_file in sorted(os.listdir(ckpt_dir)):
+        print(ckpt_dir)
+        print(ckp_file)
         if ckpt_regex.match(ckpt_file):
             epoch = int(ckpt_file.split(".")[1])
             ckpt_epochs.append(epoch)
