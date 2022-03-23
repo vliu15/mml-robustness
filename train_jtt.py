@@ -152,7 +152,7 @@ def main(config):
 
         stage_1_config = OmegaConf.load(os.path.join(stage_1_log_dir, "config.yaml"))
         model = init_model(stage_1_config).to(device)
-        ckpt = torch.load(os.path.join(stage_1_log_dir, "ckpts", "ckpt.last.pt"))
+        ckpt = torch.load(os.path.join(stage_1_log_dir, "ckpts", "ckpt.last.pt"), map_location='cpu')
         model.load_state_dict(ckpt["model"])
 
         train_dataloader, _ = init_dataloaders(stage_1_config)
