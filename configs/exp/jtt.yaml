@@ -23,3 +23,4 @@ lr: 0.00001
 seed: 0
 epochs_stage_1: 1
 epochs_stage_2: 50
+batch_size: 128

@@ -13,8 +13,11 @@ re-run the script with the --respawn flag to ensure that all jobs completed all 
 """
 
 import argparse
+import json
 import os
 import re
+
+import numpy as np
 
 from scripts.job_manager import JobManager
 
@@ -41,11 +44,61 @@ def parse_args():
     )
     parser.add_argument("--opt", type=str, required=True, help="The name of the submit_*_grid_jobs function to call.")
     parser.add_argument("--respawn", action='store_true', help="Whether to respawn runs from last completed checkpoint")
+    parser.add_argument(
+        "--mtl_weighting",
+        type=str,
+        default="static_equal",
+        choices=["static_equal", "static_delta", "dynamic"],
+        help="For MTL tuning runs, what type of weighting to use across tasks"
+    )
+    parser.add_argument(
+        "--spurious_eval_dir",
+        type=str,
+        default="./",
+        required=True,
+        help="The folder which contains all results from spurious id"
+    )
     args = parser.parse_args()
 
     # Convert relative paths to absolute paths to help slurm out
     args.slurm_logs = os.path.abspath(args.slurm_logs)
     return args
+
+
+def get_mtl_task_weights(args, task_pairing, alpha=0.5):
+
+    if args.mtl_weighting == "static_equal":
+        task_weights = [1] * len(task_pairing)
+        use_loss_balanced = "false"
+        lbtw_alpha = 0
+
+        return task_weights, use_loss_balanced, lbtw_alpha
+
+    elif args.mtl_weighting == "static_delta":
+        use_loss_balanced = "false"
+        lbtw_alpha = 0
+
+        ## get delta value for each task:attribute pair
+        deltas = []
+        for grouping in task_pairing:
+            task = grouping.split(":")[0]
+            attribute = grouping.split(":")[1]
+            with open(os.path.join(args.spurious_eval_dir, task, f"{task}_spurious_eval.json"), "r") as f:
+                data = json.load(f)
+                deltas.append(data[attribute])
+
+        ## compute delta heuristic, scale by 100 to get back into a range that won't blow up in softmax
+        deltas_np = np.array(deltas) / 100
+        task_weights_np = np.exp(deltas_np) / np.sum(np.exp(deltas_np))
+        task_weights = list(task_weights_np)
+
+        return task_weights, use_loss_balanced, lbtw_alpha
+    elif args.mtl_weighting == "dynamic":
+        task_weights = [1] * len(task_pairing)
+        use_loss_balanced = "true"
+        lbtw_alpha = alpha
+
+        return task_weights, use_loss_balanced, lbtw_alpha
 
 
 def find_last_checkpoint(ckpt_dir):
@@ -59,11 +112,12 @@ def find_last_checkpoint(ckpt_dir):
 
     if len(ckpt_epochs) == 0:
         return None, None
-        
+
     max_epoch = max(ckpt_epochs)
     max_epoch_path = os.path.join(ckpt_dir, f"ckpt.{max_epoch}.pt")
 
     return max_epoch_path, max_epoch
+
 
 def submit_erm_train(args):
     ## DECLARE MACROS HERE ##
@@ -125,16 +179,18 @@ def submit_reweighted_subsampled_train(args):
                     )
                     job_manager.submit(command, job_name=job_name, log_file=log_file)
 
+
 def submit_erm_baseline_disjoint_tasks_train(args):
     ## DECLARE MACROS HERE ##
-    WD = 1e-4  
+    WD = 1e-4
     LR = 1e-4
     BATCH_SIZE = 128
     EPOCHS = 50
-    SEED_GRID = [0, 1, 2]  
+    SEED_GRID = [0, 1, 2]
     TASK_GRID = [
-        "Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Goatee:No_Beard", "Gray_Hair:Young",
-        "High_Cheekbones:Smiling", "Wavy_Hair:Straight_Hair", "Wearing_Lipstick:Male"]
+        "Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Goatee:No_Beard", "Gray_Hair:Young", "High_Cheekbones:Smiling",
+        "Wavy_Hair:Straight_Hair", "Wearing_Lipstick:Male"
+    ]
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
     method = "erm"
@@ -163,7 +219,6 @@ def submit_erm_baseline_disjoint_tasks_train(args):
                     )
                     job_manager.submit(command, job_name=job_name, log_file=log_file)
 
-
             else:
                 command = (
                     f"python train_erm.py exp={method} "
@@ -174,19 +229,21 @@ def submit_erm_baseline_disjoint_tasks_train(args):
                     f"exp.dataset.groupings='[{task}]' "
                     f"exp.dataloader.batch_size={BATCH_SIZE} "
                     f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
-                    )
+                )
                 job_manager.submit(command, job_name=job_name, log_file=log_file)
+
 
 def submit_suby_baseline_disjoint_tasks_train(args):
     ## DECLARE MACROS HERE ##
-    WD = 1e-2  
+    WD = 1e-2
     LR = 1e-3
     BATCH_SIZE = 128
     EPOCHS = 60
-    SEED_GRID = [0, 1, 2]  
+    SEED_GRID = [0, 1, 2]
     TASK_GRID = [
-        "Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Goatee:No_Beard", "Gray_Hair:Young",
-        "High_Cheekbones:Smiling", "Wavy_Hair:Straight_Hair", "Wearing_Lipstick:Male"]
+        "Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Goatee:No_Beard", "Gray_Hair:Young", "High_Cheekbones:Smiling",
+        "Wavy_Hair:Straight_Hair", "Wearing_Lipstick:Male"
+    ]
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
 
@@ -226,18 +283,21 @@ def submit_suby_baseline_disjoint_tasks_train(args):
                     f"exp.dataset.groupings='[{task}]' "
                     f"exp.dataloader.batch_size=\\'{BATCH_SIZE}\\' "
                     f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
-                    )
+                )
                 job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+
 def submit_rwy_baseline_disjoint_tasks_train(args):
     ## DECLARE MACROS HERE ##
-    WD = 1e-2  
+    WD = 1e-2
     LR = 1e-4
     BATCH_SIZE = 2
     EPOCHS = 60
-    SEED_GRID = [0, 1, 2]  
+    SEED_GRID = [0, 1, 2]
     TASK_GRID = [
-        "Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Goatee:No_Beard", "Gray_Hair:Young",
-        "High_Cheekbones:Smiling", "Wavy_Hair:Straight_Hair", "Wearing_Lipstick:Male"]
+        "Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Goatee:No_Beard", "Gray_Hair:Young", "High_Cheekbones:Smiling",
+        "Wavy_Hair:Straight_Hair", "Wearing_Lipstick:Male"
+    ]
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
 
@@ -263,10 +323,10 @@ def submit_rwy_baseline_disjoint_tasks_train(args):
                         f"exp.dataloader.batch_size={BATCH_SIZE} "
                         f"exp.train.load_ckpt=\\'{ckpt_path}\\' "
                         f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
-                        )
+                    )
 
                     job_manager.submit(command, job_name=job_name, log_file=log_file)
-                
+
             else:
                 command = (
                     f"python train_erm.py exp={method} "
@@ -277,7 +337,7 @@ def submit_rwy_baseline_disjoint_tasks_train(args):
                     f"exp.dataset.groupings='[{task}]' "
                     f"exp.dataloader.batch_size={BATCH_SIZE} "
                     f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
-                    )
+                )
 
                 job_manager.submit(command, job_name=job_name, log_file=log_file)
 
@@ -286,13 +346,15 @@ def submit_jtt_baseline_disjoint_tasks_train(args):
     ## DECLARE MACROS HERE ##
     T = 1
     LAM_UP = 50
-    WD = 1e-1  
+    WD = 1e-1
     LR = 1e-5
     BATCH_SIZE = 128
     EPOCHS = 50
-    SEED_GRID = [0, 1, 2]  
-    TASK_GRID = ["Bushy_Eyebrows:Blond_Hair", "Goatee:No_Beard", "Gray_Hair:Young",
-    "High_Cheekbones:Smiling", "Wavy_Hair:Straight_Hair", "Wearing_Lipstick:Male"]
+    SEED_GRID = [0, 1, 2]
+    TASK_GRID = [
+        "Bushy_Eyebrows:Blond_Hair", "Goatee:No_Beard", "Gray_Hair:Young", "High_Cheekbones:Smiling",
+        "Wavy_Hair:Straight_Hair", "Wearing_Lipstick:Male"
+    ]
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
 
@@ -313,8 +375,6 @@ def submit_jtt_baseline_disjoint_tasks_train(args):
                 else:
                     stage_2_ckpt_path, stage_2_ckpt_num = "null", "null"
 
-                
-
                 if stage_1_ckpt_num != T:
                     command = (
                         f"python train_jtt.py exp={method} "
@@ -326,7 +386,8 @@ def submit_jtt_baseline_disjoint_tasks_train(args):
                         f"exp.groupings='[{task}]' "
                         f"exp.lambda_up={LAM_UP} "
                         f"exp.load_stage_1_ckpt=\\'{stage_1_ckpt_path}\\' "
-                        f"exp.load_stage_2_ckpt={stage_2_ckpt_path} " 
+                        f"exp.load_stage_2_ckpt={stage_2_ckpt_path} "
+                        f"exp.batch_size={BATCH_SIZE} "
                         f"exp.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
                     )
                     job_manager.submit(command, job_name=job_name, log_file=log_file)
@@ -344,7 +405,8 @@ def submit_jtt_baseline_disjoint_tasks_train(args):
                         f"exp.lambda_up={LAM_UP} "
                         f"exp.load_stage_1_ckpt=\\'{stage_1_ckpt_path}\\' "
                         f"exp.load_stage_2_ckpt={'null'} "
-                        f"exp.load_up_pkl=\\'{load_up_pkl_path}\\' "  
+                        f"exp.load_up_pkl=\\'{load_up_pkl_path}\\' "
+                        f"exp.batch_size={BATCH_SIZE} "
                         f"exp.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
                     )
                     job_manager.submit(command, job_name=job_name, log_file=log_file)
@@ -362,7 +424,8 @@ def submit_jtt_baseline_disjoint_tasks_train(args):
                         f"exp.lambda_up={LAM_UP} "
                         f"exp.load_stage_1_ckpt=\\'{stage_1_ckpt_path}\\' "
                         f"exp.load_stage_2_ckpt=\\'{stage_2_ckpt_path}\\' "
-                        f"exp.load_up_pkl=\\'{load_up_pkl_path}\\' "  
+                        f"exp.load_up_pkl=\\'{load_up_pkl_path}\\' "
+                        f"exp.batch_size={BATCH_SIZE} "
                         f"exp.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
                     )
                     job_manager.submit(command, job_name=job_name, log_file=log_file)
@@ -377,11 +440,70 @@ def submit_jtt_baseline_disjoint_tasks_train(args):
                     f"exp.epochs_stage_2={EPOCHS} "
                     f"exp.groupings='[{task}]' "
                     f"exp.lambda_up={LAM_UP} "
+                    f"exp.batch_size={BATCH_SIZE} "
                     f"exp.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
-                    )
+                )
                 job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 
+def submit_mtl_disjoint_tasks_tune(args):
+    ## DECLARE MACROS HERE ##
+    WD_GRID = [1e-4, 1e-3, 1e-2, 1e-1]
+    LR_GRID = [1e-5, 1e-4, 1e-3]
+    BATCH_SIZE_GRID = [32, 64, 128]
+    EPOCHS = 50
+    SEED_GRID = [0]
+    TASK = ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair"]
+
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+    method = "erm"
+
+    task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(args, TASK)
+
+    for wd in WD_GRID:
+        for lr in LR_GRID:
+            for batch_size in BATCH_SIZE_GRID:
+                for seed in SEED_GRID:
+
+                    job_name = f"mtl_tuning:{method},task:{TASK},seed:{seed},wd:{wd},lr:{lr},batch_size:{batch_size}"
+                    log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+
+                    if args.respawn:
+                        ckpt_dir = os.path.join(LOG_DIR, job_name, "ckpts")
+                        ckpt_path, ckpt_num = find_last_checkpoint(ckpt_dir)
+
+                        if ckpt_num != EPOCHS:
+
+                            command = (
+                                f"python train_erm.py exp={method} "
+                                f"exp.optimizer.weight_decay={wd} "
+                                f"exp.optimizer.lr={lr} "
+                                f"exp.seed={seed} "
+                                f"exp.train.total_epochs={EPOCHS} "
+                                f"exp.dataset.groupings='{TASK}' "
+                                f"exp.dataloader.batch_size={batch_size} "
+                                f"exp.dataset.task_weights='{task_weights}' "
+                                f"exp.dataset.loss_based_task_weighting={use_loss_balanced} "
+                                f"exp.dataset.lbtw_alpha={lbtw_alpha} "
+                                f"exp.train.load_ckpt=\\'{ckpt_path}\\' "
+                                f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                            )
+                            job_manager.submit(command, job_name=job_name, log_file=log_file)
+                    else:
+                        command = (
+                            f"python train_erm.py exp={method} "
+                            f"exp.optimizer.weight_decay={wd} "
+                            f"exp.optimizer.lr={lr} "
+                            f"exp.seed={seed} "
+                            f"exp.train.total_epochs={EPOCHS} "
+                            f"exp.dataset.groupings='{TASK}' "
+                            f"exp.dataloader.batch_size={batch_size} "
+                            f"exp.dataset.task_weights='{task_weights}' "
+                            f"exp.dataset.loss_based_task_weighting={use_loss_balanced} "
+                            f"exp.dataset.lbtw_alpha={lbtw_alpha} "
+                            f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                        )
+                        job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 
 def main():
@@ -401,6 +523,8 @@ def main():
         submit_rwy_baseline_disjoint_tasks_train(args)
     elif args.opt == "jtt_baseline":
         submit_jtt_baseline_disjoint_tasks_train(args)
+    elif args.opt == "mtl_disjoint_tuning":
+        submit_mtl_disjoint_tasks_tune(args)
     else:
         raise ValueError(f"Didn't recognize opt={args.opt}. Did you forget to add a check for this function?")
 

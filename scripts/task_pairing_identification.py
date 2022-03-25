@@ -127,7 +127,7 @@ def main(attributes):
                 for correlate in spurious_correlates:
                     if correlate in cluster_members:
                         for new_correlate in cluster_members:
-                             correlates_to_add.add(new_correlate)
+                            correlates_to_add.add(new_correlate)
 
             spurious_correlates.update(correlates_to_add)
 

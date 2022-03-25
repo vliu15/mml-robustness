@@ -143,6 +143,7 @@ def main(config):
                 f"exp.optimizer.lr={config.lr} "
                 f"exp.optimizer.weight_decay={config.weight_decay} "
                 f"exp.seed={config.seed} "
+                f"exp.dataloader.batch_size={config.batch_size} "
                 f"exp.train.load_ckpt=\\'{config.load_stage_1_ckpt}\\'",
                 shell=True,
                 check=True,
@@ -161,6 +162,7 @@ def main(config):
                 f"exp.optimizer.lr={config.lr} "
                 f"exp.optimizer.weight_decay={config.weight_decay} "
                 f"exp.seed={config.seed} "
+                f"exp.dataloader.batch_size={config.batch_size} "
                 f"exp.train.load_ckpt={'null'}",
                 shell=True,
                 check=True,
@@ -227,6 +229,7 @@ def main(config):
             f"exp.optimizer.lr={config.lr} "
             f"exp.optimizer.weight_decay={config.weight_decay} "
             f"exp.seed={config.seed} "
+            f"exp.dataloader.batch_size={config.batch_size} "
             f"exp.train.load_ckpt=\\'{config.load_stage_2_ckpt}\\'",
             shell=True,
             check=True,
@@ -247,6 +250,7 @@ def main(config):
             f"exp.optimizer.lr={config.lr} "
             f"exp.optimizer.weight_decay={config.weight_decay} "
             f"exp.seed={config.seed} "
+            f"exp.dataloader.batch_size={config.batch_size} "
             f"exp.train.load_ckpt={'null'}",
             shell=True,
             check=True,
