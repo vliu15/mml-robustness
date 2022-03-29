@@ -23,8 +23,8 @@ from scripts.job_manager import JobManager
 
 # RICE MACROS
 USER = os.environ["USER"]
-LOG_DIR = f"/farmshare/user_data/{USER}/mml-robustness/logs"
-#LOG_DIR = "./logs"
+#LOG_DIR = f"/farmshare/user_data/{USER}/mml-robustness/logs"
+LOG_DIR = "./logs"
 
 
 def parse_args():
@@ -55,7 +55,7 @@ def parse_args():
         "--spurious_eval_dir",
         type=str,
         default="./",
-        required=True,
+        required=False,
         help="The folder which contains all results from spurious id"
     )
     args = parser.parse_args()
@@ -465,7 +465,7 @@ def submit_mtl_disjoint_tasks_tune(args):
             for batch_size in BATCH_SIZE_GRID:
                 for seed in SEED_GRID:
 
-                    job_name = f"mtl_tuning:{method},task:{TASK},seed:{seed},wd:{wd},lr:{lr},batch_size:{batch_size}"
+                    job_name = f"mtl_tuning:{method},task:{len(TASK)}_tasks_{args.mtl_weighting}_task_weighting,seed:{seed},wd:{wd},lr:{lr},batch_size:{batch_size}"
                     log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
                     if args.respawn:
