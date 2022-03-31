@@ -137,7 +137,7 @@ def init_test_dataloader(config):
     from torch.utils.data import DataLoader
     return DataLoader(
         test_dataset,
-        batch_size=config.dataloader.batch_size,
+        batch_size=int(config.dataloader.batch_size),
         num_workers=config.dataloader.num_workers,
         shuffle=False,
         pin_memory=True,
