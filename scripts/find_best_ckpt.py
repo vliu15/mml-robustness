@@ -45,10 +45,11 @@ def parse_args():
     parser.add_argument(
         "--metric", type=str, required=True, choices=["group", "avg"], help="Type of metric/accuracy to compare checkpoints"
     )
+    parser.add_argument("--learning_type", type=str, required=True, choices=["stl", "mtl"], help="Whether we are evaluating a single or multi task learning appraoch")
     return parser.parse_args()
 
 
-def main(log_dir, run_test=False, test_groupings="", metric="avg"):
+def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type="stl"):
     results_dir = os.path.join(log_dir, "results")
 
     val_stats_json_regex = re.compile(r"val_stats_[0-9]+\.json")
@@ -71,15 +72,44 @@ def main(log_dir, run_test=False, test_groupings="", metric="avg"):
     avg_acc_key_regex = re.compile(r".*_avg_acc")
     for epoch in val_stats.keys():
         if metric == "group":
-            worst_group_acc = min(val_stats[epoch][key] for key in val_stats[epoch].keys() if group_acc_key_regex.match(key))
-            if worst_group_acc > best_acc:
-                best_epoch = epoch
-                best_acc = worst_group_acc
+            if learning_type == "stl":
+                worst_group_acc = min(val_stats[epoch][key] for key in val_stats[epoch].keys() if group_acc_key_regex.match(key))
+                if worst_group_acc > best_acc:
+                    best_epoch = epoch
+                    best_acc = worst_group_acc
+            ## currently we define best checkpoint based on best average worst group accuracy across tasks
+            elif learning_type == "mtl":
+                group_accuracies = {key:val_stats[epoch][key] for key in val_stats[epoch].keys() if group_acc_key_regex.match(key)}
+                worst_group_accuracies = {}
+                for key in group_accuracies.keys():
+                    group_acc_key_regex = r"_g[0-9]+_acc"
+                    sub_key = re.split(group_acc_key_regex, key)[0]
+
+                    if sub_key in worst_group_accuracies:
+                        curr_val = worst_group_accuracies[sub_key]
+                        worst_group_accuracies[sub_key] = min(curr_val,group_accuracies[key])
+                    else:
+                        worst_group_accuracies[sub_key] = group_accuracies[key]
+
+                worst_group_average_acc = sum(worst_group_accuracies.values()) / len(worst_group_accuracies)
+
+                if worst_group_average_acc > best_acc:
+                    best_epoch = epoch
+                    best_acc = worst_group_average_acc
+         
         elif metric == "avg":
-            avg_group_acc = min(val_stats[epoch][key] for key in val_stats[epoch].keys() if avg_acc_key_regex.match(key))
-            if avg_group_acc > best_acc:
-                best_epoch = epoch
-                best_acc = avg_group_acc
+            if learning_type == "stl":
+                avg_group_acc = min(val_stats[epoch][key] for key in val_stats[epoch].keys() if avg_acc_key_regex.match(key))
+                if avg_group_acc > best_acc:
+                    best_epoch = epoch
+                    best_acc = avg_group_acc
+            ## currently we define best checkpoint based on best average average accuracy across tasks
+            elif learning_type == "mtl":
+                avg_task_acc = np.mean([val_stats[epoch][key] for key in val_stats[epoch].keys() if avg_acc_key_regex.match(key)])
+                if avg_task_acc > best_acc:
+                    best_epoch = epoch
+                    best_acc = avg_task_acc
+
         else:
             raise ValueError("Incorrect metric format. Only supports 'group' and 'acc'. ")
 
@@ -110,4 +140,4 @@ def main(log_dir, run_test=False, test_groupings="", metric="avg"):
 if __name__ == "__main__":
     # In this script, call argparse outside of main so it can be imported by generate_spurious_matrix
     args = parse_args()
-    main(log_dir=args.log_dir, run_test=args.run_test, test_groupings=args.test_groupings, metric=args.metric)
+    main(log_dir=args.log_dir, run_test=args.run_test, test_groupings=args.test_groupings, metric=args.metric, learing_type=args.learning_type)
