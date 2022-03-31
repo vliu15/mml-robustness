@@ -99,7 +99,6 @@ def submit_erm_baseline_disjoint_eval_test(args):
         "Wavy_Hair:Straight_Hair", "Wearing_Lipstick:Male"
     ]
 
-    f"{args.split}_stats_{args.checkpoint_type}_checkpoint.json"
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
     method = "erm"
     for task in TASK_GRID:
