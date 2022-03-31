@@ -46,10 +46,14 @@ def parse_args():
         "--metric", type=str, required=True, choices=["group", "avg"], help="Type of metric/accuracy to compare checkpoints"
     )
     parser.add_argument("--learning_type", type=str, required=True, choices=["stl", "mtl"], help="Whether we are evaluating a single or multi task learning appraoch")
+
+    parser.add_argument(
+        "--save_json", type=str, required=False, default="", help="Name for where file will be saved"
+    )
     return parser.parse_args()
 
 
-def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type="stl"):
+def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type="stl", save_json=""):
     results_dir = os.path.join(log_dir, "results")
 
     val_stats_json_regex = re.compile(r"val_stats_[0-9]+\.json")
@@ -128,7 +132,7 @@ def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type
     # Actually run evaluation on test set with this checkpoint
     if run_test:
         logger.info(f"Running evaluation on test set with checkpoint {best_epoch}")
-        command = ("python test.py " f"--log_dir {log_dir} " f"--ckpt_num {int(best_epoch)} " f"--split test")
+        command = ("python test.py " f"--log_dir {log_dir} " f"--ckpt_num {int(best_epoch)} " f"--split test" f"--save_json {save_json}")
         if test_groupings:
             command = f"{command} --groupings {test_groupings}"
 
@@ -140,4 +144,4 @@ def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type
 if __name__ == "__main__":
     # In this script, call argparse outside of main so it can be imported by generate_spurious_matrix
     args = parse_args()
-    main(log_dir=args.log_dir, run_test=args.run_test, test_groupings=args.test_groupings, metric=args.metric, learing_type=args.learning_type)
+    main(log_dir=args.log_dir, run_test=args.run_test, test_groupings=args.test_groupings, metric=args.metric, learing_type=args.learning_type, save_json = args.save_json)
