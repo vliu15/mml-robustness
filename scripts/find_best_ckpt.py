@@ -144,4 +144,4 @@ def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type
 if __name__ == "__main__":
     # In this script, call argparse outside of main so it can be imported by generate_spurious_matrix
     args = parse_args()
-    main(log_dir=args.log_dir, run_test=args.run_test, test_groupings=args.test_groupings, metric=args.metric, learing_type=args.learning_type, save_json = args.save_json)
+    main(log_dir=args.log_dir, run_test=args.run_test, test_groupings=args.test_groupings, metric=args.metric, learning_type=args.learning_type, save_json=args.save_json)
