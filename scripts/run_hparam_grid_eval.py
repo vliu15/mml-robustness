@@ -108,7 +108,11 @@ def submit_erm_baseline_disjoint_eval_test(args):
                 log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
                 save_json = f"test_stats_{checkpoint_type}_checkpoint.json"
 
-                command = f"python -m scripts.find_best_ckpt --run_test --log_dir {os.path.join(LOG_DIR,job_name[5:])} --metric {checkpoint_type} --learning_type stl --save_json {save_json}"
+                log_dir = os.path.join(LOG_DIR,job_name[5:])
+                results_dir = os.path.join(log_dir, "results")
+                save_json = os.path.join(results_dir, save_json)
+
+                command = f"python -m scripts.find_best_ckpt --run_test --log_dir {log_dir} --metric {checkpoint_type} --learning_type stl --save_json {save_json}"
                 job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 
@@ -134,7 +138,11 @@ def submit_suby_baseline_disjoint_eval_test(args):
                 log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
                 save_json = f"test_stats_{checkpoint_type}_checkpoint.json"
 
-                command = f"python -m scripts.find_best_ckpt --run_test --log_dir {os.path.join(LOG_DIR,job_name[5:])} --metric {checkpoint_type} --learning_type stl --save_json {save_json}"
+                log_dir = os.path.join(LOG_DIR,job_name[5:])
+                results_dir = os.path.join(log_dir, "results")
+                save_json = os.path.join(results_dir, save_json)
+
+                command = f"python -m scripts.find_best_ckpt --run_test --log_dir {log_dir} --metric {checkpoint_type} --learning_type stl --save_json {save_json}"
                 job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 
