@@ -125,14 +125,14 @@ def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type
         logger.info("Detected an empty val_stats. Skipping")
         return
 
-    for key in val_stats[best_epoch].keys():
+    for key in val_stats[best_epoch - 1].keys():
         if "acc" in key:
-            logger.info("  %s: %s", key, val_stats[best_epoch][key])
+            logger.info("  %s: %s", key, val_stats[best_epoch - 1][key])
 
     # Actually run evaluation on test set with this checkpoint
     if run_test:
         logger.info(f"Running evaluation on test set with checkpoint {best_epoch}")
-        command = ("python test.py " f"--log_dir {log_dir} " f"--ckpt_num {int(best_epoch)} " f"--split test" f"--save_json {save_json}")
+        command = ("python test.py " f"--log_dir {log_dir} " f"--ckpt_num {int(best_epoch)} " f"--split test " f"--save_json {save_json}")
         if test_groupings:
             command = f"{command} --groupings {test_groupings}"
 
