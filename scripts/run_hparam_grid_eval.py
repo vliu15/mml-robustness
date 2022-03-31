@@ -87,13 +87,71 @@ def submit_suby_eval_val(args):
                         json.dump(best_val_stats, fp)
 
 
+def submit_erm_baseline_disjoint_eval_test(args):
+    ## DECLARE MACROS HERE ##
+    WD = 1e-4
+    LR = 1e-4
+    BATCH_SIZE = 128
+    EPOCHS = 50
+    SEED_GRID = [0, 1, 2]
+    TASK_GRID = [
+        "Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Goatee:No_Beard", "Gray_Hair:Young", "High_Cheekbones:Smiling",
+        "Wavy_Hair:Straight_Hair", "Wearing_Lipstick:Male"
+    ]
+
+    f"{args.split}_stats_{args.checkpoint_type}_checkpoint.json"
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+    method = "erm"
+    for task in TASK_GRID:
+        for seed in SEED_GRID:
+            for checkpoint_type in ["avg", "group"]:
+                job_name = f"eval_baseline:{method},task:{task},seed:{seed}"
+                log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+                save_json = f"test_stats_{checkpoint_type}_checkpoint.json"
+
+                command = f"python -m scripts.find_best_ckpt --run_test --log_dir {os.path.join(LOG_DIR,job_name[5:])} --metric {checkpoint_type} --learning_type stl --save_json {save_json}"
+                job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+
+def submit_suby_baseline_disjoint_eval_test(args):
+    ## DECLARE MACROS HERE ##
+    WD = 1e-2
+    LR = 1e-3
+    BATCH_SIZE = 128
+    EPOCHS = 60
+    SEED_GRID = [0, 1, 2]
+    TASK_GRID = [
+        "Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Goatee:No_Beard", "Gray_Hair:Young", "High_Cheekbones:Smiling",
+        "Wavy_Hair:Straight_Hair", "Wearing_Lipstick:Male"
+    ]
+
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+
+    method = "suby"
+    for task in TASK_GRID:
+        for seed in SEED_GRID:
+            for checkpoint_type in ["avg", "group"]:
+                job_name = f"eval_baseline:{method},task:{task},seed:{seed}"
+                log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+                save_json = f"test_stats_{checkpoint_type}_checkpoint.json"
+
+                command = f"python -m scripts.find_best_ckpt --run_test --log_dir {os.path.join(LOG_DIR,job_name[5:])} --metric {checkpoint_type} --learning_type stl --save_json {save_json}"
+                job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+
 def main():
     args = parse_args()
     if args.mode == "sbatch":
         os.makedirs(args.slurm_logs, exist_ok=True)
 
-    if args.opt == "suby":
+    if args.opt == "suby_val":
         submit_suby_eval_val(args)
+    elif args.opt == "suby_test":
+        submit_suby_eval_test(args)
+    elif args.opt == "suby_disjoint_test":
+        submit_suby_baseline_disjoint_eval_test(args)
+    elif args.opt == "erm_disjoint_test":
+        submit_erm_baseline_disjoint_eval_test(args)
     else:
         raise ValueError(f"Didn't recognize opt={args.opt}. Did you forget to add a check for this function?")
 

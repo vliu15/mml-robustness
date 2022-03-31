@@ -28,7 +28,7 @@ def parse_args():
     parser.add_argument(
         "--split", type=str, required=True, choices=["val", "test"], help="Type of metric to report results on"
     )
-    parser.add_argument("--checkpoint_type", type=str, required=True, choices=["avg", "worst"] help="Whether to choose avg or worst group checkpoint")
+    parser.add_argument("--checkpoint_type", type=str, required=True, choices=["avg", "group"] help="Whether to choose avg or worst group checkpoint")
     return parser.parse_args()
 
 ### print out average accuracy, print out worst group accuracy print out loss
