@@ -60,7 +60,7 @@ def main():
             else:
                 worst_group_accuracies[sub_key] = group_accuracies[key]
 
-        avg_accuracies = {key.split("_avg_acc")[0]:val_stats[epoch][key] for key in val_stats[epoch].keys() if avg_acc_key_regex.match(key)}
+        avg_accuracies = {key.split("_avg_acc")[0]:results[epoch][key] for key in results[epoch].keys() if avg_acc_key_regex.match(key)}
 
 
         for task, worst_group_acc in worst_group_accuracies.items():
