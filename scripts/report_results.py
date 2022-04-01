@@ -15,6 +15,7 @@ import logging
 import logging.config
 import os
 import re
+import numpy as np
 
 from collections import defaultdict
 
