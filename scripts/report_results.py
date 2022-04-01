@@ -54,7 +54,7 @@ def main():
             group_acc_key_regex = r"_g[0-9]+_acc"
             sub_key = re.split(group_acc_key_regex, key)[0]
 
-             if sub_key in worst_group_accuracies:
+            if sub_key in worst_group_accuracies:
                 curr_val = worst_group_accuracies[sub_key]
                 worst_group_accuracies[sub_key] = min(curr_val,group_accuracies[key])
             else:
