@@ -40,7 +40,7 @@ def main():
     for log_dir in args.log_dirs:
         
         file_name = f"{args.split}_stats_{args.checkpoint_type}_checkpoint.json"
-        file_path = os.path.join(log_dir, results, file_name)
+        file_path = os.path.join(log_dir, 'results', file_name)
 
         with open(file_path, "r") as f:
             results = json.load(f)
