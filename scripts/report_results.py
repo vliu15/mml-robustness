@@ -18,10 +18,13 @@ import re
 import numpy as np
 
 from collections import defaultdict
+from scipy import stats
 
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger(__name__)
 
+alpha = 0.05  ## Change this if something other than a 95% CI is desired
+z = stats.norm.ppf(1 - alpha / 2)
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -32,8 +35,24 @@ def parse_args():
     parser.add_argument("--checkpoint_type", type=str, required=True, choices=["avg", "group"], help="Whether to choose avg or worst group checkpoint")
     return parser.parse_args()
 
+def get_group_sizes(config, task, attr, split):
+    config = deepcopy(config)
+    config.dataset.subgroup_labels = True
+    config.dataset.groupings = [f"{task}:{attr}"]
+
+    dataset = CelebA(config, split=split)
+    counts = dataset.counts.squeeze(0).tolist()
+
+    # In the event that there are subgroups with size 0, there are two cases:
+    #   1. if len(counts) == 4: then these 0-count groups are not group 3
+    #   2. if len(counts) < 4 : then these 0-count groups are at least group 3, 2, 1, 0, etc
+    # Since we count subgroup sizes with torch.bincount, the only time we end up with <4
+    # subgroups is when the instances are missing in reverse order (3, 2, 1, 0)
+    counts = counts + [0] * (4 - len(counts))
+    return counts
+
 ### print out average accuracy, print out worst group accuracy print out loss
-def main():
+def mean_std_results():
     args = parse_args()
     
     average_accuracy = defaultdict(list)
@@ -79,8 +98,86 @@ def main():
         logger.info(f"Mean average accuracy: {np.mean(average_accuracy[task])}, std:{np.std(average_accuracy[task])}, over {len(average_accuracy[task])} seeds \n")
         logger.info(f"Mean worst-group accuracy: {np.mean(worst_group_accuracy[task])}, std:{np.std(worst_group_accuracy[task])}, over {len(worst_group_accuracy[task])} seeds \n")
 
+def mean_ci_results():
+    args = parse_args()
+    
+    average_counts = defaultdict(list) ## for each task need a correct counts and a total counts of average
+    worst_group_counts = defaultdict(list) ## for each task need a correct counts and a total counts of worst group
 
+
+    for log_dir in args.log_dirs:
+
+        config = OmegaConf.load(os.path.join(args.log_dir, "config.yaml"))
+
+        task_to_attributes = {}
+        for grouping in config.dataset.groupings:
+            task_attribute = grouping.split(":")
+            task_to_attributes[task_attribute[0]] = task_attribute[1]
+        
+        file_name = f"{args.split}_stats_{args.checkpoint_type}_checkpoint.json"
+        file_path = os.path.join(log_dir, 'results', file_name)
+
+        with open(file_path, "r") as f:
+            results = json.load(f)
+
+
+        for task, attribute in task_to_attributes.items():
+            ### get group total counts 
+            group_sizes = get_group_sizes(config, task, attribute)
+
+            worst_group_acc = float("inf")
+            worst_group_correct = 0
+            worst_group_total = 0
+
+            avg_correct = 0
+            avg_total = 0
+
+            for i in range(4):
+
+                group_size = float(group_sizes[i])
+                group_correct_counts = float(results[f"{task}_g{i}_correct_counts"])
+                group_acc = float(results[f"{task}_g{i}_acc"])
+
+                avg_correct += group_correct_counts
+                avg_total += group_size
+
+                if group_acc < worst_group_acc:
+                    worst_group_acc = group_acc
+                    worst_group_correct = group_correct_counts
+                    worst_group_total = group_size
+
+            
+            average_counts[f"{task}_total_counts"].append(avg_total)
+            average_counts[f"{task}_correct_counts"].append(avg_correct)
+            
+            worst_group[f"{task}_total_counts"].append(worst_group_total)
+            worst_group[f"{task}_correct_counts"].append(worst_group_correct)
+
+    logger.info(f"For split: {args.split}, using checkpoints based on: {args.checkpoint_type} we obtain: \n")
+
+    for task in average_counts.keys():
+
+        logger.info(f"For TASK: {task}")
+
+        total_avg_counts = np.sum(average_counts[f"{task}_total_counts"])
+        total_avg_correct_counts = np.sum(average_counts[f"{task}_correct_counts"])
+
+        total_worst_group_counts = np.sum(worst_group[f"{task}_total_counts"])
+        total_worst_group_correct_counts = np.sum(worst_group[f"{task}_correct_counts"])
+
+        n_tilde_avg = total_avg_counts + z**2
+        p_tilde_avg = (1 / n_tilde_avg) * (total_avg_correct_counts + ((z**2) / 2))
+        ci_range_avg = z * np.sqrt((p_tilde_avg / n_tilde_avg) * (1 - p_tilde_avg))
+
+        logger.info(f"Estimated mean average accuracy: {p_tilde_avg}, with 95% CI:({p_tilde_avg - ci_range_avg},{p_tilde_avg + ci_range_avg}), over {len(average_accuracy[task])} seeds \n")
+
+        n_tilde_group = total_worst_group_counts + z**2
+        p_tilde_group = (1 / n_tilde_group) * (total_worst_group_correct_counts + ((z**2) / 2))
+        ci_range_group = z * np.sqrt((p_tilde_group / n_tilde_group) * (1 - p_tilde_group))
+
+        logger.info(f"Estimated mean worst-group accuracy: {p_tilde_group}, with 95% CI:({p_tilde_group - ci_range_group},{p_tilde_group + ci_range_group}), over {len(worst_group_accuracy[task])} seeds \n")
+   
 
 if __name__ == "__main__":
-    main()
+    mean_ci_results()
 
