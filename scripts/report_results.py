@@ -173,13 +173,13 @@ def mean_ci_results():
         p_tilde_avg = (1 / n_tilde_avg) * (total_avg_correct_counts + ((z**2) / 2))
         ci_range_avg = z * np.sqrt((p_tilde_avg / n_tilde_avg) * (1 - p_tilde_avg))
 
-        logger.info(f"Estimated mean average accuracy: {p_tilde_avg}, with 95% CI:({p_tilde_avg - ci_range_avg},{p_tilde_avg + ci_range_avg}), over {len(average_counts[task])} seeds \n")
+        logger.info(f"Estimated mean average accuracy: {round(p_tilde_avg,4)}, with 95% CI:({round(p_tilde_avg - ci_range_avg, 4)},{round(p_tilde_avg + ci_range_avg, 4)}), over {len(args.log_dirs)} seeds \n")
 
         n_tilde_group = total_worst_group_counts + z**2
         p_tilde_group = (1 / n_tilde_group) * (total_worst_group_correct_counts + ((z**2) / 2))
         ci_range_group = z * np.sqrt((p_tilde_group / n_tilde_group) * (1 - p_tilde_group))
 
-        logger.info(f"Estimated mean worst-group accuracy: {p_tilde_group}, with 95% CI:({p_tilde_group - ci_range_group},{p_tilde_group + ci_range_group}), over {len(worst_group_counts[task])} seeds \n")
+        logger.info(f"Estimated mean worst-group accuracy: {round(p_tilde_group,4)}, with 95% CI:({round(p_tilde_group - ci_range_group, 4)},{round(p_tilde_group + ci_range_group, 4)}), over {len(args.log_dirs)} seeds \n")
    
 
 if __name__ == "__main__":
