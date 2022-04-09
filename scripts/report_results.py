@@ -108,7 +108,7 @@ def mean_ci_results():
 
     for log_dir in args.log_dirs:
 
-        config = OmegaConf.load(os.path.join(args.log_dir, "config.yaml"))
+        config = OmegaConf.load(os.path.join(log_dir, "config.yaml"))
 
         task_to_attributes = {}
         for grouping in config.dataset.groupings:
