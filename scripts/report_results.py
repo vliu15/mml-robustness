@@ -21,6 +21,7 @@ from copy import deepcopy
 from collections import defaultdict
 from scipy import stats
 from omegaconf import OmegaConf
+from datasets.celeba import CelebA
 
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger(__name__)
