@@ -16,6 +16,7 @@ import logging.config
 import os
 import re
 import numpy as np
+from copy import deepcopy
 
 from collections import defaultdict
 from scipy import stats
