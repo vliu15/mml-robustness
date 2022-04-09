@@ -153,8 +153,8 @@ def mean_ci_results():
             average_counts[f"{task}_total_counts"].append(avg_total)
             average_counts[f"{task}_correct_counts"].append(avg_correct)
             
-            worst_group[f"{task}_total_counts"].append(worst_group_total)
-            worst_group[f"{task}_correct_counts"].append(worst_group_correct)
+            worst_group_counts[f"{task}_total_counts"].append(worst_group_total)
+            worst_group_counts[f"{task}_correct_counts"].append(worst_group_correct)
 
     logger.info(f"For split: {args.split}, using checkpoints based on: {args.checkpoint_type} we obtain: \n")
 
@@ -165,8 +165,8 @@ def mean_ci_results():
         total_avg_counts = np.sum(average_counts[f"{task}_total_counts"])
         total_avg_correct_counts = np.sum(average_counts[f"{task}_correct_counts"])
 
-        total_worst_group_counts = np.sum(worst_group[f"{task}_total_counts"])
-        total_worst_group_correct_counts = np.sum(worst_group[f"{task}_correct_counts"])
+        total_worst_group_counts = np.sum(worst_group_counts[f"{task}_total_counts"])
+        total_worst_group_correct_counts = np.sum(worst_group_counts[f"{task}_correct_counts"])
 
         n_tilde_avg = total_avg_counts + z**2
         p_tilde_avg = (1 / n_tilde_avg) * (total_avg_correct_counts + ((z**2) / 2))
