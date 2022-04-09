@@ -61,7 +61,7 @@ def mean_std_results():
     
     average_accuracy = defaultdict(list)
     worst_group_accuracy = defaultdict(list)
-    for log_dir in tqdm(args.log_dirs):
+    for log_dir in args.log_dirs:
         
         file_name = f"{args.split}_stats_{args.checkpoint_type}_checkpoint.json"
         file_path = os.path.join(log_dir, 'results', file_name)
@@ -109,7 +109,7 @@ def mean_ci_results():
     worst_group_counts = defaultdict(list) ## for each task need a correct counts and a total counts of worst group
 
 
-    for log_dir in args.log_dirs:
+    for log_dir in tqdm(args.log_dirs):
 
         config = OmegaConf.load(os.path.join(log_dir, "config.yaml"))
 
