@@ -124,7 +124,7 @@ def mean_ci_results():
 
         for task, attribute in task_to_attributes.items():
             ### get group total counts 
-            group_sizes = get_group_sizes(config, task, attribute)
+            group_sizes = get_group_sizes(config, task, attribute, args.split)
 
             worst_group_acc = float("inf")
             worst_group_correct = 0
