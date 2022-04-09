@@ -22,6 +22,7 @@ from collections import defaultdict
 from scipy import stats
 from omegaconf import OmegaConf
 from datasets.celeba import CelebA
+from tqdm import tqdm
 
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger(__name__)
@@ -60,7 +61,7 @@ def mean_std_results():
     
     average_accuracy = defaultdict(list)
     worst_group_accuracy = defaultdict(list)
-    for log_dir in args.log_dirs:
+    for log_dir in tqdm(args.log_dirs):
         
         file_name = f"{args.split}_stats_{args.checkpoint_type}_checkpoint.json"
         file_path = os.path.join(log_dir, 'results', file_name)
@@ -172,13 +173,13 @@ def mean_ci_results():
         p_tilde_avg = (1 / n_tilde_avg) * (total_avg_correct_counts + ((z**2) / 2))
         ci_range_avg = z * np.sqrt((p_tilde_avg / n_tilde_avg) * (1 - p_tilde_avg))
 
-        logger.info(f"Estimated mean average accuracy: {p_tilde_avg}, with 95% CI:({p_tilde_avg - ci_range_avg},{p_tilde_avg + ci_range_avg}), over {len(average_accuracy[task])} seeds \n")
+        logger.info(f"Estimated mean average accuracy: {p_tilde_avg}, with 95% CI:({p_tilde_avg - ci_range_avg},{p_tilde_avg + ci_range_avg}), over {len(average_counts[task])} seeds \n")
 
         n_tilde_group = total_worst_group_counts + z**2
         p_tilde_group = (1 / n_tilde_group) * (total_worst_group_correct_counts + ((z**2) / 2))
         ci_range_group = z * np.sqrt((p_tilde_group / n_tilde_group) * (1 - p_tilde_group))
 
-        logger.info(f"Estimated mean worst-group accuracy: {p_tilde_group}, with 95% CI:({p_tilde_group - ci_range_group},{p_tilde_group + ci_range_group}), over {len(worst_group_accuracy[task])} seeds \n")
+        logger.info(f"Estimated mean worst-group accuracy: {p_tilde_group}, with 95% CI:({p_tilde_group - ci_range_group},{p_tilde_group + ci_range_group}), over {len(worst_group_counts[task])} seeds \n")
    
 
 if __name__ == "__main__":
