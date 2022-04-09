@@ -19,6 +19,7 @@ import numpy as np
 
 from collections import defaultdict
 from scipy import stats
+from omegaconf import OmegaConf
 
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger(__name__)
