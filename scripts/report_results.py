@@ -105,8 +105,8 @@ def mean_std_results():
 def mean_ci_results():
     args = parse_args()
     
-    average_counts = defaultdict(list) ## for each task need a correct counts and a total counts of average
-    worst_group_counts = defaultdict(list) ## for each task need a correct counts and a total counts of worst group
+    average_counts = defaultdict(lambda : defaultdict(list)) ## for each task need a correct counts and a total counts of average
+    worst_group_counts = defaultdict(lambda : defaultdict(list)) ## for each task need a correct counts and a total counts of worst group
 
 
     for log_dir in tqdm(args.log_dirs):
@@ -151,11 +151,11 @@ def mean_ci_results():
                     worst_group_total = group_size
 
             
-            average_counts[f"{task}_total_counts"].append(avg_total)
-            average_counts[f"{task}_correct_counts"].append(avg_correct)
+            average_counts[task][f"{task}_total_counts"].append(avg_total)
+            average_counts[task][f"{task}_correct_counts"].append(avg_correct)
             
-            worst_group_counts[f"{task}_total_counts"].append(worst_group_total)
-            worst_group_counts[f"{task}_correct_counts"].append(worst_group_correct)
+            worst_group_counts[task][f"{task}_total_counts"].append(worst_group_total)
+            worst_group_counts[task][f"{task}_correct_counts"].append(worst_group_correct)
 
     logger.info(f"For split: {args.split}, using checkpoints based on: {args.checkpoint_type} we obtain: \n")
 
@@ -163,11 +163,11 @@ def mean_ci_results():
 
         logger.info(f"For TASK: {task}")
 
-        total_avg_counts = np.sum(average_counts[f"{task}_total_counts"])
-        total_avg_correct_counts = np.sum(average_counts[f"{task}_correct_counts"])
+        total_avg_counts = np.sum(average_counts[task][f"{task}_total_counts"])
+        total_avg_correct_counts = np.sum(average_counts[task][f"{task}_correct_counts"])
 
-        total_worst_group_counts = np.sum(worst_group_counts[f"{task}_total_counts"])
-        total_worst_group_correct_counts = np.sum(worst_group_counts[f"{task}_correct_counts"])
+        total_worst_group_counts = np.sum(worst_group_counts[task][f"{task}_total_counts"])
+        total_worst_group_correct_counts = np.sum(worst_group_counts[task][f"{task}_correct_counts"])
 
         n_tilde_avg = total_avg_counts + z**2
         p_tilde_avg = (1 / n_tilde_avg) * (total_avg_correct_counts + ((z**2) / 2))
