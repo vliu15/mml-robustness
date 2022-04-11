@@ -42,6 +42,36 @@ def parse_args():
     return args
 
 
+def submit_rwy_eval_test(args):
+    WD = 1e-2
+    LR = 1e-4
+    BATCH_SIZE = 2
+    EPOCHS = 60
+    SEED_GRID = [0, 1, 2]
+    TASK_GRID = [
+        "Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Goatee:No_Beard", "Gray_Hair:Young", "High_Cheekbones:Smiling",
+        "Wavy_Hair:Straight_Hair", "Wearing_Lipstick:Male"
+    ]
+
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+
+    method = "rwy"
+    for task in TASK_GRID:
+        for seed in SEED_GRID:
+            for metric in ["avg", "group"]:
+                job_name = f"baseline:{method},task:{task},seed:{seed}"
+                log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+
+                save_json = f"test_stats_{metric}_checkpoint.json"
+
+                log_dir = os.path.join(LOG_DIR, job_name)
+                results_dir = os.path.join(log_dir, "results")
+                save_json = os.path.join(results_dir, save_json)
+
+                command = f"python -m scripts.find_best_ckpt --run_test --log_dir {log_dir} --metric {metric} --learning_type stl --save_json {save_json}"
+                job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+
 def submit_suby_eval_test(args):
     ## DECLARE MACROS HERE ##
     WD_GRID = [1e-2, 1e-1, 1]  # 10−4, 10−3, 10−2, 10−1, 1
@@ -155,6 +185,8 @@ def main():
         submit_suby_eval_val(args)
     elif args.opt == "suby_test":
         submit_suby_eval_test(args)
+    elif args.opt == "rwy_test":
+        submit_rwy_eval_test(args)
     elif args.opt == "suby_disjoint_test":
         submit_suby_baseline_disjoint_eval_test(args)
     elif args.opt == "erm_disjoint_test":
