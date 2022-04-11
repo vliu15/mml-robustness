@@ -45,11 +45,15 @@ def parse_args():
     parser.add_argument(
         "--metric", type=str, required=True, choices=["group", "avg"], help="Type of metric/accuracy to compare checkpoints"
     )
-    parser.add_argument("--learning_type", type=str, required=True, choices=["stl", "mtl"], help="Whether we are evaluating a single or multi task learning appraoch")
-
     parser.add_argument(
-        "--save_json", type=str, required=False, default="", help="Name for where file will be saved"
+        "--learning_type",
+        type=str,
+        required=True,
+        choices=["stl", "mtl"],
+        help="Whether we are evaluating a single or multi task learning appraoch"
     )
+
+    parser.add_argument("--save_json", type=str, required=False, default="", help="Name for where file will be saved")
     return parser.parse_args()
 
 
@@ -77,13 +81,17 @@ def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type
     for epoch in val_stats.keys():
         if metric == "group":
             if learning_type == "stl":
-                worst_group_acc = min(val_stats[epoch][key] for key in val_stats[epoch].keys() if group_acc_key_regex.match(key))
+                worst_group_acc = min(
+                    val_stats[epoch][key] for key in val_stats[epoch].keys() if group_acc_key_regex.match(key)
+                )
                 if worst_group_acc > best_acc:
                     best_epoch = epoch
                     best_acc = worst_group_acc
             ## currently we define best checkpoint based on best average worst group accuracy across tasks
             elif learning_type == "mtl":
-                group_accuracies = {key:val_stats[epoch][key] for key in val_stats[epoch].keys() if group_acc_key_regex.match(key)}
+                group_accuracies = {
+                    key: val_stats[epoch][key] for key in val_stats[epoch].keys() if group_acc_key_regex.match(key)
+                }
                 worst_group_accuracies = {}
                 for key in group_accuracies.keys():
                     group_acc_key_regex = r"_g[0-9]+_acc"
@@ -91,7 +99,7 @@ def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type
 
                     if sub_key in worst_group_accuracies:
                         curr_val = worst_group_accuracies[sub_key]
-                        worst_group_accuracies[sub_key] = min(curr_val,group_accuracies[key])
+                        worst_group_accuracies[sub_key] = min(curr_val, group_accuracies[key])
                     else:
                         worst_group_accuracies[sub_key] = group_accuracies[key]
 
@@ -100,7 +108,7 @@ def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type
                 if worst_group_average_acc > best_acc:
                     best_epoch = epoch
                     best_acc = worst_group_average_acc
-         
+
         elif metric == "avg":
             if learning_type == "stl":
                 avg_group_acc = min(val_stats[epoch][key] for key in val_stats[epoch].keys() if avg_acc_key_regex.match(key))
@@ -109,7 +117,9 @@ def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type
                     best_acc = avg_group_acc
             ## currently we define best checkpoint based on best average average accuracy across tasks
             elif learning_type == "mtl":
-                avg_task_acc = np.mean([val_stats[epoch][key] for key in val_stats[epoch].keys() if avg_acc_key_regex.match(key)])
+                avg_task_acc = np.mean(
+                    [val_stats[epoch][key] for key in val_stats[epoch].keys() if avg_acc_key_regex.match(key)]
+                )
                 if avg_task_acc > best_acc:
                     best_epoch = epoch
                     best_acc = avg_task_acc
@@ -132,7 +142,13 @@ def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type
     # Actually run evaluation on test set with this checkpoint
     if run_test:
         logger.info(f"Running evaluation on test set with checkpoint {best_epoch}")
-        command = ("python test.py " f"--log_dir {log_dir} " f"--ckpt_num {int(best_epoch)} " f"--split test " f"--save_json {save_json}")
+        command = (
+            "python test.py "
+            f"--log_dir {log_dir} "
+            f"--ckpt_num {int(best_epoch)} "
+            f"--split test "
+            f"--save_json {save_json}"
+        )
         if test_groupings:
             command = f"{command} --groupings {test_groupings}"
 
@@ -144,4 +160,11 @@ def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type
 if __name__ == "__main__":
     # In this script, call argparse outside of main so it can be imported by generate_spurious_matrix
     args = parse_args()
-    main(log_dir=args.log_dir, run_test=args.run_test, test_groupings=args.test_groupings, metric=args.metric, learning_type=args.learning_type, save_json=args.save_json)
+    main(
+        log_dir=args.log_dir,
+        run_test=args.run_test,
+        test_groupings=args.test_groupings,
+        metric=args.metric,
+        learning_type=args.learning_type,
+        save_json=args.save_json
+    )

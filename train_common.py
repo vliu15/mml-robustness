@@ -14,15 +14,9 @@ from omegaconf import DictConfig, OmegaConf
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from utils.init_modules import init_dataloaders, init_ema, init_model, init_optimizer, init_scheduler
+from utils.init_modules import (init_dataloaders, init_ema, init_model, init_optimizer, init_scheduler)
 from utils.train_utils import (
-    accumulate_stats,
-    barrier,
-    get_top_level_summary,
-    log_stats,
-    save_checkpoint,
-    seed_all_rng,
-    to_device,
+    accumulate_stats, barrier, get_top_level_summary, log_stats, save_checkpoint, seed_all_rng, to_device
 )
 
 # On rice.stanford.edu, only older versions of pytorch are supported

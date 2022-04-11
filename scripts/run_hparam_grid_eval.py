@@ -43,10 +43,6 @@ def parse_args():
 
 
 def submit_rwy_eval_test(args):
-    WD = 1e-2
-    LR = 1e-4
-    BATCH_SIZE = 2
-    EPOCHS = 60
     SEED_GRID = [0, 1, 2]
     TASK_GRID = [
         "Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Goatee:No_Beard", "Gray_Hair:Young", "High_Cheekbones:Smiling",
@@ -119,10 +115,6 @@ def submit_suby_eval_val(args):
 
 def submit_erm_baseline_disjoint_eval_test(args):
     ## DECLARE MACROS HERE ##
-    WD = 1e-4
-    LR = 1e-4
-    BATCH_SIZE = 128
-    EPOCHS = 50
     SEED_GRID = [0, 1, 2]
     TASK_GRID = [
         "Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Goatee:No_Beard", "Gray_Hair:Young", "High_Cheekbones:Smiling",
@@ -138,7 +130,7 @@ def submit_erm_baseline_disjoint_eval_test(args):
                 log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
                 save_json = f"test_stats_{checkpoint_type}_checkpoint.json"
 
-                log_dir = os.path.join(LOG_DIR,job_name[5:])
+                log_dir = os.path.join(LOG_DIR, job_name[5:])
                 results_dir = os.path.join(log_dir, "results")
                 save_json = os.path.join(results_dir, save_json)
 
@@ -148,10 +140,6 @@ def submit_erm_baseline_disjoint_eval_test(args):
 
 def submit_suby_baseline_disjoint_eval_test(args):
     ## DECLARE MACROS HERE ##
-    WD = 1e-2
-    LR = 1e-3
-    BATCH_SIZE = 128
-    EPOCHS = 60
     SEED_GRID = [0, 1, 2]
     TASK_GRID = [
         "Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Goatee:No_Beard", "Gray_Hair:Young", "High_Cheekbones:Smiling",
@@ -168,7 +156,7 @@ def submit_suby_baseline_disjoint_eval_test(args):
                 log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
                 save_json = f"test_stats_{checkpoint_type}_checkpoint.json"
 
-                log_dir = os.path.join(LOG_DIR,job_name[5:])
+                log_dir = os.path.join(LOG_DIR, job_name[5:])
                 results_dir = os.path.join(log_dir, "results")
                 save_json = os.path.join(results_dir, save_json)
 
