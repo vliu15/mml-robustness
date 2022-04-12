@@ -105,7 +105,6 @@ def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type
                         worst_group_accuracies[sub_key] = group_accuracies[key]
 
                 worst_group_average_acc = sum(worst_group_accuracies.values()) / len(worst_group_accuracies)
-
                 if worst_group_average_acc > best_acc:
                     best_epoch = epoch
                     best_acc = worst_group_average_acc
@@ -127,7 +126,9 @@ def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type
 
         else:
             raise ValueError("Incorrect metric format. Only supports 'group' and 'acc'. ")
-
+    if best_epoch is None:
+        best_epoch = 0
+        
     best_epoch += 1
     logger.info("Best validation epoch: %s", best_epoch)
     logger.info("Best %s accuracy: %s", metric, best_acc)

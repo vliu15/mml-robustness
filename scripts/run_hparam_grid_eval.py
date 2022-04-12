@@ -169,7 +169,7 @@ def submit_rwy_baseline_disjoint_eval_test(args):
                 job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 def submit_mtl_disjoint_tasks_eval_val(args):
-    WD_GRID = [1e-4, 1e-3, 1e-2] #1e-1
+    WD_GRID = [1e-4, 1e-3, 1e-2, 1e-1]
     LR_GRID = [1e-5, 1e-4, 1e-3]
     BATCH_SIZE_GRID = [32, 64, 128]
     EPOCHS = 50
