@@ -24,6 +24,7 @@ import logging.config
 import os
 import re
 import subprocess
+import numpy as np
 
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger(__name__)
@@ -94,8 +95,8 @@ def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type
                 }
                 worst_group_accuracies = {}
                 for key in group_accuracies.keys():
-                    group_acc_key_regex = r"_g[0-9]+_acc"
-                    sub_key = re.split(group_acc_key_regex, key)[0]
+                    group_acc_key_regex_second = r"_g[0-9]+_acc"
+                    sub_key = re.split(group_acc_key_regex_second, key)[0]
 
                     if sub_key in worst_group_accuracies:
                         curr_val = worst_group_accuracies[sub_key]
