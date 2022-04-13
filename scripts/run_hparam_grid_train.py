@@ -521,7 +521,7 @@ def submit_mtl_disjoint_tasks_train_avg(args):
     task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(args, TASK)
 
     for seed in SEED_GRID:
-        job_name = f"mtl_train:{method},task:{len(TASK)}_tasks_{args.mtl_weighting}_task_weighting,seed:{seed}"
+        job_name = f"mtl_train:{method},task:{len(TASK)}_tasks_{args.mtl_weighting}_task_weighting,seed:{seed},ckpt:avg"
         log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
         if args.respawn:
@@ -588,7 +588,7 @@ def submit_mtl_disjoint_tasks_train_group(args):
     task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(args, TASK)
 
     for seed in SEED_GRID:
-        job_name = f"mtl_train:{method},task:{len(TASK)}_tasks_{args.mtl_weighting}_task_weighting,seed:{seed}"
+        job_name = f"mtl_train:{method},task:{len(TASK)}_tasks_{args.mtl_weighting}_task_weighting,seed:{seed},ckpt:group"
         log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
         if args.respawn:
