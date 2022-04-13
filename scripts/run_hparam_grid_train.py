@@ -562,6 +562,72 @@ def submit_mtl_disjoint_tasks_train_avg(args):
             job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 
+def submit_mtl_disjoint_tasks_train_group(args):
+    ## DECLARE MACROS HERE ##
+
+    if args.mtl_weighting == "static_equal":
+        WD = 1e-2
+        LR = 1e-4
+        BATCH_SIZE = 32
+    elif args.mtl_weighting == "static_delta":
+        WD = 1e-3
+        LR = 1e-3
+        BATCH_SIZE = 32
+    elif args.mtl_weighting == "dynamic":
+        WD = 1e-2
+        LR = 1e-4
+        BATCH_SIZE = 32
+
+    EPOCHS = 50
+    SEED_GRID = [0, 1, 2]
+    TASK = ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair"]
+
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+    method = "erm"
+
+    task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(args, TASK)
+
+    for seed in SEED_GRID:
+        job_name = f"mtl_train:{method},task:{len(TASK)}_tasks_{args.mtl_weighting}_task_weighting,seed:{seed}"
+        log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+
+        if args.respawn:
+            ckpt_dir = os.path.join(LOG_DIR, job_name, "ckpts")
+            ckpt_path, ckpt_num = find_last_checkpoint(ckpt_dir)
+
+            if ckpt_num != EPOCHS:
+
+                command = (
+                    f"python train_erm.py exp={method} "
+                    f"exp.optimizer.weight_decay={WD} "
+                    f"exp.optimizer.lr={LR} "
+                    f"exp.seed={seed} "
+                    f"exp.train.total_epochs={EPOCHS} "
+                    f"exp.dataset.groupings='{TASK}' "
+                    f"exp.dataloader.batch_size={BATCH_SIZE} "
+                    f"exp.dataset.task_weights='{task_weights}' "
+                    f"exp.dataset.loss_based_task_weighting={use_loss_balanced} "
+                    f"exp.dataset.lbtw_alpha={lbtw_alpha} "
+                    f"exp.train.load_ckpt=\\'{ckpt_path}\\' "
+                    f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                )
+                ob_manager.submit(command, job_name=job_name, log_file=log_file)
+        else:
+            command = (
+                f"python train_erm.py exp={method} "
+                f"exp.optimizer.weight_decay={WD} "
+                f"exp.optimizer.lr={LR} "
+                f"exp.seed={seed} "
+                f"exp.train.total_epochs={EPOCHS} "
+                f"exp.dataset.groupings='{TASK}' "
+                f"exp.dataloader.batch_size={BATCH_SIZE} "
+                f"exp.dataset.task_weights='{task_weights}' "
+                f"exp.dataset.loss_based_task_weighting={use_loss_balanced} "
+                f"exp.dataset.lbtw_alpha={lbtw_alpha} "
+                f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+            )
+            job_manager.submit(command, job_name=job_name, log_file=log_file)
+
 def main():
     args = parse_args()
     if args.mode == "sbatch":
@@ -583,6 +649,8 @@ def main():
         submit_mtl_disjoint_tasks_tune(args)
     elif args.opt == "mtl_disjoint_avg_train":
         submit_mtl_disjoint_tasks_train_avg(args)
+    elif args.opt == "mtl_disjoint_group_train":
+        submit_mtl_disjoint_tasks_train_group(args)
     else:
         raise ValueError(f"Didn't recognize opt={args.opt}. Did you forget to add a check for this function?")
 
