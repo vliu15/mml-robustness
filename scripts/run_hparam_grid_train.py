@@ -23,8 +23,8 @@ from scripts.job_manager import JobManager
 
 # RICE MACROS
 USER = os.environ["USER"]
-#LOG_DIR = f"/farmshare/user_data/{USER}/mml-robustness/logs"
-LOG_DIR = "./logs"
+LOG_DIR = f"/farmshare/user_data/{USER}/mml-robustness/logs"
+#LOG_DIR = "./logs"
 
 
 def parse_args():
@@ -582,6 +582,8 @@ def main():
         submit_jtt_baseline_disjoint_tasks_train(args)
     elif args.opt == "mtl_disjoint_tuning":
         submit_mtl_disjoint_tasks_tune(args)
+    elif args.opt == "mtl_disjoint_avg_train":
+        submit_mtl_disjoint_tasks_train_avg(args)
     else:
         raise ValueError(f"Didn't recognize opt={args.opt}. Did you forget to add a check for this function?")
 
