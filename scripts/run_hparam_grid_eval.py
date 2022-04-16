@@ -219,6 +219,30 @@ def submit_jtt_baseline_disjoint_eval_test(args):
                 command = f"python -m scripts.find_best_ckpt --run_test --log_dir {log_dir} --metric {checkpoint_type} --learning_type stl --save_json {save_json}"
                 job_manager.submit(command, job_name=job_name, log_file=log_file)
 
+
+def submit_jtt_baseline_disjoint_eval_test(args):
+    ## DECLARE MACROS HERE ##
+    SEED_GRID = [0, 1, 2]
+    TASK = ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair"]
+
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+    method = "erm"
+    for seed in SEED_GRID:
+        for checkpoint_type in ["avg", "group"]:
+            for mtl_hparam_tpye in ['avg', 'group']:
+
+                job_name = f"eval_mtl_train:{method},task:{len(TASK)}_tasks_{args.mtl_weighting}_task_weighting,seed:{seed},ckpt:{mtl_hparam_tpye}"
+                log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+
+                save_json = f"test_stats_{checkpoint_type}_checkpoint.json"
+
+                log_dir = os.path.join(LOG_DIR, job_name[5:])
+                results_dir = os.path.join(log_dir, "results")
+                save_json = os.path.join(results_dir, save_json)
+
+                command = f"python -m scripts.find_best_ckpt --run_test --log_dir {log_dir} --metric {checkpoint_type} --learning_type mtl --save_json {save_json}"
+                job_manager.submit(command, job_name=job_name, log_file=log_file)
+
 def main():
     args = parse_args()
     if args.mode == "sbatch":
@@ -237,6 +261,8 @@ def main():
         submit_mtl_disjoint_tasks_eval_val(args)
     elif args.opt == "jtt_disjoint_test":
         submit_jtt_baseline_disjoint_eval_test(args)
+    elif args.opt == "mtl_disjoint_test":
+        submit_mtl_disjoint_tasks_eval_val(args)
     else:
         raise ValueError(f"Didn't recognize opt={args.opt}. Did you forget to add a check for this function?")
 

@@ -254,4 +254,4 @@ def mean_ci_results():
 
 
 if __name__ == "__main__":
-    mtl_tune_results()
+    mean_ci_results()
