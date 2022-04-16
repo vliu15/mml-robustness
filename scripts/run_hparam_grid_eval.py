@@ -220,7 +220,7 @@ def submit_jtt_baseline_disjoint_eval_test(args):
                 job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 
-def submit_jtt_baseline_disjoint_eval_test(args):
+def submit_mtl_disjoint_tasks_eval_test(args):
     ## DECLARE MACROS HERE ##
     SEED_GRID = [0, 1, 2]
     TASK = ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair"]
@@ -262,7 +262,7 @@ def main():
     elif args.opt == "jtt_disjoint_test":
         submit_jtt_baseline_disjoint_eval_test(args)
     elif args.opt == "mtl_disjoint_test":
-        submit_mtl_disjoint_tasks_eval_val(args)
+        submit_mtl_disjoint_tasks_eval_test(args)
     else:
         raise ValueError(f"Didn't recognize opt={args.opt}. Did you forget to add a check for this function?")
 
