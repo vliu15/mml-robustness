@@ -23,8 +23,8 @@ from scripts.job_manager import JobManager
 
 # RICE MACROS
 USER = os.environ["USER"]
-LOG_DIR = f"/farmshare/user_data/{USER}/mml-robustness/logs"
-#LOG_DIR = "./logs"
+#LOG_DIR = f"/farmshare/user_data/{USER}/mml-robustness/logs"
+LOG_DIR = "./logs"
 
 
 def parse_args():
