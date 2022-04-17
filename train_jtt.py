@@ -130,25 +130,50 @@ def main(config):
         # 1. Train f_id on D via ERM for T epochs
         groupings = json.dumps(list(config.groupings)).replace(" ", "")
         task_weights = json.dumps([str(w) for w in config.task_weights]).replace(" ", "")
-        subprocess.run(
-            f"python train_erm.py exp={config.stage_1_config} "
-            f"exp.dataset.subgroup_labels=true "
-            f"exp.dataset.groupings={groupings} "
-            f"exp.dataset.task_weights={task_weights} "
-            f"exp.dataset.loss_based_task_weighting={config.loss_based_task_weighting} "
-            f"exp.dataset.lbtw_alpha={config.lbtw_alpha} "
-            f"exp.train.log_dir={stage_1_log_dir} "
-            f"exp.train.load_ckpt={config.load_stage_1_ckpt or 'null'}",
-            shell=True,
-            check=True,
-        )
+        if config.load_stage_1_ckpt:
+            subprocess.run(
+                f"python train_erm.py exp={config.stage_1_config} "
+                f"exp.dataset.subgroup_labels=true "
+                f"exp.dataset.groupings={groupings} "
+                f"exp.dataset.task_weights={task_weights} "
+                f"exp.dataset.loss_based_task_weighting={config.loss_based_task_weighting} "
+                f"exp.dataset.lbtw_alpha={config.lbtw_alpha} "
+                f"exp.train.log_dir=\\'{stage_1_log_dir}\\' "
+                f"exp.train.total_epochs={config.epochs_stage_1} "
+                f"exp.optimizer.lr={config.lr} "
+                f"exp.optimizer.weight_decay={config.weight_decay} "
+                f"exp.seed={config.seed} "
+                f"exp.dataloader.batch_size={config.batch_size} "
+                f"exp.train.load_ckpt=\\'{config.load_stage_1_ckpt}\\'",
+                shell=True,
+                check=True,
+            )
+        else:
+
+            subprocess.run(
+                f"python train_erm.py exp={config.stage_1_config} "
+                f"exp.dataset.subgroup_labels=true "
+                f"exp.dataset.groupings={groupings} "
+                f"exp.dataset.task_weights={task_weights} "
+                f"exp.dataset.loss_based_task_weighting={config.loss_based_task_weighting} "
+                f"exp.dataset.lbtw_alpha={config.lbtw_alpha} "
+                f"exp.train.log_dir=\\'{stage_1_log_dir}\\' "
+                f"exp.train.total_epochs={config.epochs_stage_1} "
+                f"exp.optimizer.lr={config.lr} "
+                f"exp.optimizer.weight_decay={config.weight_decay} "
+                f"exp.seed={config.seed} "
+                f"exp.dataloader.batch_size={config.batch_size} "
+                f"exp.train.load_ckpt={'null'}",
+                shell=True,
+                check=True,
+            )
 
         # 2. Construct the error set E of training examples misclassified by f_id
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
         stage_1_config = OmegaConf.load(os.path.join(stage_1_log_dir, "config.yaml"))
         model = init_model(stage_1_config).to(device)
-        ckpt = torch.load(os.path.join(stage_1_log_dir, "ckpts", "ckpt.last.pt"))
+        ckpt = torch.load(os.path.join(stage_1_log_dir, "ckpts", "ckpt.last.pt"), map_location='cpu')
         model.load_state_dict(ckpt["model"])
 
         train_dataloader, _ = init_dataloaders(stage_1_config)
@@ -162,8 +187,8 @@ def main(config):
             pickle_metas[f"Task {task}"] = pickle_meta
 
         # Merge error sets: note that error indices are already upsampled, so dataset doesn't handle upsampling
-        if len(config.groupings):
-            with open(os.path.join(config.log_dir, "stage_1", "final_val_stats.json"), "r") as f:
+        if len(config.groupings) > 1:
+            with open(os.path.join(config.log_dir, "stage_1", "val_stats.json"), "r") as f:
                 val_stats = json.load(f)
             error_indices = merge_error_sets(
                 config=config,
@@ -181,27 +206,55 @@ def main(config):
     ###########
     # Stage 2 #
     ###########
+    #torch.cuda.empty_cache()
     stage_2_log_dir = os.path.join(config.log_dir, "stage_2")
 
     # 3. Construct upsampled dataset D_up containing examples in the error set λ_up times and all other examples once
     # 4. Train final model f_final on D_up via ERM
     groupings = json.dumps(list(config.groupings)).replace(" ", "")
     task_weights = json.dumps([str(w) for w in config.task_weights]).replace(" ", "")
-    subprocess.run(
-        f"python train_erm.py "
-        f"exp={config.stage_2_config} "
-        f"exp.dataset.subgroup_labels=true "
-        f"exp.dataset.groupings={groupings} "
-        f"exp.dataset.task_weights={task_weights} "
-        f"exp.dataset.loss_based_task_weighting={config.loss_based_task_weighting} "
-        f"exp.dataset.lbtw_alpha={config.lbtw_alpha} "
-        f"exp.train.up_type={config.up_type} "
-        f"exp.train.load_up_pkl={config.load_up_pkl} "
-        f"exp.train.log_dir={stage_2_log_dir} "
-        f"exp.train.load_ckpt={config.load_stage_2_ckpt or 'null'}",
-        shell=True,
-        check=True,
-    )
+    if config.load_stage_2_ckpt:
+        subprocess.run(
+            f"python train_erm.py "
+            f"exp={config.stage_2_config} "
+            f"exp.dataset.subgroup_labels=true "
+            f"exp.dataset.groupings={groupings} "
+            f"exp.dataset.task_weights={task_weights} "
+            f"exp.dataset.loss_based_task_weighting={config.loss_based_task_weighting} "
+            f"exp.dataset.lbtw_alpha={config.lbtw_alpha} "
+            f"exp.train.up_type={config.up_type} "
+            f"exp.train.load_up_pkl=\\'{config.load_up_pkl}\\' "
+            f"exp.train.log_dir=\\'{stage_2_log_dir}\\' "
+            f"exp.train.total_epochs={config.epochs_stage_2} "
+            f"exp.optimizer.lr={config.lr} "
+            f"exp.optimizer.weight_decay={config.weight_decay} "
+            f"exp.seed={config.seed} "
+            f"exp.dataloader.batch_size={config.batch_size} "
+            f"exp.train.load_ckpt=\\'{config.load_stage_2_ckpt}\\'",
+            shell=True,
+            check=True,
+        )
+    else:
+        subprocess.run(
+            f"python train_erm.py "
+            f"exp={config.stage_2_config} "
+            f"exp.dataset.subgroup_labels=true "
+            f"exp.dataset.groupings={groupings} "
+            f"exp.dataset.task_weights={task_weights} "
+            f"exp.dataset.loss_based_task_weighting={config.loss_based_task_weighting} "
+            f"exp.dataset.lbtw_alpha={config.lbtw_alpha} "
+            f"exp.train.up_type={config.up_type} "
+            f"exp.train.load_up_pkl=\\'{config.load_up_pkl}\\' "
+            f"exp.train.log_dir=\\'{stage_2_log_dir}\\' "
+            f"exp.train.total_epochs={config.epochs_stage_2} "
+            f"exp.optimizer.lr={config.lr} "
+            f"exp.optimizer.weight_decay={config.weight_decay} "
+            f"exp.seed={config.seed} "
+            f"exp.dataloader.batch_size={config.batch_size} "
+            f"exp.train.load_ckpt={'null'}",
+            shell=True,
+            check=True,
+        )
 
 
 if __name__ == "__main__":

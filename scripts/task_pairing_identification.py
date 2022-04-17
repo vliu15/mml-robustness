@@ -126,7 +126,8 @@ def main(attributes):
             for _, cluster_members in svd_clusters.items():
                 for correlate in spurious_correlates:
                     if correlate in cluster_members:
-                        correlates_to_add.add(correlate)
+                        for new_correlate in cluster_members:
+                            correlates_to_add.add(new_correlate)
 
             spurious_correlates.update(correlates_to_add)
 

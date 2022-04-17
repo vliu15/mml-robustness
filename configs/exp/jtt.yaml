@@ -4,8 +4,8 @@ stage_2_config: jtt_stage_2
 
 # Base log dir for both phases of ERM training
 log_dir: &log_dir ./logs/jtt-mtl2
-groupings: ["Young:Attractive", "Smiling:High_Cheekbones"]
-task_weights: [1, 1]
+groupings: ["Big_Lips:Chubby"]
+task_weights: [1]
 loss_based_task_weighting: false
 lbtw_alpha: 0.5
 
@@ -17,3 +17,10 @@ mtl_join_type: inv  # one of [xor, inv, task]
 
 load_stage_1_ckpt: null
 load_stage_2_ckpt: null
+
+weight_decay: 0.1
+lr: 0.00001
+seed: 0
+epochs_stage_1: 1
+epochs_stage_2: 50
+batch_size: 128
