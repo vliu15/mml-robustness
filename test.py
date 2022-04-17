@@ -21,7 +21,7 @@ import torch.nn as nn
 from omegaconf import DictConfig, OmegaConf
 from tqdm import tqdm
 
-from utils.init_modules import (init_dataloaders, init_model, init_test_dataloader)
+from utils.init_modules import init_dataloaders, init_model, init_test_dataloader
 from utils.train_utils import accumulate_stats, to_device, to_scalar
 
 logging.config.fileConfig("logger.conf")

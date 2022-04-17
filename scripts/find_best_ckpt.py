@@ -24,6 +24,7 @@ import logging.config
 import os
 import re
 import subprocess
+
 import numpy as np
 
 logging.config.fileConfig("logger.conf")
@@ -128,7 +129,7 @@ def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type
             raise ValueError("Incorrect metric format. Only supports 'group' and 'acc'. ")
     if best_epoch is None:
         best_epoch = 0
-        
+
     best_epoch += 1
     logger.info("Best validation epoch: %s", best_epoch)
     logger.info("Best %s accuracy: %s", metric, best_acc)

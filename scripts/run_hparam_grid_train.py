@@ -448,7 +448,7 @@ def submit_jtt_baseline_disjoint_tasks_train(args):
 
 def submit_mtl_disjoint_tasks_tune(args):
     ## DECLARE MACROS HERE ##
-    WD_GRID = [1e-4, 1e-3, 1e-2, 1e-1] #1e-4, 1e-3, 1e-2
+    WD_GRID = [1e-4, 1e-3, 1e-2, 1e-1]  #1e-4, 1e-3, 1e-2
     LR_GRID = [1e-5, 1e-4, 1e-3]
     BATCH_SIZE_GRID = [32, 64, 128]
     EPOCHS = 50
@@ -627,6 +627,7 @@ def submit_mtl_disjoint_tasks_train_group(args):
                 f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
             )
             job_manager.submit(command, job_name=job_name, log_file=log_file)
+
 
 def main():
     args = parse_args()

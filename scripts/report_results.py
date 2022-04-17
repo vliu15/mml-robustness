@@ -81,11 +81,7 @@ def mtl_tune_results():
         group_acc_key_regex = re.compile(r".*_g[0-9]+_acc")
         avg_acc_key_regex = re.compile(r".*_avg_acc")
 
-        
-            
-        group_accuracies = {
-            key: results[key] for key in results.keys() if group_acc_key_regex.match(key)
-        }
+        group_accuracies = {key: results[key] for key in results.keys() if group_acc_key_regex.match(key)}
         worst_group_accuracies = {}
         for key in group_accuracies.keys():
             group_acc_key_regex_second = r"_g[0-9]+_acc"
@@ -98,10 +94,8 @@ def mtl_tune_results():
                 worst_group_accuracies[sub_key] = group_accuracies[key]
 
         worst_group_average_acc = sum(worst_group_accuracies.values()) / len(worst_group_accuracies)
-            
-        avg_task_acc = np.mean(
-                    [results[key] for key in results.keys() if avg_acc_key_regex.match(key)]
-                )
+
+        avg_task_acc = np.mean([results[key] for key in results.keys() if avg_acc_key_regex.match(key)])
 
         average_accuracy[log_dir] = avg_task_acc
         worst_group_accuracy[log_dir] = worst_group_average_acc
@@ -111,12 +105,9 @@ def mtl_tune_results():
     for log_dir in args.log_dirs:
 
         logger.info(f"For Directory: {log_dir}")
-        logger.info(
-            f"Mean average accuracy: {round(average_accuracy[log_dir]*100,2)} \n"
-        )
-        logger.info(
-            f"Mean worst-group accuracy: ({round(worst_group_accuracy[log_dir]*100,2)}) \n"
-        )
+        logger.info(f"Mean average accuracy: {round(average_accuracy[log_dir]*100,2)} \n")
+        logger.info(f"Mean worst-group accuracy: ({round(worst_group_accuracy[log_dir]*100,2)}) \n")
+
 
 ### print out average accuracy, print out worst group accuracy print out loss
 def mean_std_results():
