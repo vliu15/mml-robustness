@@ -13,17 +13,15 @@ re-run the script with the --respawn flag to ensure that all jobs completed all 
 """
 
 import argparse
-import json
 import os
 import re
 
-import numpy as np
-
+from mtl.utils import get_mtl_task_weights
 from scripts.job_manager import JobManager
 
 # RICE MACROS
 USER = os.environ["USER"]
-#LOG_DIR = f"/farmshare/user_data/{USER}/mml-robustness/logs"
+# LOG_DIR = f"/farmshare/user_data/{USER}/mml-robustness/logs"
 LOG_DIR = "./logs"
 
 
@@ -63,42 +61,6 @@ def parse_args():
     # Convert relative paths to absolute paths to help slurm out
     args.slurm_logs = os.path.abspath(args.slurm_logs)
     return args
-
-
-def get_mtl_task_weights(args, task_pairing, alpha=0.5):
-
-    if args.mtl_weighting == "static_equal":
-        task_weights = [1] * len(task_pairing)
-        use_loss_balanced = "false"
-        lbtw_alpha = 0
-
-        return task_weights, use_loss_balanced, lbtw_alpha
-
-    elif args.mtl_weighting == "static_delta":
-        use_loss_balanced = "false"
-        lbtw_alpha = 0
-
-        ## get delta value for each task:attribute pair
-        deltas = []
-        for grouping in task_pairing:
-            task = grouping.split(":")[0]
-            attribute = grouping.split(":")[1]
-            with open(os.path.join(args.spurious_eval_dir, task, f"{task}_spurious_eval.json"), "r") as f:
-                data = json.load(f)
-                deltas.append(data[attribute])
-
-        ## compute delta heuristic, scale by 100 to get back into a range that won't blow up in softmax
-        deltas_np = np.array(deltas) / 100
-        task_weights_np = np.exp(deltas_np) / np.sum(np.exp(deltas_np))
-        task_weights = list(task_weights_np)
-
-        return task_weights, use_loss_balanced, lbtw_alpha
-    elif args.mtl_weighting == "dynamic":
-        task_weights = [1] * len(task_pairing)
-        use_loss_balanced = "true"
-        lbtw_alpha = alpha
-
-        return task_weights, use_loss_balanced, lbtw_alpha
 
 
 def find_last_checkpoint(ckpt_dir):
@@ -544,7 +506,7 @@ def submit_mtl_disjoint_tasks_train_avg(args):
                     f"exp.train.load_ckpt=\\'{ckpt_path}\\' "
                     f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
                 )
-                ob_manager.submit(command, job_name=job_name, log_file=log_file)
+                job_manager.submit(command, job_name=job_name, log_file=log_file)
         else:
             command = (
                 f"python train_erm.py exp={method} "
@@ -611,7 +573,7 @@ def submit_mtl_disjoint_tasks_train_group(args):
                     f"exp.train.load_ckpt=\\'{ckpt_path}\\' "
                     f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
                 )
-                ob_manager.submit(command, job_name=job_name, log_file=log_file)
+                job_manager.submit(command, job_name=job_name, log_file=log_file)
         else:
             command = (
                 f"python train_erm.py exp={method} "
