@@ -1,7 +1,6 @@
 """Implements instance weighting via convex optimization"""
 
-import logging
-import logging.config
+import os
 import time
 
 import cvxpy as cp
@@ -32,10 +31,9 @@ def quadratic_programming(Y, verbose=False, grouping_name=''):
         w = np.load(os.path.join('./mtl_suby_w', file_name))
         return w, grouping_name
 
-
     k, n = Y.shape  # k = number of tasks, n = number of instances
     c = 0.5 * np.ones((k,), dtype=np.float32)
-    print("Solving for w over %d examples. Input array of labels: (%d tasks, %d examples).", n, k, n)
+    print(f"Solving for w over {n} examples. Input array of labels: ({k} tasks, {n} examples).")
 
     # Solve
     w = cp.Variable(n, nonneg=True)
@@ -49,9 +47,10 @@ def quadratic_programming(Y, verbose=False, grouping_name=''):
     start = time.time()
     prob.solve(solver=cp.ECOS, verbose=verbose)
     end = time.time()
-    print("Took %.2f seconds to solve the quadratic program.", (end - start))
+    print(f"Took {end - start:.2f} seconds to solve the entropy minimization problem.")
 
     return w.value, grouping_name
+
 
 ## this currently works for a small number of tasks
 def entropy_maximization(Y, verbose=False, grouping_name=''):
@@ -76,7 +75,6 @@ def entropy_maximization(Y, verbose=False, grouping_name=''):
         w = np.load(os.path.join('./mtl_suby_w', file_name))
         return w, grouping_name
 
-
     Y = Y.astype(np.float32)
     k, n = Y.shape  # k = number of tasks, n = number of instances
     c = 0.5 * np.ones((k,), dtype=np.float32)
@@ -84,22 +82,19 @@ def entropy_maximization(Y, verbose=False, grouping_name=''):
 
     # Solve
     w = cp.Variable(n, nonneg=True)
-    prob = cp.Problem(
-        cp.Maximize(cp.sum(cp.entr(w))),
-        [
-            Y @ w == c,
-            cp.sum(w) == 1,
-        ]
-    )
+    prob = cp.Problem(cp.Maximize(cp.sum(cp.entr(w))), [
+        Y @ w == c,
+        cp.sum(w) == 1,
+    ])
 
     start = time.time()
     prob.solve(solver=cp.ECOS, verbose=verbose, qcp=True)
-    print("Caught ECOS error, probably due to unconverged tolerance")
     end = time.time()
 
     print(f"Took {end - start:.2f} seconds to solve the entropy minimization problem.")
     print(w.value)
     return w.value, grouping_name
+
 
 ## this currently works for a small number of tasks
 def min_max_difference(Y, verbose=False, grouping_name=''):
@@ -122,7 +117,6 @@ def min_max_difference(Y, verbose=False, grouping_name=''):
         w = np.load(os.path.join('./mtl_suby_w', file_name))
         return w, grouping_name
 
-
     Y = Y.astype(np.float32)
     k, n = Y.shape  # k = number of tasks, n = number of instances
     c = 0.5 * np.ones((k,), dtype=np.float32)
@@ -130,13 +124,10 @@ def min_max_difference(Y, verbose=False, grouping_name=''):
 
     # Solve
     w = cp.Variable(n, nonneg=True)
-    prob = cp.Problem(
-        cp.Minimize(cp.atoms.max(w) - cp.atoms.min(w)),
-        [
-            Y @ w == c,
-            cp.sum(w) == 1,
-        ]
-    )
+    prob = cp.Problem(cp.Minimize(cp.atoms.max(w) - cp.atoms.min(w)), [
+        Y @ w == c,
+        cp.sum(w) == 1,
+    ])
 
     start = time.time()
     prob.solve(solver=cp.ECOS, verbose=verbose, qcp=True)
@@ -214,7 +205,6 @@ def entropy_maximization_pgd(Y, verbose=False, grouping_name=''):
 
     return w.detach().cpu().numpy(), grouping_name
 
-
 if __name__ == "__main__":
     # This is just a code block to test out the optimization functions independent of the train scripts.
     from omegaconf import OmegaConf
@@ -230,7 +220,7 @@ if __name__ == "__main__":
     ]
     config.dataset.task_weights = [1, 1]
 
-    grouping_name = (";").join(config.dataset.groupings)
+    grouping_name = (";").join(list(sorted(config.dataset.groupings)))
 
     # Initialize train dataset
     from datasets.celeba import CelebA
@@ -238,7 +228,6 @@ if __name__ == "__main__":
     Y = dataset.attr[:, dataset.task_label_indices].T.numpy()  # (7, 162770)
     Y = scipy.sparse.csr_matrix(Y)
     w, grouping_name = entropy_maximization(Y, verbose=True, grouping_name = grouping_name)
-
     print(f"verify that the weights multiply against the multi-class labels to 1/2: {Y@w}")
     print(f"verify that weights sum to one: {np.sum(w)}")
     print(f'minimum value of weight: {np.amin(w)}')
@@ -247,5 +236,4 @@ if __name__ == "__main__":
 
     ### save to cache the with groupings this is for
     os.makedirs('./mtl_suby_w', exist_ok=True)
-    np.save(os.path.join('./mtl_suby_w',grouping_name),w)
-   
+    np.save(os.path.join('./mtl_suby_w', grouping_name), w)

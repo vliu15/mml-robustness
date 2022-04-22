@@ -24,6 +24,8 @@ dataset:
     subsample: false
     subsample_type: null
 
+    cvx: null  # defaults to qp
+
 model:
     name: resnet50
     pretrained: true
