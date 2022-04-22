@@ -591,6 +591,124 @@ def submit_mtl_disjoint_tasks_train_group(args):
             job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 
+def submit_mtl_suby_disjoint_tasks_train(args):
+    WD = 1e-2
+    LR = 1e-3
+    BATCH_SIZE = 128
+    EPOCHS = 60
+    SEED_GRID = [0, 1, 2]
+    TASK = ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair"]
+    MTL_WEIGHTING_GRID = ["static_equal", "static_delta", "static_delta"]
+    CVX_GRID = ["qp", "maxent"]
+
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+    task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(args, TASK)
+
+    for seed in SEED_GRID:
+        for mtl_weighting in MTL_WEIGHTING_GRID:
+            for cvx in CVX_GRID:
+                job_name = f"mtl_train:suby,task:2_tasks_{mtl_weighting}_task_weighting,seed:{seed},cvx:{cvx}"
+                log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+
+                if args.respawn:
+                    ckpt_dir = os.path.join(LOG_DIR, job_name, "ckpts")
+                    ckpt_path, ckpt_num = find_last_checkpoint(ckpt_dir)
+
+                    if ckpt_num != EPOCHS:
+                        command = (
+                            f"python train_erm.py exp=suby "
+                            f"exp.optimizer.weight_decay={WD} "
+                            f"exp.optimizer.lr={LR} "
+                            f"exp.seed={seed} "
+                            f"exp.train.total_epochs={EPOCHS} "
+                            f"exp.dataset.groupings='{TASK}' "
+                            f"exp.dataloader.batch_size={BATCH_SIZE} "
+                            f"exp.dataset.cvx={cvx} "
+                            f"exp.dataset.task_weights='{task_weights}' "
+                            f"exp.dataset.loss_based_task_weighting={use_loss_balanced} "
+                            f"exp.dataset.lbtw_alpha={lbtw_alpha} "
+                            f"exp.train.load_ckpt=\\'{ckpt_path}\\' "
+                            f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                        )
+                        job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+                else:
+                    command = (
+                        f"python train_erm.py exp=suby "
+                        f"exp.optimizer.weight_decay={WD} "
+                        f"exp.optimizer.lr={LR} "
+                        f"exp.seed={seed} "
+                        f"exp.train.total_epochs={EPOCHS} "
+                        f"exp.dataset.groupings='{TASK}' "
+                        f"exp.dataloader.batch_size={BATCH_SIZE} "
+                        f"exp.dataset.cvx={cvx} "
+                        f"exp.dataset.task_weights='{task_weights}' "
+                        f"exp.dataset.loss_based_task_weighting={use_loss_balanced} "
+                        f"exp.dataset.lbtw_alpha={lbtw_alpha} "
+                        f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                    )
+                    job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+
+def submit_mtl_rwy_disjoint_tasks_train(args):
+    WD = 1e-2
+    LR = 1e-4
+    BATCH_SIZE = 2
+    EPOCHS = 60
+    SEED_GRID = [0, 1, 2]
+    TASK = ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair"]
+    MTL_WEIGHTING_GRID = ["static_equal", "static_delta", "static_delta"]
+    CVX_GRID = ["qp", "maxent"]
+
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+    task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(args, TASK)
+
+    for seed in SEED_GRID:
+        for mtl_weighting in MTL_WEIGHTING_GRID:
+            for cvx in CVX_GRID:
+                job_name = f"mtl_train:rwy,task:2_tasks_{mtl_weighting}_task_weighting,seed:{seed},cvx:{cvx}"
+                log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+
+                if args.respawn:
+                    ckpt_dir = os.path.join(LOG_DIR, job_name, "ckpts")
+                    ckpt_path, ckpt_num = find_last_checkpoint(ckpt_dir)
+
+                    if ckpt_num != EPOCHS:
+                        command = (
+                            f"python train_erm.py exp=rwy "
+                            f"exp.optimizer.weight_decay={WD} "
+                            f"exp.optimizer.lr={LR} "
+                            f"exp.seed={seed} "
+                            f"exp.train.total_epochs={EPOCHS} "
+                            f"exp.dataset.groupings='{TASK}' "
+                            f"exp.dataloader.batch_size={BATCH_SIZE} "
+                            f"exp.dataset.cvx={cvx} "
+                            f"exp.dataset.task_weights='{task_weights}' "
+                            f"exp.dataset.loss_based_task_weighting={use_loss_balanced} "
+                            f"exp.dataset.lbtw_alpha={lbtw_alpha} "
+                            f"exp.train.load_ckpt=\\'{ckpt_path}\\' "
+                            f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                        )
+                        job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+                else:
+                    command = (
+                        f"python train_erm.py exp=rwy "
+                        f"exp.optimizer.weight_decay={WD} "
+                        f"exp.optimizer.lr={LR} "
+                        f"exp.seed={seed} "
+                        f"exp.train.total_epochs={EPOCHS} "
+                        f"exp.dataset.groupings='{TASK}' "
+                        f"exp.dataloader.batch_size={BATCH_SIZE} "
+                        f"exp.dataset.cvx={cvx} "
+                        f"exp.dataset.task_weights='{task_weights}' "
+                        f"exp.dataset.loss_based_task_weighting={use_loss_balanced} "
+                        f"exp.dataset.lbtw_alpha={lbtw_alpha} "
+                        f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                    )
+                    job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+
 def main():
     args = parse_args()
     if args.mode == "sbatch":
@@ -614,6 +732,10 @@ def main():
         submit_mtl_disjoint_tasks_train_avg(args)
     elif args.opt == "mtl_disjoint_group_train":
         submit_mtl_disjoint_tasks_train_group(args)
+    elif args.opt == "mtl_suby":
+        submit_mtl_suby_disjoint_tasks_train(args)
+    elif args.opt == "mtl_rwy":
+        submit_mtl_rwy_disjoint_tasks_train(args)
     else:
         raise ValueError(f"Didn't recognize opt={args.opt}. Did you forget to add a check for this function?")
 
