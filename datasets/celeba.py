@@ -11,6 +11,7 @@ from torch.utils.data import Dataset
 
 from datasets.groupings import get_grouping_object
 from mtl.instance_weighting import entropy_maximization, entropy_maximization_pgd, min_max_difference, quadratic_programming
+import logging.config
 
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger(__name__)
