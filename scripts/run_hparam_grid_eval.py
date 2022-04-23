@@ -18,8 +18,8 @@ from scripts.job_manager import JobManager
 
 # RICE MACROS
 USER = os.environ["USER"]
-#LOG_DIR = f"/farmshare/user_data/{USER}/mml-robustness/logs"
-LOG_DIR = "./logs"
+LOG_DIR = f"/farmshare/user_data/{USER}/mml-robustness/logs"
+#LOG_DIR = "./logs"
 
 
 def parse_args():
@@ -202,7 +202,7 @@ def submit_mtl_disjoint_tasks_eval_val(args):
 def submit_jtt_baseline_disjoint_eval_test(args):
     ## DECLARE MACROS HERE ##
     SEED_GRID = [0, 1, 2]
-    TASK_GRID = ["Big_Lips:Chubby"]
+    TASK_GRID = ["Bushy_Eyebrows:Blond_Hair", "Wearing_Lipstick:Male", "Gray_Hair:Young", "Goatee:No_Beard"]
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
     method = "jtt"
