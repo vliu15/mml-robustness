@@ -178,14 +178,14 @@ def entropy_maximization_pgd(Y, verbose=False, grouping_name=''):
 
     for iteration in tqdm(range(steps)):
         
-        #w = w.detach()
-        #w.requires_grad = True
+        w = w.detach()
+        w.requires_grad = True
 
         w = torch.nn.functional.relu(w)
         loss = torch.sum(w * torch.log(w + eps))
         print(loss.item())
         optimizer.zero_grad()
-        loss.backward(retain_graph= True)
+        loss.backward()
         optimizer.step()
         lr_scheduler.step()
 
@@ -218,7 +218,7 @@ if __name__ == "__main__":
         #"Goatee:No_Beard",
         #"Wavy_Hair:Straight_Hair",
     ]
-    config.dataset.task_weights = [1, 1]
+    config.dataset.task_weights = [1, 1, 1]
 
     grouping_name = (";").join(list(sorted(config.dataset.groupings)))
 
@@ -227,7 +227,7 @@ if __name__ == "__main__":
     dataset = CelebA(config, split="train")
     Y = dataset.attr[:, dataset.task_label_indices].T.numpy()  # (7, 162770)
     Y = scipy.sparse.csr_matrix(Y)
-    w, grouping_name = entropy_maximization(Y, verbose=True, grouping_name = grouping_name)
+    w, grouping_name = entropy_maximization_pgd(Y, verbose=True, grouping_name = grouping_name)
     print(f"verify that the weights multiply against the multi-class labels to 1/2: {Y@w}")
     print(f"verify that weights sum to one: {np.sum(w)}")
     print(f'minimum value of weight: {np.amin(w)}')
