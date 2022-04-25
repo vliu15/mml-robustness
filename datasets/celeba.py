@@ -186,7 +186,7 @@ class CelebA(Dataset):
         # MTL setting
         if len(self.task_label_indices) > 1:
             p = np.random.uniform(size=self.wy.shape)
-            sub_indices = np.where(self.wy > p)
+            sub_indices = np.where(self.wy > p)[0]
 
         # STL setting
         else:
