@@ -21,7 +21,7 @@ from scripts.job_manager import JobManager
 
 # RICE MACROS
 USER = os.environ["USER"]
-# LOG_DIR = f"/farmshare/user_data/{USER}/mml-robustness/logs"
+#LOG_DIR = f"/farmshare/user_data/{USER}/mml-robustness/logs"
 LOG_DIR = "./logs"
 
 
@@ -468,7 +468,7 @@ def submit_mtl_disjoint_tasks_train_avg(args):
     BATCH_SIZE = 64
     EPOCHS = 50
     SEED_GRID = [0, 1, 2]
-    TASK = ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair"]
+    TASK = ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Wearing_Lipstick:Male", "Gray_Hair:Young", "High_Cheekbones:Smiling"]
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
     method = "erm"
@@ -535,7 +535,7 @@ def submit_mtl_disjoint_tasks_train_group(args):
 
     EPOCHS = 50
     SEED_GRID = [0, 1, 2]
-    TASK = ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair"]
+    TASK = ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Wearing_Lipstick:Male", "Gray_Hair:Young", "High_Cheekbones:Smiling"]
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
     method = "erm"
