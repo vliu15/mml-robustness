@@ -27,6 +27,8 @@ import subprocess
 
 import numpy as np
 
+from collections import defaultdict
+
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger(__name__)
 
@@ -54,12 +56,20 @@ def parse_args():
         choices=["stl", "mtl"],
         help="Whether we are evaluating a single or multi task learning appraoch"
     )
+    parser.add_argument(
+        "--mtl_checkpoint_type",
+        type=str,
+        required=False,
+        default=None,
+        choices=["average", "best-worst", "per-task", None],
+        help="Whether to choose checkpointing for mtl based on the average performance, best worst performance, or per-task"
+    )
 
     parser.add_argument("--save_json", type=str, required=False, default="", help="Name for where file will be saved")
     return parser.parse_args()
 
 
-def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type="stl", save_json=""):
+def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type="stl", save_json="", mtl_checkpoint_type = "average"):
     results_dir = os.path.join(log_dir, "results")
 
     val_stats_json_regex = re.compile(r"val_stats_[0-9]+\.json")
@@ -78,6 +88,21 @@ def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type
 
     # Find epoch with best worst-group accuracy
     best_epoch, best_acc = None, 0.0
+    if mtl_checkpoint_type == "per-task" and learning_type == "mtl":
+        best_epoch = {}
+        best_acc = defaultdict(float)
+        epoch_contained = list(val_stats.keys())[0]
+        group_key_regex = r"_g[0-9]+_acc"
+        group_acc_key_regex = re.compile(r".*_g[0-9]+_acc")
+        task_names = set()
+
+        for key in val_stats[epoch_contained].keys():
+            if group_acc_key_regex.match(key):
+                task_name = re.split(group_key_regex, key)[0]
+                task_names.add(task_name)
+
+        task_names = list(task_names)
+
     group_acc_key_regex = re.compile(r".*_g[0-9]+_acc")
     avg_acc_key_regex = re.compile(r".*_avg_acc")
     for epoch in val_stats.keys():
@@ -91,24 +116,49 @@ def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type
                     best_acc = worst_group_acc
             ## currently we define best checkpoint based on best average worst group accuracy across tasks
             elif learning_type == "mtl":
-                group_accuracies = {
-                    key: val_stats[epoch][key] for key in val_stats[epoch].keys() if group_acc_key_regex.match(key)
-                }
-                worst_group_accuracies = {}
-                for key in group_accuracies.keys():
-                    group_acc_key_regex_second = r"_g[0-9]+_acc"
-                    sub_key = re.split(group_acc_key_regex_second, key)[0]
 
-                    if sub_key in worst_group_accuracies:
-                        curr_val = worst_group_accuracies[sub_key]
-                        worst_group_accuracies[sub_key] = min(curr_val, group_accuracies[key])
-                    else:
-                        worst_group_accuracies[sub_key] = group_accuracies[key]
+                if mtl_checkpoint_type == "average":
+                
+                    group_accuracies = {
+                        key: val_stats[epoch][key] for key in val_stats[epoch].keys() if group_acc_key_regex.match(key)
+                    }
+                    worst_group_accuracies = {}
+                    for key in group_accuracies.keys():
+                        group_acc_key_regex_second = r"_g[0-9]+_acc"
+                        sub_key = re.split(group_acc_key_regex_second, key)[0]
 
-                worst_group_average_acc = sum(worst_group_accuracies.values()) / len(worst_group_accuracies)
-                if worst_group_average_acc > best_acc:
-                    best_epoch = epoch
-                    best_acc = worst_group_average_acc
+                        if sub_key in worst_group_accuracies:
+                            curr_val = worst_group_accuracies[sub_key]
+                            worst_group_accuracies[sub_key] = min(curr_val, group_accuracies[key])
+                        else:
+                            worst_group_accuracies[sub_key] = group_accuracies[key]
+
+                    worst_group_average_acc = sum(worst_group_accuracies.values()) / len(worst_group_accuracies)
+                    if worst_group_average_acc > best_acc:
+                        best_epoch = epoch
+                        best_acc = worst_group_average_acc
+
+                elif mtl_checkpoint_type == "best-worst":
+                    worst_group_task_acc = min(
+                    val_stats[epoch][key] for key in val_stats[epoch].keys() if group_acc_key_regex.match(key))
+                    if worst_group_task_acc > best_acc:
+                        best_epoch = epoch
+                        best_acc = worst_group_task_acc
+
+                ### this will return as many epochs as there are tasks
+                elif mtl_checkpoint_type == "per-task":
+
+                    for task_name in task_names:
+                        task_group_acc_key_regex = re.compile(fr'{task_name}_g[0-9]+_acc')
+                        worst_group_task_acc = min(
+                        val_stats[epoch][key] for key in val_stats[epoch].keys() if task_group_acc_key_regex.match(key)
+                        )
+
+                        if worst_group_task_acc > best_acc[task_name]:
+                            best_epoch[task_name] = epoch
+                            best_acc[task_name] = worst_group_task_acc
+                else:
+                    raise ValueError("Incorrect mtl checkpoint format. Only supports 'average' and 'worst-group' and 'per-task'. ")
 
         elif metric == "avg":
             if learning_type == "stl":
@@ -125,37 +175,93 @@ def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type
                     best_epoch = epoch
                     best_acc = avg_task_acc
 
+            elif mtl_checkpoint_type == "best-worst":
+                worst_avg_task_acc = min(val_stats[epoch][key] for key in val_stats[epoch].keys() if avg_acc_key_regex.match(key))
+                if worst_avg_task_acc > best_acc:
+                    best_epoch = epoch
+                    best_acc = worst_avg_task_acc
+
+            ### this will return as many epochs as there are tasks
+            elif mtl_checkpoint_type == "per-task":
+
+                for task_name in task_names:
+                    avg_group_acc = val_stats[epoch][f"{task_name}_avg_acc"]
+                    if avg_group_acc > best_acc[task_name]:
+                        best_epoch[task_name] = epoch
+                        best_acc[task_name] = avg_group_acc
+                        
+            else:
+                raise ValueError("Incorrect mtl checkpoint format. Only supports 'average' and 'worst-group' and 'per-task'. ")
+
         else:
             raise ValueError("Incorrect metric format. Only supports 'group' and 'acc'. ")
     if best_epoch is None:
         best_epoch = 0
 
-    best_epoch += 1
-    logger.info("Best validation epoch: %s", best_epoch)
-    logger.info("Best %s accuracy: %s", metric, best_acc)
 
-    if best_epoch is None:
-        logger.info("Detected an empty val_stats. Skipping")
-        return
+    if mtl_checkpoint_type != "per-task":
+        best_epoch += 1
+        logger.info("Best validation epoch: %s", best_epoch)
+        logger.info("Best %s accuracy: %s", metric, best_acc)
 
-    for key in val_stats[best_epoch - 1].keys():
-        if "acc" in key:
-            logger.info("  %s: %s", key, val_stats[best_epoch - 1][key])
+        if best_epoch is None:
+            logger.info("Detected an empty val_stats. Skipping")
+            return
+
+        for key in val_stats[best_epoch - 1].keys():
+            if "acc" in key:
+                logger.info("  %s: %s", key, val_stats[best_epoch - 1][key])
+
+    else:
+        for task_name in task_names:
+            best_epoch[task_name] += 1
 
     # Actually run evaluation on test set with this checkpoint
     if run_test:
-        logger.info(f"Running evaluation on test set with checkpoint {best_epoch}")
-        command = (
-            "python test.py "
-            f"--log_dir {log_dir} "
-            f"--ckpt_num {int(best_epoch)} "
-            f"--split test "
-            f"--save_json {save_json}"
-        )
-        if test_groupings:
-            command = f"{command} --groupings {test_groupings}"
+        if mtl_checkpoint_type != "per-task":
 
-        subprocess.run(command, shell=True, check=True)
+            logger.info(f"Running evaluation on test set with checkpoint {best_epoch}")
+            command = (
+                "python test.py "
+                f"--log_dir {log_dir} "
+                f"--ckpt_num {int(best_epoch)} "
+                f"--split test "
+                f"--save_json {save_json}"
+            )
+            if test_groupings:
+                command = f"{command} --groupings {test_groupings}"
+
+            subprocess.run(command, shell=True, check=True)
+
+        else:
+            finalized_per_task_stats = {}
+            for task_name in task_names:
+                logger.info(f"Running evaluation on test set with checkpoint {best_epoch}")
+                save_json_substring = save_json.split(".json")[0]
+                save_json_task = save_json_substring + f"{task_name}_task.json"
+                command = (
+                    "python test.py "
+                    f"--log_dir {log_dir} "
+                    f"--ckpt_num {int(best_epoch[task_name])} "
+                    f"--split test "
+                    f"--save_json {save_json_task}"
+                )
+                if test_groupings:
+                    command = f"{command} --groupings {test_groupings}"
+
+                subprocess.run(command, shell=True, check=True)
+
+                ## for each task get the metrics for it, save to a dict, save to original json
+                with open(save_json_task, "r") as f:
+                    task_results = json.load(f)
+
+                for key in task_results.keys():
+                    if task_name in key:
+                        finalized_per_task_stats[key] = task_results[key]
+
+            with open(save_json, "w") as fp:
+                json.dump(finalized_per_task_stats, fp)
+
 
     return int(best_epoch)
 
@@ -169,5 +275,6 @@ if __name__ == "__main__":
         test_groupings=args.test_groupings,
         metric=args.metric,
         learning_type=args.learning_type,
-        save_json=args.save_json
+        save_json=args.save_json,
+        mtl_checkpoint_type = args.mtl_checkpoint_type
     )

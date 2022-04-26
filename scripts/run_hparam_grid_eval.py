@@ -43,6 +43,14 @@ def parse_args():
         choices=["static_equal", "static_delta", "dynamic"],
         help="For MTL tuning runs, what type of weighting to eval"
     )
+    parser.add_argument(
+        "--mtl_checkpoint_type",
+        type=str,
+        required=False,
+        default=None,
+        choices=["average", "best-worst", "per-task", None],
+        help="Whether to choose checkpointing based on the average performance, best worst performance, or per-task"
+    )
     args = parser.parse_args()
 
     # Convert relative papths to absolute paths to help slurm out
@@ -171,13 +179,16 @@ def submit_rwy_baseline_disjoint_eval_test(args):
                 command = f"python -m scripts.find_best_ckpt --run_test --log_dir {log_dir} --metric {metric} --learning_type stl --save_json {save_json}"
                 job_manager.submit(command, job_name=job_name, log_file=log_file)
 
-
+### CHANGE AND UPDATE
 def submit_mtl_disjoint_tasks_eval_val(args):
     WD_GRID = [1e-4, 1e-3, 1e-2, 1e-1]
     LR_GRID = [1e-5, 1e-4, 1e-3]
     BATCH_SIZE_GRID = [32, 64, 128]
     SEED_GRID = [0]
     TASK = ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair"]
+
+    if args.mtl_checkpoint_type is None:
+        raise ValueError(f"Please specify an option for --{mtl_checkpoint_type}")
 
     method = "erm"
     for wd in WD_GRID:
@@ -187,10 +198,10 @@ def submit_mtl_disjoint_tasks_eval_val(args):
                     for metric in ["avg", "group"]:
 
                         job_name = f"eval_mtl_tuning:{method},task:{len(TASK)}_tasks_{args.mtl_weighting}_task_weighting,seed:{seed},wd:{wd},lr:{lr},batch_size:{batch_size}"
-                        save_json = f"val_stats_{metric}_checkpoint.json"
+                        save_json = f"val_stats_{metric}_checkpoint_{args.mtl_checkpoint_type}_mtl_type.json"
 
                         ckpt_num = find_best_ckpt(
-                            f'./logs/{job_name[5:]}', run_test=False, test_groupings="", metric=metric, learning_type="mtl"
+                            f'./logs/{job_name[5:]}', run_test=False, test_groupings="", metric=metric, learning_type="mtl", mtl_checkpoint_type=f"{args.mtl_checkpoint_type}"
                         ) - 1
                         with open(os.path.join(f"./logs/{job_name[5:]}", "results", f"val_stats_{ckpt_num}.json"), "r") as f:
                             best_val_stats = json.load(f)
@@ -220,11 +231,14 @@ def submit_jtt_baseline_disjoint_eval_test(args):
                 command = f"python -m scripts.find_best_ckpt --run_test --log_dir {log_dir} --metric {checkpoint_type} --learning_type stl --save_json {save_json}"
                 job_manager.submit(command, job_name=job_name, log_file=log_file)
 
-
+### CHANGE AND UPDATE
 def submit_mtl_disjoint_tasks_eval_test(args):
     ## DECLARE MACROS HERE ##
     SEED_GRID = [0, 1, 2]
     TASK = ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair"]
+
+    if args.mtl_checkpoint_type is None:
+        raise ValueError(f"Please specify an option for --{mtl_checkpoint_type}")
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
     method = "erm"
@@ -235,13 +249,13 @@ def submit_mtl_disjoint_tasks_eval_test(args):
                 job_name = f"eval_mtl_train:{method},task:{len(TASK)}_tasks_{args.mtl_weighting}_task_weighting,seed:{seed},ckpt:{mtl_hparam_tpye}"
                 log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
-                save_json = f"test_stats_{checkpoint_type}_checkpoint.json"
+                save_json = f"test_stats_{checkpoint_type}_checkpoint_{args.mtl_checkpoint_type}_mtl_type.json"
 
                 log_dir = os.path.join(LOG_DIR, job_name[5:])
                 results_dir = os.path.join(log_dir, "results")
                 save_json = os.path.join(results_dir, save_json)
 
-                command = f"python -m scripts.find_best_ckpt --run_test --log_dir {log_dir} --metric {checkpoint_type} --learning_type mtl --save_json {save_json}"
+                command = f"python -m scripts.find_best_ckpt --run_test --log_dir {log_dir} --metric {checkpoint_type} --learning_type mtl --save_json {save_json} --mtl_checkpoint_type {args.mtl_checkpoint_type}"
                 job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 
