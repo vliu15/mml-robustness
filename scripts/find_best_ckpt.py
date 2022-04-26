@@ -168,30 +168,31 @@ def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type
                     best_acc = avg_group_acc
             ## currently we define best checkpoint based on best average average accuracy across tasks
             elif learning_type == "mtl":
-                avg_task_acc = np.mean(
-                    [val_stats[epoch][key] for key in val_stats[epoch].keys() if avg_acc_key_regex.match(key)]
-                )
-                if avg_task_acc > best_acc:
-                    best_epoch = epoch
-                    best_acc = avg_task_acc
+                if mtl_checkpoint_type == "average":
+                    avg_task_acc = np.mean(
+                        [val_stats[epoch][key] for key in val_stats[epoch].keys() if avg_acc_key_regex.match(key)]
+                    )
+                    if avg_task_acc > best_acc:
+                        best_epoch = epoch
+                        best_acc = avg_task_acc
 
-            elif mtl_checkpoint_type == "best-worst":
-                worst_avg_task_acc = min(val_stats[epoch][key] for key in val_stats[epoch].keys() if avg_acc_key_regex.match(key))
-                if worst_avg_task_acc > best_acc:
-                    best_epoch = epoch
-                    best_acc = worst_avg_task_acc
+                elif mtl_checkpoint_type == "best-worst":
+                    worst_avg_task_acc = min(val_stats[epoch][key] for key in val_stats[epoch].keys() if avg_acc_key_regex.match(key))
+                    if worst_avg_task_acc > best_acc:
+                        best_epoch = epoch
+                        best_acc = worst_avg_task_acc
 
-            ### this will return as many epochs as there are tasks
-            elif mtl_checkpoint_type == "per-task":
+                ### this will return as many epochs as there are tasks
+                elif mtl_checkpoint_type == "per-task":
 
-                for task_name in task_names:
-                    avg_group_acc = val_stats[epoch][f"{task_name}_avg_acc"]
-                    if avg_group_acc > best_acc[task_name]:
-                        best_epoch[task_name] = epoch
-                        best_acc[task_name] = avg_group_acc
-                        
-            else:
-                raise ValueError("Incorrect mtl checkpoint format. Only supports 'average' and 'worst-group' and 'per-task'. ")
+                    for task_name in task_names:
+                        avg_group_acc = val_stats[epoch][f"{task_name}_avg_acc"]
+                        if avg_group_acc > best_acc[task_name]:
+                            best_epoch[task_name] = epoch
+                            best_acc[task_name] = avg_group_acc
+                            
+                else:
+                    raise ValueError("Incorrect mtl checkpoint format. Only supports 'average' and 'worst-group' and 'per-task'. ")
 
         else:
             raise ValueError("Incorrect metric format. Only supports 'group' and 'acc'. ")
