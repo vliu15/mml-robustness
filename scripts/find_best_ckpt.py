@@ -237,9 +237,9 @@ def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type
         else:
             finalized_per_task_stats = {}
             for task_name in task_names:
-                logger.info(f"Running evaluation on test set with checkpoint {best_epoch}")
+                logger.info(f"Running evaluation on test set for checkpoint based on task: {task_name} with checkpoint {best_epoch[task_name]}")
                 save_json_substring = save_json.split(".json")[0]
-                save_json_task = save_json_substring + f"{task_name}_task.json"
+                save_json_task = save_json_substring + f"_{task_name}_task.json"
                 command = (
                     "python test.py "
                     f"--log_dir {log_dir} "
@@ -263,8 +263,10 @@ def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type
             with open(save_json, "w") as fp:
                 json.dump(finalized_per_task_stats, fp)
 
-
-    return int(best_epoch)
+    if mtl_checkpoint_type == "per-task": 
+        return best_epoch
+    else:
+        return int(best_epoch)
 
 
 if __name__ == "__main__":
