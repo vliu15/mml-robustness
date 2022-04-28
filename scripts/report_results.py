@@ -7,7 +7,7 @@ python -m scripts.report_results \
     --log_dirs ./logs/erm_seed_0 ./logs/erm_seed_1 ./logs/erm_seed_2 \
     --split test \
     --checkpoint_metric_type avg
-    --checkpoint_type average
+    --mtl_checkpoint_type average
 """
 
 import argparse
