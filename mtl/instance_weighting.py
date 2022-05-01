@@ -176,7 +176,7 @@ def entropy_maximization_pgd(Y, verbose=False, grouping_name=''):
     
     lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=steps)
 
-    for iteration in tqdm(range(steps)):
+    for _ in tqdm(range(steps), total=steps):
         
         w = w.detach()
         w.requires_grad = True
