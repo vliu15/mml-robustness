@@ -6,7 +6,8 @@ Sample usage:
 python -m scripts.report_results \
     --log_dirs ./logs/erm_seed_0 ./logs/erm_seed_1 ./logs/erm_seed_2 \
     --split test \
-    --checkpoint_type avg
+    --checkpoint_metric_type avg
+    --mtl_checkpoint_type average
 """
 
 import argparse
@@ -31,6 +32,7 @@ logger = logging.getLogger(__name__)
 alpha = 0.05  ## Change this if something other than a 95% CI is desired
 z = stats.norm.ppf(1 - alpha / 2)
 
+###TODO:FIX THE PER-TASK ONE
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -39,11 +41,19 @@ def parse_args():
         "--split", type=str, required=True, choices=["val", "test"], help="Type of metric to report results on"
     )
     parser.add_argument(
-        "--checkpoint_type",
+        "--checkpoint_metric_type",
         type=str,
         required=True,
         choices=["avg", "group"],
         help="Whether to choose avg or worst group checkpoint"
+    )
+    parser.add_argument(
+        "--mtl_checkpoint_type",
+        type=str,
+        required=False,
+        default=None,
+        choices=["average", "best-worst", "per-task", None],
+        help="Whether to choose checkpointing based on the average performance, best worst performance, or per-task"
     )
     return parser.parse_args()
 
@@ -72,7 +82,9 @@ def mtl_tune_results():
     worst_group_accuracy = defaultdict(float)
     for log_dir in args.log_dirs:
 
-        file_name = f"{args.split}_stats_{args.checkpoint_type}_checkpoint.json"
+        file_name = f"{args.split}_stats_{args.checkpoint_metric_type}_checkpoint.json"
+        if args.mtl_checkpoint_type is not None:
+            file_name = f"{args.split}_stats_{args.checkpoint_metric_type}_checkpoint_{args.mtl_checkpoint_type}_mtl_type.json"
         file_path = os.path.join(log_dir, 'results', file_name)
 
         with open(file_path, "r") as f:
@@ -100,7 +112,11 @@ def mtl_tune_results():
         average_accuracy[log_dir] = avg_task_acc
         worst_group_accuracy[log_dir] = worst_group_average_acc
 
-    logger.info(f"For split: {args.split}, using checkpoints based on: {args.checkpoint_type} we obtain: \n")
+    if args.mtl_checkpoint_type is not None:
+        logger.info(f"For split: {args.split}, using checkpoints based on: {args.checkpoint_metric_type} and an mtl checkpoint type of: {args.mtl_checkpoint_type} we obtain: \n")
+    else:
+        logger.info(f"For split: {args.split}, using checkpoints based on: {args.checkpoint_metric_type} we obtain: \n")
+
 
     for log_dir in args.log_dirs:
 
@@ -117,7 +133,9 @@ def mean_std_results():
     worst_group_accuracy = defaultdict(list)
     for log_dir in args.log_dirs:
 
-        file_name = f"{args.split}_stats_{args.checkpoint_type}_checkpoint.json"
+        file_name = f"{args.split}_stats_{args.checkpoint_metric_type}_checkpoint.json"
+        if args.mtl_checkpoint_type is not None:
+            file_name = f"{args.split}_stats_{args.checkpoint_metric_type}_checkpoint_{args.mtl_checkpoint_type}_mtl_type.json"
         file_path = os.path.join(log_dir, 'results', file_name)
 
         with open(file_path, "r") as f:
@@ -146,7 +164,11 @@ def mean_std_results():
         for task, avg_acc in avg_accuracies.items():
             average_accuracy[task].append(avg_acc)
 
-    logger.info(f"For split: {args.split}, using checkpoints based on: {args.checkpoint_type} we obtain: \n")
+    if args.mtl_checkpoint_type is not None:
+        logger.info(f"For split: {args.split}, using checkpoints based on: {args.checkpoint_metric_type} and an mtl checkpoint type of: {args.mtl_checkpoint_type} we obtain: \n")
+    else:
+        logger.info(f"For split: {args.split}, using checkpoints based on: {args.checkpoint_metric_type} we obtain: \n")
+
 
     for task in average_accuracy.keys():
 
@@ -178,7 +200,9 @@ def mean_ci_results():
             task_attribute = grouping.split(":")
             task_to_attributes[task_attribute[0]] = task_attribute[1]
 
-        file_name = f"{args.split}_stats_{args.checkpoint_type}_checkpoint.json"
+        file_name = f"{args.split}_stats_{args.checkpoint_metric_type}_checkpoint.json"
+        if args.mtl_checkpoint_type is not None:
+            file_name = f"{args.split}_stats_{args.checkpoint_metric_type}_checkpoint_{args.mtl_checkpoint_type}_mtl_type.json"
         file_path = os.path.join(log_dir, 'results', file_name)
 
         with open(file_path, "r") as f:
@@ -215,7 +239,10 @@ def mean_ci_results():
             worst_group_counts[task][f"{task}_total_counts"].append(worst_group_total)
             worst_group_counts[task][f"{task}_correct_counts"].append(worst_group_correct)
 
-    logger.info(f"For split: {args.split}, using checkpoints based on: {args.checkpoint_type} we obtain: \n")
+    if args.mtl_checkpoint_type is not None:
+        logger.info(f"For split: {args.split}, using checkpoints based on: {args.checkpoint_metric_type} and an mtl checkpoint type of: {args.mtl_checkpoint_type} we obtain: \n")
+    else:
+        logger.info(f"For split: {args.split}, using checkpoints based on: {args.checkpoint_metric_type} we obtain: \n")
 
     for task in average_counts.keys():
 
@@ -232,7 +259,7 @@ def mean_ci_results():
         ci_range_avg = z * np.sqrt((p_tilde_avg / n_tilde_avg) * (1 - p_tilde_avg))
 
         logger.info(
-            f"Estimated mean average accuracy: {round(p_tilde_avg,4)}, with 95% CI:({round(p_tilde_avg - ci_range_avg, 4)},{round(p_tilde_avg + ci_range_avg, 4)}), over {len(average_counts[task][f'{task}_correct_counts'])} seeds \n"
+            f"Estimated mean average accuracy: {round(p_tilde_avg*100,2)}, with 95% CI:({round((p_tilde_avg - ci_range_avg)*100, 2)},{round( (p_tilde_avg + ci_range_avg)*100, 2)}), over {len(average_counts[task][f'{task}_correct_counts'])} seeds \n"
         )
 
         n_tilde_group = total_worst_group_counts + z**2
@@ -240,7 +267,7 @@ def mean_ci_results():
         ci_range_group = z * np.sqrt((p_tilde_group / n_tilde_group) * (1 - p_tilde_group))
 
         logger.info(
-            f"Estimated mean worst-group accuracy: {round(p_tilde_group,4)}, with 95% CI:({round(p_tilde_group - ci_range_group, 4)},{round(p_tilde_group + ci_range_group, 4)}), over {len(worst_group_counts[task][f'{task}_correct_counts'])} seeds \n"
+            f"Estimated mean worst-group accuracy: {round(p_tilde_group*100,2)}, with 95% CI:({round((p_tilde_group - ci_range_group)*100, 2)},{round( (p_tilde_group + ci_range_group)*100, 2)}), over {len(worst_group_counts[task][f'{task}_correct_counts'])} seeds \n"
         )
 
 
