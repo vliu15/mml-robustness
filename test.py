@@ -84,6 +84,7 @@ def main():
     model.eval()
 
     # Run eval on specified split
+    config.dataloader.batch_size = 128  # otherwise RWY with batch size 2 takes too long
     if args.split == "train":
         dataloader, _ = init_dataloaders(config)
     elif args.split == "val":

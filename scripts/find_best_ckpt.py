@@ -47,9 +47,6 @@ def parse_args():
         help="JSON-string list of {{task}}:{{subgroup}} to run additional evaluation on"
     )
     parser.add_argument(
-        "--metric", type=str, required=True, choices=["group", "avg"], help="Type of metric/accuracy to compare checkpoints"
-    )
-    parser.add_argument(
         "--learning_type",
         type=str,
         required=True,
@@ -60,16 +57,19 @@ def parse_args():
         "--mtl_checkpoint_type",
         type=str,
         required=False,
-        default=None,
-        choices=["average", "best-worst", "per-task", None],
-        help="Whether to choose checkpointing for mtl based on the average performance, best worst performance, or per-task"
+        default="",
+        choices=["average", "best-worst", "per-task", ""],
+        help="Whether to select checkpoint based on average, best worst, or per-task performance"
     )
-
+    parser.add_argument(
+        "--metric", type=str, required=True, choices=["group", "avg"], help="The metric (group, avg) used to compare checkpoints",
+    )
     parser.add_argument("--save_json", type=str, required=False, default="", help="Name for where file will be saved")
+
     return parser.parse_args()
 
 
-def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type="stl", save_json="", mtl_checkpoint_type = "average"):
+def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type="stl", save_json="", mtl_checkpoint_type="average"):
     results_dir = os.path.join(log_dir, "results")
 
     val_stats_json_regex = re.compile(r"val_stats_[0-9]+\.json")
@@ -118,7 +118,6 @@ def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type
             elif learning_type == "mtl":
 
                 if mtl_checkpoint_type == "average":
-                
                     group_accuracies = {
                         key: val_stats[epoch][key] for key in val_stats[epoch].keys() if group_acc_key_regex.match(key)
                     }
@@ -151,7 +150,7 @@ def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type
                     for task_name in task_names:
                         task_group_acc_key_regex = re.compile(fr'{task_name}_g[0-9]+_acc')
                         worst_group_task_acc = min(
-                        val_stats[epoch][key] for key in val_stats[epoch].keys() if task_group_acc_key_regex.match(key)
+                            val_stats[epoch][key] for key in val_stats[epoch].keys() if task_group_acc_key_regex.match(key)
                         )
 
                         if worst_group_task_acc > best_acc[task_name]:
@@ -190,7 +189,7 @@ def main(log_dir, run_test=False, test_groupings="", metric="avg", learning_type
                         if avg_group_acc > best_acc[task_name]:
                             best_epoch[task_name] = epoch
                             best_acc[task_name] = avg_group_acc
-                            
+
                 else:
                     raise ValueError("Incorrect mtl checkpoint format. Only supports 'average' and 'worst-group' and 'per-task'. ")
 
@@ -279,5 +278,5 @@ if __name__ == "__main__":
         metric=args.metric,
         learning_type=args.learning_type,
         save_json=args.save_json,
-        mtl_checkpoint_type = args.mtl_checkpoint_type
+        mtl_checkpoint_type=args.mtl_checkpoint_type
     )

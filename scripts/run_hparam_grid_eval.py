@@ -188,7 +188,7 @@ def submit_mtl_disjoint_tasks_eval_val(args):
     TASK = ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair"]
 
     if args.mtl_checkpoint_type is None:
-        raise ValueError(f"Please specify an option for --{mtl_checkpoint_type}")
+        raise ValueError(f"Please specify an option for --{args.mtl_checkpoint_type}")
 
     method = "erm"
     for wd in WD_GRID:
@@ -238,7 +238,7 @@ def submit_mtl_disjoint_tasks_eval_test(args):
     TASK = ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair"]
 
     if args.mtl_checkpoint_type is None:
-        raise ValueError(f"Please specify an option for --{mtl_checkpoint_type}")
+        raise ValueError(f"Please specify an option for --{args.mtl_checkpoint_type}")
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
     method = "erm"
@@ -268,17 +268,16 @@ def submit_mtl_rwy_disjoint_tasks_eval_test(args):
 
     for seed in SEED_GRID:
         for cvx in CVX_GRID:
-            for checkpoint_type in ["avg", "group"]:
+            for metric in ["group", "avg"]:
                 job_name = f"eval_mtl_train:rwy,task:{len(TASK)}_tasks_{args.mtl_weighting}_task_weighting,seed:{seed},cvx:{cvx}"
                 log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
-                save_json = f"test_stats_{checkpoint_type}_checkpoint.json"
-
+                save_json = f"test_stats_{metric}_checkpoint_{args.mtl_checkpoint_type}_mtl_type.json"
                 log_dir = os.path.join(LOG_DIR, job_name[5:])
                 results_dir = os.path.join(log_dir, "results")
                 save_json = os.path.join(results_dir, save_json)
 
-                command = f"python -m scripts.find_best_ckpt --run_test --log_dir {log_dir} --metric {checkpoint_type} --learning_type mtl --save_json {save_json}"
+                command = f"python -m scripts.find_best_ckpt --run_test --log_dir {log_dir} --metric {metric} --mtl_checkpoint_type {args.mtl_checkpoint_type} --learning_type mtl --save_json {save_json}"
                 job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 
@@ -291,17 +290,16 @@ def submit_mtl_suby_disjoint_tasks_eval_test(args):
 
     for seed in SEED_GRID:
         for cvx in CVX_GRID:
-            for checkpoint_type in ["avg", "group"]:
+            for metric in ["group", "avg"]:
                 job_name = f"eval_mtl_train:suby,task:{len(TASK)}_tasks_{args.mtl_weighting}_task_weighting,seed:{seed},cvx:{cvx}"
                 log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
-                save_json = f"test_stats_{checkpoint_type}_checkpoint.json"
-
+                save_json = f"test_stats_{metric}_checkpoint_{args.mtl_checkpoint_type}_mtl_type.json"
                 log_dir = os.path.join(LOG_DIR, job_name[5:])
                 results_dir = os.path.join(log_dir, "results")
                 save_json = os.path.join(results_dir, save_json)
 
-                command = f"python -m scripts.find_best_ckpt --run_test --log_dir {log_dir} --metric {checkpoint_type} --learning_type mtl --save_json {save_json}"
+                command = f"python -m scripts.find_best_ckpt --run_test --log_dir {log_dir} --metric {metric} --mtl_checkpoint_type {args.mtl_checkpoint_type} --learning_type mtl --save_json {save_json}"
                 job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 
