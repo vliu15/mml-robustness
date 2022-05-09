@@ -572,6 +572,7 @@ def submit_mtl_disjoint_tasks_train_group(args):
                     f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
                 )
                 job_manager.submit(command, job_name=job_name, log_file=log_file)
+                
         else:
             command = (
                 f"python train_erm.py exp={method} "
