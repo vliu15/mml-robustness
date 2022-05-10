@@ -815,6 +815,65 @@ def submit_mtl_nondisjoint_tasks_train_group(args):
                 )
                 job_manager.submit(command, job_name=job_name, log_file=log_file)
 
+
+def submit_mtl_semantic_similar_tasks_train_group(args):
+    ## DECLARE MACROS HERE ##
+    WD = 1e-2
+    LR = 1e-4
+    BATCH_SIZE = 32
+    EPOCHS = 50
+    SEED_GRID = [0, 1, 2]
+    TASKS = [["Big_Nose:Wearing_Lipstick", "High_Cheekbones:Smiling"], ["Big_Lips:Goatee", "Wearing_Lipstick:Male"],
+    ["Bags_Under_Eyes:Double_Chin", "High_Cheekbones:Rosy_Cheeks"], ["Blond_Hair:Wearing_Hat", "Brown_Hair:Wearing_Hat"]]
+
+
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+    method = "erm"
+
+    for seed in SEED_GRID:
+        for idx, task in enumerate(TASKS):
+            task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(args.mtl_weighting, task)
+            job_name = f"mtl_train:{method},task:{len(task)}_tasks,semantic_similar:{idx + 1},{args.mtl_weighting}_task_weighting,seed:{seed}"
+            log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+
+            if args.respawn:
+                ckpt_dir = os.path.join(LOG_DIR, job_name, "ckpts")
+                ckpt_path, ckpt_num = find_last_checkpoint(ckpt_dir)
+
+                if ckpt_num != EPOCHS:
+
+                    command = (
+                        f"python train_erm.py exp={method} "
+                        f"exp.optimizer.weight_decay={WD} "
+                        f"exp.optimizer.lr={LR} "
+                        f"exp.seed={seed} "
+                        f"exp.train.total_epochs={EPOCHS} "
+                        f"exp.dataset.groupings='{task}' "
+                        f"exp.dataloader.batch_size={BATCH_SIZE} "
+                        f"exp.dataset.task_weights='{task_weights}' "
+                        f"exp.dataset.loss_based_task_weighting={use_loss_balanced} "
+                        f"exp.dataset.lbtw_alpha={lbtw_alpha} "
+                        f"exp.train.load_ckpt=\\'{ckpt_path}\\' "
+                        f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                    )
+                    job_manager.submit(command, job_name=job_name, log_file=log_file)
+            else:
+                command = (
+                    f"python train_erm.py exp={method} "
+                    f"exp.optimizer.weight_decay={WD} "
+                    f"exp.optimizer.lr={LR} "
+                    f"exp.seed={seed} "
+                    f"exp.train.total_epochs={EPOCHS} "
+                    f"exp.dataset.groupings='{task}' "
+                    f"exp.dataloader.batch_size={BATCH_SIZE} "
+                    f"exp.dataset.task_weights='{task_weights}' "
+                    f"exp.dataset.loss_based_task_weighting={use_loss_balanced} "
+                    f"exp.dataset.lbtw_alpha={lbtw_alpha} "
+                    f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                )
+                job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+
 def main():
     args = parse_args()
     if args.mode == "sbatch":
@@ -846,6 +905,8 @@ def main():
         submit_mtl_nondisjoint_tasks_train_group(args)
     elif args.opt == "mtl_disjoint_group_size_train":
         submit_mtl_disjoint_size_tasks_train_group(args)
+    elif args.opt == "mtl_semantic_similar_train":
+        submit_mtl_semantic_similar_tasks_train_group(args)
     else:
         raise ValueError(f"Didn't recognize opt={args.opt}. Did you forget to add a check for this function?")
 
