@@ -984,6 +984,55 @@ def submit_mtl_weak_spurious_correlations_tasks_train_group(args):
                 job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 
+def submit_mtl_jtt_train(args):
+    EPOCHS = 50
+    SEED_GRID = [0, 1, 2]
+    TASK = ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair"]
+
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+
+    for seed in SEED_GRID:
+        for mtl_weighting in ["static_equal", "static_delta", "dynamic"]:
+            task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(mtl_weighting, TASK)
+
+            job_name = f"mtl_train:jtt,task:{len(TASK)}_tasks_{mtl_weighting}_task_weighting,seed:{seed}"
+            log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+
+            ckpt_dir = os.path.join(LOG_DIR, "mtl_jtt", job_name, "stage_2", "ckpts")
+            if os.path.exists(ckpt_dir):
+                if os.path.exists(os.path.join(ckpt_dir, "ckpt.last.pt")):
+                    print(f"{ckpt_dir} exists. Skipping.")
+                    continue
+
+                ckpt_path, ckpt_num = find_last_checkpoint(ckpt_dir)
+                load_up_pkl = os.path.join(LOG_DIR, "mtl_jtt", job_name, "jtt_error_set_inv.pkl")
+
+                if ckpt_num != EPOCHS:
+                    command = (
+                        "python train_jtt.py exp=jtt "
+                        f"exp.groupings='{TASK}' "
+                        f"exp.seed={seed} "
+                        f"exp.task_weights='{task_weights}' "
+                        f"exp.loss_based_task_weighting={use_loss_balanced} "
+                        f"exp.lbtw_alpha={lbtw_alpha} "
+                        f"exp.load_stage_2_ckpt=\\'{ckpt_path}\\' "
+                        f"exp.load_up_pkl=\\'{load_up_pkl}\\' "
+                        f"exp.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                    )
+            else:
+                command = (
+                    "python train_jtt.py exp=jtt "
+                    f"exp.groupings='{TASK}' "
+                    f"exp.seed={seed} "
+                    f"exp.task_weights='{task_weights}' "
+                    f"exp.loss_based_task_weighting={use_loss_balanced} "
+                    f"exp.lbtw_alpha={lbtw_alpha} "
+                    f"exp.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                )
+
+            job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+
 def main():
     args = parse_args()
     if args.mode == "sbatch":
@@ -1021,6 +1070,8 @@ def main():
         submit_mtl_strong_spurious_correlations_tasks_train_group(args)
     elif args.opt == "mtl_weak_spurious_correlation_train":
         submit_mtl_weak_spurious_correlations_tasks_train_group(args)
+    elif args.opt == "mtl_jtt_train":
+        submit_mtl_jtt_train(args)
     else:
         raise ValueError(f"Didn't recognize opt={args.opt}. Did you forget to add a check for this function?")
 

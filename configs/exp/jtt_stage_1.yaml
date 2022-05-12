@@ -25,6 +25,8 @@ dataset:
     subsample: false
     subsample_type: null
 
+    cvx: null
+
 model:
     name: resnet50
     pretrained: true
