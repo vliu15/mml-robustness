@@ -13,18 +13,18 @@
 
 export OMP_NUM_THREADS=8            # Set parallel threads to --cpus-per-task
 
-# conda init bash
-cd /home/groups/thashim/mml-robustness
-
 #load in cuda version
-module load cuda/11.1.1
+#module load cuda/11.1.1
 
 #load in pytorch for safety
-module load py-pytorch/1.11.0_py39 
+#module load py-pytorch/1.11.0_py39 
 
 #load in conda enviornment
 source /home/users/${USER}/.bashrc
 conda activate mml-robustness
+
+# conda init bash
+cd /home/groups/thashim/mml-robustness
 
 $COMMAND
 
