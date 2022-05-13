@@ -986,19 +986,20 @@ def submit_mtl_weak_spurious_correlations_tasks_train_group(args):
 
 def submit_mtl_jtt_train(args):
     EPOCHS = 50
-    SEED_GRID = [0, 1, 2]
+    SEED_GRID = [1] #[0, 1, 2]
     TASK = ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair"]
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
 
     for seed in SEED_GRID:
-        for mtl_weighting in ["static_equal", "static_delta", "dynamic"]:
+        for mtl_weighting in ["static_delta"]:
             task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(mtl_weighting, TASK)
 
             job_name = f"mtl_train:jtt,task:{len(TASK)}_tasks_{mtl_weighting}_task_weighting,seed:{seed}"
             log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
             ckpt_dir = os.path.join(LOG_DIR, "mtl_jtt", job_name, "stage_2", "ckpts")
+            mtl_jtt_dir = os.path.join(LOG_DIR, "mtl_jtt")
             if os.path.exists(ckpt_dir):
                 if os.path.exists(os.path.join(ckpt_dir, "ckpt.last.pt")):
                     print(f"{ckpt_dir} exists. Skipping.")
@@ -1017,7 +1018,7 @@ def submit_mtl_jtt_train(args):
                         f"exp.lbtw_alpha={lbtw_alpha} "
                         f"exp.load_stage_2_ckpt=\\'{ckpt_path}\\' "
                         f"exp.load_up_pkl=\\'{load_up_pkl}\\' "
-                        f"exp.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                        f"exp.log_dir=\\'{os.path.join(mtl_jtt_dir, job_name)}\\'"
                     )
             else:
                 command = (
@@ -1027,7 +1028,7 @@ def submit_mtl_jtt_train(args):
                     f"exp.task_weights='{task_weights}' "
                     f"exp.loss_based_task_weighting={use_loss_balanced} "
                     f"exp.lbtw_alpha={lbtw_alpha} "
-                    f"exp.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                    f"exp.log_dir=\\'{os.path.join(mtl_jtt_dir, job_name)}\\'"
                 )
 
             job_manager.submit(command, job_name=job_name, log_file=log_file)
