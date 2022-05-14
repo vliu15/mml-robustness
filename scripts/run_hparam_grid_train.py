@@ -986,13 +986,13 @@ def submit_mtl_weak_spurious_correlations_tasks_train_group(args):
 
 def submit_mtl_jtt_train(args):
     EPOCHS = 50
-    SEED_GRID = [1] #[0, 1, 2]
+    SEED_GRID = [0, 1, 2]
     TASK = ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair"]
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
 
     for seed in SEED_GRID:
-        for mtl_weighting in ["static_delta"]:
+        for mtl_weighting in ["static_equal", "static_delta", "dynamic"]:
             task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(mtl_weighting, TASK)
 
             job_name = f"mtl_train:jtt,task:{len(TASK)}_tasks_{mtl_weighting}_task_weighting,seed:{seed}"
