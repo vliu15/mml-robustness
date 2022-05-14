@@ -21,8 +21,8 @@ from scripts.job_manager import JobManager
 
 # RICE MACROS
 USER = os.environ["USER"]
-#LOG_DIR = f"/farmshare/user_data/{USER}/mml-robustness/logs"
-LOG_DIR = "./logs"
+LOG_DIR = f"/farmshare/user_data/{USER}/mml-robustness/logs"
+#LOG_DIR = "./logs"
 
 
 def parse_args():
@@ -815,7 +815,6 @@ def submit_mtl_nondisjoint_tasks_train_group(args):
                 )
                 job_manager.submit(command, job_name=job_name, log_file=log_file)
 
-
 def submit_mtl_semantic_similar_tasks_train_group(args):
     ## DECLARE MACROS HERE ##
     WD = 1e-2
@@ -1033,12 +1032,10 @@ def submit_mtl_jtt_train(args):
 
             job_manager.submit(command, job_name=job_name, log_file=log_file)
 
-
 def main():
     args = parse_args()
     if args.mode == "sbatch":
         os.makedirs(args.slurm_logs, exist_ok=True)
-
     if args.opt == "erm":
         submit_erm_train(args)
     elif args.opt == "rw_sub":

@@ -302,6 +302,53 @@ def submit_mtl_suby_disjoint_tasks_eval_test(args):
                 command = f"python -m scripts.find_best_ckpt --run_test --log_dir {log_dir} --metric {metric} --mtl_checkpoint_type {args.mtl_checkpoint_type} --learning_type mtl --save_json {save_json}"
                 job_manager.submit(command, job_name=job_name, log_file=log_file)
 
+def submit_erm_baseline_nondisjoint_eval_test(args):
+    ## DECLARE MACROS HERE ##
+    SEED_GRID = [0, 1, 2]
+    TASK_GRID = ["Wearing_Earrings:Male", "Attractive:Male", "No_Beard:Heavy_Makeup", "Pointy_Nose:Heavy_Makeup", "Attractive:Gray_Hair", "Big_Nose:Gray_Hair", "Heavy_Makeup:Wearing_Lipstick", "No_Beard:Wearing_Lipstick", "Bangs:Wearing_Hat", "Blond_Hair:Wearing_Hat"]
+
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+    method = "erm"
+    for task in TASK_GRID:
+        for seed in SEED_GRID:
+            for checkpoint_type in ["avg", "group"]:
+                job_name = f"eval_baseline:{method},task:{task},seed:{seed}"
+                log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+                save_json = f"test_stats_{checkpoint_type}_checkpoint.json"
+
+                log_dir = os.path.join(LOG_DIR, job_name[5:])
+                results_dir = os.path.join(log_dir, "results")
+                save_json = os.path.join(results_dir, save_json)
+
+                command = f"python -m scripts.find_best_ckpt --run_test --log_dir {log_dir} --metric {checkpoint_type} --learning_type stl --save_json {save_json}"
+                job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+def submit_mtl_nondisjoint_tasks_eval_test(args):
+    SEED_GRID = [0, 1, 2]
+    TASKS = [["Wearing_Earrings:Male", "Attractive:Male"], ["No_Beard:Heavy_Makeup", "Pointy_Nose:Heavy_Makeup"],
+    ["Attractive:Gray_Hair", "Big_Nose:Gray_Hair"], ["Heavy_Makeup:Wearing_Lipstick", "No_Beard:Wearing_Lipstick"],
+    ["Bangs:Wearing_Hat", "Blond_Hair:Wearing_Hat"]]
+
+    if args.mtl_checkpoint_type is None:
+        raise ValueError(f"Please specify an option for --{args.mtl_checkpoint_type}")
+
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+    method = "erm"
+
+    for seed in SEED_GRID:
+        for idx, task in enumerate(TASKS):
+            for checkpoint_type in ["avg", "group"]:
+                job_name = f"eval_mtl_train:{method},task:{len(task)}_tasks,nondisjoint_idx:{idx},{args.mtl_weighting}_task_weighting,seed:{seed}"
+                log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+
+                save_json = f"test_stats_{checkpoint_type}_checkpoint_{args.mtl_checkpoint_type}_mtl_type.json"
+
+                log_dir = os.path.join(LOG_DIR, job_name[5:])
+                results_dir = os.path.join(log_dir, "results")
+                save_json = os.path.join(results_dir, save_json)
+
+                command = f"python -m scripts.find_best_ckpt --run_test --log_dir {log_dir} --metric {checkpoint_type} --learning_type mtl --save_json {save_json} --mtl_checkpoint_type {args.mtl_checkpoint_type}"
+                job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 def main():
     args = parse_args()
@@ -327,6 +374,10 @@ def main():
         submit_mtl_rwy_disjoint_tasks_eval_test(args)
     elif args.opt == "mtl_suby":
         submit_mtl_suby_disjoint_tasks_eval_test(args)
+    elif args.opt == "erm_nondisjoint":
+        submit_erm_baseline_nondisjoint_eval_test(args)
+    elif args.opt == "mtl_nondisjoint":
+        submit_mtl_nondisjoint_tasks_eval_test(args)
     else:
         raise ValueError(f"Didn't recognize opt={args.opt}. Did you forget to add a check for this function?")
 
