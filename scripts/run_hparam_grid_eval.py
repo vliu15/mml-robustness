@@ -25,7 +25,7 @@ LOG_DIR = "./logs"
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--template", type=str, default="scripts/sbatch_template.sh", required=False, help="SBATCH template file"
+        "--template", type=str, default="scripts/rice_sbatch_template.sh", required=False, help="SBATCH template file"
     )
     parser.add_argument(
         "--mode",
@@ -350,6 +350,99 @@ def submit_mtl_nondisjoint_tasks_eval_test(args):
                 command = f"python -m scripts.find_best_ckpt --run_test --log_dir {log_dir} --metric {checkpoint_type} --learning_type mtl --save_json {save_json} --mtl_checkpoint_type {args.mtl_checkpoint_type}"
                 job_manager.submit(command, job_name=job_name, log_file=log_file)
 
+
+def submit_mtl_semantic_similar_tasks_train_group(args):
+    SEED_GRID = [0, 1, 2]
+    TASKS = [["Big_Nose:Wearing_Lipstick", "High_Cheekbones:Smiling"], ["Big_Lips:Goatee", "Wearing_Lipstick:Male"],
+    ["Bags_Under_Eyes:Double_Chin", "High_Cheekbones:Rosy_Cheeks"], ["Blond_Hair:Wearing_Hat", "Brown_Hair:Wearing_Hat"]]
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+    method = "erm"
+
+    for seed in SEED_GRID:
+        for idx, task in enumerate(TASKS):
+            for checkpoint_type in ["avg", "group"]:
+                job_name = f"eval_mtl_train:{method},task:{len(task)}_tasks,semantic_similar:{idx + 1},{args.mtl_weighting}_task_weighting,seed:{seed}"
+                log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+
+                save_json = f"test_stats_{checkpoint_type}_checkpoint_{args.mtl_checkpoint_type}_mtl_type.json"
+
+                log_dir = os.path.join(LOG_DIR, job_name[5:])
+                results_dir = os.path.join(log_dir, "results")
+                save_json = os.path.join(results_dir, save_json)
+
+                command = f"python -m scripts.find_best_ckpt --run_test --log_dir {log_dir} --metric {checkpoint_type} --learning_type mtl --save_json {save_json} --mtl_checkpoint_type {args.mtl_checkpoint_type}"
+                job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+
+def submit_mtl_strong_spurious_correlations_tasks_train_group(args):
+    SEED_GRID = [0, 1, 2]
+    TASKS = [["Wearing_Lipstick:Male", "High_Cheekbones:Smiling"], ["Heavy_Makeup:Male", "Wearing_Earrings:Male"]]
+
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+    method = "erm"
+
+    for seed in SEED_GRID:
+        for idx, task in enumerate(TASKS):
+            for checkpoint_type in ["avg", "group"]:
+                job_name = f"eval_mtl_train:{method},task:{len(task)}_tasks,strong_spurious_correlation_idx:{idx},{args.mtl_weighting}_task_weighting,seed:{seed}"
+                log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+
+                save_json = f"test_stats_{checkpoint_type}_checkpoint_{args.mtl_checkpoint_type}_mtl_type.json"
+
+                log_dir = os.path.join(LOG_DIR, job_name[5:])
+                results_dir = os.path.join(log_dir, "results")
+                save_json = os.path.join(results_dir, save_json)
+
+                command = f"python -m scripts.find_best_ckpt --run_test --log_dir {log_dir} --metric {checkpoint_type} --learning_type mtl --save_json {save_json} --mtl_checkpoint_type {args.mtl_checkpoint_type}"
+                job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+
+def submit_mtl_weak_spurious_correlations_tasks_train_group(args):
+    SEED_GRID = [0, 1, 2]
+    TASKS = [["Big_Lips:Chubby", "Young:Chubby"], ["High_Cheekbones:Rosy_Cheeks", "Brown_Hair:Wearing_Hat"]]
+
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+    method = "erm"
+
+    for seed in SEED_GRID:
+        for idx, task in enumerate(TASKS):
+            for checkpoint_type in ["avg", "group"]:
+                job_name = f"eval_mtl_train:{method},task:{len(task)}_tasks,weak_spurious_correlation_idx:{idx},{args.mtl_weighting}_task_weighting,seed:{seed}"
+                log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+
+                save_json = f"test_stats_{checkpoint_type}_checkpoint_{args.mtl_checkpoint_type}_mtl_type.json"
+
+                log_dir = os.path.join(LOG_DIR, job_name[5:])
+                results_dir = os.path.join(log_dir, "results")
+                save_json = os.path.join(results_dir, save_json)
+
+                command = f"python -m scripts.find_best_ckpt --run_test --log_dir {log_dir} --metric {checkpoint_type} --learning_type mtl --save_json {save_json} --mtl_checkpoint_type {args.mtl_checkpoint_type}"
+                job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+
+def submit_mtl_jtt_train(args):
+    SEED_GRID = [0, 1, 2]
+    TASK = ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair"]
+
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+
+    for seed in SEED_GRID:
+        for mtl_weighting in ["static_equal", "static_delta", "dynamic"]:
+
+            job_name = f"mtl_train:jtt,task:{len(TASK)}_tasks_{mtl_weighting}_task_weighting,seed:{seed}"
+            log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+
+            save_json = f"test_stats_{checkpoint_type}_checkpoint_{args.mtl_checkpoint_type}_mtl_type.json"
+
+            log_dir = os.path.join(LOG_DIR, "mtl_jtt", job_name[5:])
+            results_dir = os.path.join(log_dir, "results")
+            save_json = os.path.join(results_dir, save_json)
+
+            command = f"python -m scripts.find_best_ckpt --run_test --log_dir {log_dir} --metric {checkpoint_type} --learning_type mtl --save_json {save_json} --mtl_checkpoint_type {args.mtl_checkpoint_type}"
+            job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+
+
 def main():
     args = parse_args()
     if args.mode == "sbatch":
@@ -378,6 +471,14 @@ def main():
         submit_erm_baseline_nondisjoint_eval_test(args)
     elif args.opt == "mtl_nondisjoint":
         submit_mtl_nondisjoint_tasks_eval_test(args)
+    elif args.opt == "mtl_semantic_similar":
+        submit_mtl_semantic_similar_tasks_train_group(args)
+    elif args.opt == "mtl_strong_spurious":
+        submit_mtl_strong_spurious_correlations_tasks_train_group(args)
+    elif args.opt == "mtl_weak_spurious":
+        submit_mtl_weak_spurious_correlations_tasks_train_group(args)
+    elif args.opt == "mtl_jtt":
+        submit_mtl_jtt_train(args)
     else:
         raise ValueError(f"Didn't recognize opt={args.opt}. Did you forget to add a check for this function?")
 
