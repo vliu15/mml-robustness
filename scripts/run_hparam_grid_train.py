@@ -143,7 +143,7 @@ def submit_erm_baseline_disjoint_tasks_train(args):
     EPOCHS = 50
     SEED_GRID = [0, 1, 2]
 
-    TASK_GRID = ["Wearing_Earrings:Male", "Attractive:Male", "No_Beard:Heavy_Makeup", "Pointy_Nose:Heavy_Makeup",
+    TASK_GRID = ["Wearing_Earrings:Male", "Attractive:Male", "No_Beard:Heavy_Makeup", "Pointy_Nose:Heavy_Makeup", 
     "Attractive:Gray_Hair", "Big_Nose:Gray_Hair", "Heavy_Makeup:Wearing_Lipstick", "No_Beard:Wearing_Lipstick",
     "Bangs:Wearing_Hat", "Blond_Hair:Wearing_Hat"]
 

@@ -17,7 +17,7 @@ import logging.config
 import os
 import re
 from collections import defaultdict
-from copy import deepcopys
+from copy import deepcopy
 from typing import List
 
 import numpy as np
