@@ -17,7 +17,7 @@ import logging.config
 import os
 import re
 from collections import defaultdict
-from copy import deepcopys
+from copy import deepcopy
 from typing import List
 
 import numpy as np
@@ -34,6 +34,7 @@ alpha = 0.05  ## Change this if something other than a 95% CI is desired
 z = stats.norm.ppf(1 - alpha / 2)
 
 ###TODO:FIX THE PER-TASK ONE
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -77,7 +78,9 @@ def get_group_sizes(config, task, attr, split):
 
 
 ### print out average accuracy, print out worst group accuracy print out loss
-def mean_std_results(*, exp_name: str, log_dirs: List[str], split: str, checkpoint_metric_type: str, mtl_checkpoint_type: str = None):
+def mean_std_results(
+    *, exp_name: str, log_dirs: List[str], split: str, checkpoint_metric_type: str, mtl_checkpoint_type: str = None
+):
     average_accuracy = defaultdict(list)
     worst_group_accuracy = defaultdict(list)
 
@@ -115,10 +118,11 @@ def mean_std_results(*, exp_name: str, log_dirs: List[str], split: str, checkpoi
             average_accuracy[task].append(avg_acc)
 
     if mtl_checkpoint_type is not None:
-        logger.info(f"Split [{split}] | Checkpoint selection [{checkpoint_metric_type}] | MTL checkpoint type [{mtl_checkpoint_type}] :\n")
+        logger.info(
+            f"Split [{split}] | Checkpoint selection [{checkpoint_metric_type}] | MTL checkpoint type [{mtl_checkpoint_type}] :\n"
+        )
     else:
         logger.info(f"Split [{split}] | Checkpoint selection [{checkpoint_metric_type}] :\n")
-
 
     for task in average_accuracy.keys():
         logger.info(f"\nTASK: {task}")
@@ -130,7 +134,9 @@ def mean_std_results(*, exp_name: str, log_dirs: List[str], split: str, checkpoi
         )
 
 
-def mean_ci_results(*, exp_name: str, log_dirs: List[str], split: str, checkpoint_metric_type: str, mtl_checkpoint_type: str = None):
+def mean_ci_results(
+    *, exp_name: str, log_dirs: List[str], split: str, checkpoint_metric_type: str, mtl_checkpoint_type: str = None
+):
     average_counts = defaultdict(
         lambda: defaultdict(list)
     )  ## for each task need a correct counts and a total counts of average
@@ -186,7 +192,9 @@ def mean_ci_results(*, exp_name: str, log_dirs: List[str], split: str, checkpoin
             worst_group_counts[task][f"{task}_correct_counts"].append(worst_group_correct)
 
     if mtl_checkpoint_type is not None:
-        logger.info(f"Split [{split}] | Checkpoint selection [{checkpoint_metric_type}] | MTL checkpoint type [{mtl_checkpoint_type}] :\n")
+        logger.info(
+            f"Split [{split}] | Checkpoint selection [{checkpoint_metric_type}] | MTL checkpoint type [{mtl_checkpoint_type}] :\n"
+        )
     else:
         logger.info(f"Split [{split}] | Checkpoint selection [{checkpoint_metric_type}] :\n")
 

@@ -6,9 +6,9 @@ import time
 import cvxpy as cp
 import numpy as np
 import scipy
-import os
 import torch
 from tqdm import tqdm
+
 
 ## this currently works for all number of tasks
 def quadratic_programming(Y, verbose=False, grouping_name=''):
@@ -160,7 +160,7 @@ def entropy_maximization_pgd(Y, verbose=False, grouping_name=''):
         w = np.load(os.path.join('./mtl_suby_w', file_name))
         return w, grouping_name
 
-    eps=1e-13
+    eps = 1e-13
 
     Y = Y.astype(np.float32)
     k, n = Y.shape  # k = number of tasks, n = number of instances
@@ -169,15 +169,15 @@ def entropy_maximization_pgd(Y, verbose=False, grouping_name=''):
     steps = 100
     print(f"Solving for w over {n} examples. Input array of labels: ({k} tasks, {n} examples).")
 
-    ### min loss 
+    ### min loss
     w = torch.randn(n, requires_grad=True, device="cuda")
-    
+
     optimizer = torch.optim.SGD([w], lr=0.01, momentum=0.9)
-    
+
     lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=steps)
 
     for _ in tqdm(range(steps), total=steps):
-        
+
         w = w.detach()
         w.requires_grad = True
 
@@ -192,18 +192,16 @@ def entropy_maximization_pgd(Y, verbose=False, grouping_name=''):
         with torch.no_grad():
             w_cpu = w.cpu().numpy()
             w_project = cp.Variable(n, nonneg=True)
-            prob = cp.Problem(
-                cp.Minimize(cp.norm(w_project - w_cpu)),
-                [
-                    Y @ w_project == c,
-                    cp.sum(w_project) == 1,
-                ]
-            )
-            
+            prob = cp.Problem(cp.Minimize(cp.norm(w_project - w_cpu)), [
+                Y @ w_project == c,
+                cp.sum(w_project) == 1,
+            ])
+
             prob.solve(solver=cp.ECOS, verbose=False, qcp=True)
             w.data = torch.tensor(w_project.value, device='cuda')
 
     return w.detach().cpu().numpy(), grouping_name
+
 
 if __name__ == "__main__":
     # This is just a code block to test out the optimization functions independent of the train scripts.
@@ -227,7 +225,7 @@ if __name__ == "__main__":
     dataset = CelebA(config, split="train")
     Y = dataset.attr[:, dataset.task_label_indices].T.numpy()  # (7, 162770)
     Y = scipy.sparse.csr_matrix(Y)
-    w, grouping_name = entropy_maximization_pgd(Y, verbose=True, grouping_name = grouping_name)
+    w, grouping_name = entropy_maximization_pgd(Y, verbose=True, grouping_name=grouping_name)
     print(f"verify that the weights multiply against the multi-class labels to 1/2: {Y@w}")
     print(f"verify that weights sum to one: {np.sum(w)}")
     print(f'minimum value of weight: {np.amin(w)}')

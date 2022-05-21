@@ -39,7 +39,7 @@ class JobManager(object):
             logger.info(command)
 
         elif self.mode == "shell":
-            message = f"RUNNING COMMAND {self.counter}"
+            message = f"RUNNING COMMAND {self.counter}: {command}"
             logger.info(f"{Color.BOLD}{Color.GREEN}{message}{Color.END}{Color.END}")
             subprocess.run(command, shell=True, check=True)
 
