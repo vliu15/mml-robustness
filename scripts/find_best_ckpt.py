@@ -239,7 +239,7 @@ def main(
 
             logger.info(f"Running evaluation on test set with checkpoint {best_epoch}")
             command = (
-                "python3 test.py "
+                "python test.py "
                 f"--log_dir {log_dir} "
                 f"--ckpt_num {int(best_epoch)} "
                 f"--split test "
@@ -259,7 +259,7 @@ def main(
                 save_json_substring = save_json.split(".json")[0]
                 save_json_task = save_json_substring + f"_{task_name}_task.json"
                 command = (
-                    "python3 test.py "
+                    "python test.py "
                     f"--log_dir {log_dir} "
                     f"--ckpt_num {int(best_epoch[task_name])} "
                     f"--split test "
