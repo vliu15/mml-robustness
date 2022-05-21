@@ -1041,7 +1041,14 @@ def submit_mtl_task_ablation_disjoint_train(args):
     BATCH_SIZE = 32
     EPOCHS = 50
     SEED_GRID = [0, 1, 2]
-    TASKS = [["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling"]]
+    TASKS = [["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Gray_Hair:Young", "High_Cheekbones:Smiling"],
+    ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Wearing_Lipstick:Male"],
+    ["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Wearing_Lipstick:Male", "Gray_Hair:Young"],    
+    ["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Brown_Hair:Wearing_Hat", "Big_Lips:Chubby"],
+    ["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Gray_Hair:Young", "Brown_Hair:Wearing_Hat"]]
+    
+    
+    #[["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling"]]
     
     #[["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Gray_Hair:Young"],
     #["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling"],
@@ -1049,12 +1056,7 @@ def submit_mtl_task_ablation_disjoint_train(args):
     #["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Brown_Hair:Wearing_Hat"],
     #["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Gray_Hair:Young"]]
 
-    #["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Gray_Hair:Young", "High_Cheekbones:Smiling"]
-    #["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Wearing_Lipstick:Male"]
 
-    #["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Wearing_Lipstick:Male", "Gray_Hair:Young"]    
-    #["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Brown_Hair:Wearing_Hat", "Big_Lips:Chubby"]
-    #["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Gray_Hair:Young", "Brown_Hair:Wearing_Hat"]
 
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
@@ -1109,8 +1111,17 @@ def submit_mtl_task_ablation_nondisjoint_train(args):
     LR = 1e-4
     BATCH_SIZE = 32
     EPOCHS = 50
-    SEED_GRID = [0, 1, 2]
+    SEED_GRID = [0, 1, 2] 
     TASKS = [["Arched_Eyebrows:Male", "Big_Nose:Male"], ["Blond_Hair:Male", "Wearing_Earrings:Male"]]
+    
+    #[["Arched_Eyebrows:Male", "Big_Nose:Male", "Wearing_Earrings:Male", "Blond_Hair:Male"],
+    #["Arched_Eyebrows:Male", "Big_Nose:Male", "Wearing_Lipstick:Male", "Wearing_Earrings:Male"],
+    #["Arched_Eyebrows:Male", "Big_Nose:Male", "Attractive:Male", "Blond_Hair:Male"],
+    #["Blond_Hair:Male", "Wearing_Earrings:Male", "Wearing_Lipstick:Male", "Arched_Eyebrows:Male"],
+    #["Blond_Hair:Male", "Wearing_Earrings:Male", "Big_Nose:Male", "Attractive:Male"],
+    #["Blond_Hair:Male", "Wearing_Earrings:Male", "Arched_Eyebrows:Male", "Big_Nose:Male"]]
+    
+    #[["Arched_Eyebrows:Male", "Big_Nose:Male"], ["Blond_Hair:Male", "Wearing_Earrings:Male"]]
     
     #[["Arched_Eyebrows:Male", "Big_Nose:Male", "Wearing_Earrings:Male"],
     #["Arched_Eyebrows:Male", "Big_Nose:Male", "Wearing_Lipstick:Male"],
@@ -1119,15 +1130,6 @@ def submit_mtl_task_ablation_nondisjoint_train(args):
     #["Blond_Hair:Male", "Wearing_Earrings:Male", "Big_Nose:Male"],
     #["Blond_Hair:Male", "Wearing_Earrings:Male", "Arched_Eyebrows:Male"]]
 
-    #["Arched_Eyebrows:Male", "Big_Nose:Male", "Wearing_Earrings:Male", "Blond_Hair:Male"]
-    #["Arched_Eyebrows:Male", "Big_Nose:Male", "Wearing_Lipstick:Male", "Wearing_Earrings:Male"]
-    #["Arched_Eyebrows:Male", "Big_Nose:Male", "Attractive:Male", "Blond_Hair:Male"]
-
-    #["Blond_Hair:Male", "Wearing_Earrings:Male", "Wearing_Lipstick:Male", "Arched_Eyebrows:Male"]
-    #["Blond_Hair:Male", "Wearing_Earrings:Male", "Big_Nose:Male", "Attractive:Male"]
-    #["Blond_Hair:Male", "Wearing_Earrings:Male", "Arched_Eyebrows:Male", "Big_Nose:Male"]
-
-    
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
     method = "erm"
