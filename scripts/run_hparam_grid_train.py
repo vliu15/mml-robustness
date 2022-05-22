@@ -870,8 +870,6 @@ def submit_mtl_erm_weak_tasks_train(args):
 
 def main():
     args = parse_args()
-    if args.mode == "sbatch":
-        os.makedirs(args.slurm_logs, exist_ok=True)
 
     #######################
     # [0] STL SPURIOUS ID #

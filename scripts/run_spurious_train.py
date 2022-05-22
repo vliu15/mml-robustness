@@ -23,18 +23,35 @@ attributes = [
     "Wavy_Hair", "Wearing_Earrings", "Wearing_Hat", "Wearing_Lipstick", "Wearing_Necklace", "Wearing_Necktie", "Young"
 ]
 
-#used_for_tuning = ["Blond_Hair", "Young", "Smiling", "Oval_Face", "Pointy_Nose", "Attractive"]
+# used_for_tuning = ["Blond_Hair", "Young", "Smiling", "Oval_Face", "Pointy_Nose", "Attractive"]
 used_for_tuning = []  #if we simply want to re-run for all attributes
 USER = os.environ["USER"]
+
+PARAMS = {
+    # STL baseline methods
+    "erm": {
+        "WD": 1e-1,
+        "LR": 1e-4,
+        "BATCH_SIZE": 128,
+        "EPOCHS": 50,
+    },
+    "suby": {
+        "WD": 1e-2,
+        "LR": 1e-3,
+        "BATCH_SIZE": 128,
+        "EPOCHS": 50,
+    },
+    "rwy": {
+        "WD": 1e-2,
+        "LR": 1e-4,
+        "BATCH_SIZE": 2,
+        "EPOCHS": 50,
+    },
+}
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--wd", type=float, required=True, help="Weight decay value")
-    parser.add_argument("--lr", type=float, required=True, help="Learning rate value")
-    parser.add_argument("--batch_size", type=int, required=False, default=32, help="Batch size to use")
-    parser.add_argument("--epochs", type=int, required=False, default=25, help="Number of epochs to train for")
-
     parser.add_argument("--mode", type=str, choices=["debug", "shell", "sbatch"], default="debug", help="Spawn job mode")
     parser.add_argument("--opt", type=str, required=True, help="Type of optimization run to spawn")
 
@@ -47,40 +64,23 @@ def parse_args():
     return parser.parse_args()
 
 
-def erm_spurious_id(args, attributes_to_train):
+def run_spurious_id(args, attributes_to_train):
+    wd, lr, batch_size, epochs = PARAMS[args.opt]["WD"], PARAMS[args.opt]["LR"], PARAMS[args.opt]["BATCH_SIZE"], PARAMS[
+        args.opt]["EPOCHS"]
+
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
     for attribute in attributes_to_train:
-        job_name = f"task:{attribute},wd:{args.wd},lr:{args.lr}"
+        job_name = f"task:{attribute},wd:{wd},lr:{lr}"
         log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
         command = (
-            "python train_erm.py exp=erm "
+            "python train_erm.py "
+            f"exp={args.opt} "
             f"exp.dataset.groupings='[{attribute}:Blond_Hair]' "
-            f"exp.optimizer.lr={args.lr} "
-            f"exp.optimizer.weight_decay={args.wd} "
-            f"exp.train.total_epochs={args.epochs} "
-            f"exp.train.log_dir=\\'{os.path.join(args.log_dir, job_name)}\\' "
-            "exp.dataset.subgroup_labels=False"
-        )
-
-        job_manager.submit(command, job_name=job_name, log_file=log_file)
-
-
-def suby_spurious_id(args, attributes_to_train):
-    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
-
-    for attribute in attributes_to_train:
-        job_name = f"suby_spurious_id:{attribute},wd:{args.wd},lr:{args.lr},batch_size:{args.batch_size}"
-        log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
-
-        command = (
-            "python train_erm.py exp=suby "
-            f"exp.dataset.groupings='[{attribute}:Blond_Hair]' "
-            f"exp.optimizer.lr={args.lr} "
-            f"exp.optimizer.weight_decay={args.wd} "
-            f"exp.train.total_epochs={args.epochs} "
-            f"exp.dataloader.batch_size={args.batch_size} "
-            f"exp.train.load_ckpt=\\'/farmshare/user_data/{USER}/mml-robustness/logs/spurious_id/{job_name}/ckpts/ckpt.54.pt\\' "
+            f"exp.dataloader.batch_size={batch_size} "
+            f"exp.optimizer.lr={lr} "
+            f"exp.optimizer.weight_decay={wd} "
+            f"exp.train.total_epochs={epochs} "
             f"exp.train.log_dir=\\'{os.path.join(args.log_dir, job_name)}\\' "
             "exp.dataset.subgroup_labels=False"
         )
@@ -94,12 +94,8 @@ def main():
     attributes_to_train = sorted(set(attributes).difference(used_for_tuning))
     print(f"Number of tasks: {len(attributes_to_train)}")
 
-    if args.opt == "erm":
-        erm_spurious_id(args, attributes_to_train)
-    elif args.opt == "suby":
-        suby_spurious_id(args, attributes_to_train)
-    else:
-        raise ValueError(f"Didn't recognize opt={args.opt}. Did you forget to add a check for this function?")
+    assert args.opt in ["erm", "suby", "rwy"]
+    run_spurious_id(args, attributes_to_train)
 
 
 if __name__ == "__main__":

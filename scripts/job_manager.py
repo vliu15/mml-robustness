@@ -30,6 +30,8 @@ class JobManager(object):
         with open(template, "r") as f:
             self.template = f.read()
         self.slurm_logs = slurm_logs
+        os.makedirs(slurm_logs, exist_ok=True)
+
         assert mode in ["debug", "shell", "sbatch"]
         self.mode = mode
         self.counter = 0

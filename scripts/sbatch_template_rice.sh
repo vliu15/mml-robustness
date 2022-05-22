@@ -16,7 +16,7 @@ export OMP_NUM_THREADS=8            # Set parallel threads to --cpus-per-task
 # conda init bash
 cd /farmshare/user_data/$USER/mml-robustness
 
-# Activate the training environment
+# Activate the training environment: CUDA 10.0 should be compatible with Oat GPUs (K40)
 if [[ $USER == "vliu15" ]]; then
     export PATH=/usr/local/cuda-10.0/bin${PATH:+:${PATH}}
     export LD_LIBRARY_PATH=/usr/local/cuda-10.0/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
