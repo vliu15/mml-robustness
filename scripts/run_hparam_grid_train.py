@@ -3,7 +3,7 @@ Handy script to run jobs for hyperparameter grid searches
 
 Sample usage:
 python -m scripts.run_hparam_grid_train \
-    --template ./scripts/sbatch_template.sh \
+    --template ./scripts/sbatch_template_rice.sh \
     --mode sbatch \
     --slurm_logs ./slurm_logs \
     --opt erm

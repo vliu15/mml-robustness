@@ -35,7 +35,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    job_manager = JobManager(mode=args.mode, template="./scripts/sbatch_template.sh", slurm_logs="./slurm_logs")
+    job_manager = JobManager(mode=args.mode, template="./scripts/sbatch_template_rice.sh", slurm_logs="./slurm_logs")
 
     args = parse_args()
     for log_dir in os.listdir(args.meta_log_dir):

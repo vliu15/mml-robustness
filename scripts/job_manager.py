@@ -26,7 +26,7 @@ class Color(object):
 class JobManager(object):
     """Wrapper class to abstract job submissions and management"""
 
-    def __init__(self, mode: str, template: str = "./scripts/sbatch_template.sh", slurm_logs: str = "./slurm_logs"):
+    def __init__(self, mode: str, template: str = "./scripts/sbatch_template_rice.sh", slurm_logs: str = "./slurm_logs"):
         with open(template, "r") as f:
             self.template = f.read()
         self.slurm_logs = slurm_logs

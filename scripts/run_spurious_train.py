@@ -40,7 +40,7 @@ def parse_args():
 
     # No need to change any of these tbh
     parser.add_argument(
-        "--template", type=str, default="scripts/sbatch_template.sh", required=False, help="SBATCH template file"
+        "--template", type=str, default="scripts/sbatch_template_rice.sh", required=False, help="SBATCH template file"
     )
     parser.add_argument("--slurm_logs", type=str, default="slurm_logs", required=False, help="Directory to output slurm logs")
     parser.add_argument("--log_dir", type=str, required=False, default="./logs/spurious_id", help="Log directory for all runs")

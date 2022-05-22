@@ -3,7 +3,7 @@ Handy script to run jobs for hyperparameter grid searches
 
 Sample usage:
 python -m scripts.run_hparam_grid_eval \
-    --template ./scripts/sbatch_template.sh \
+    --template ./scripts/sbatch_template_rice.sh \
     --mode sbatch \
     --slurm_logs ./slurm_logs \
     --opt suby
@@ -25,7 +25,7 @@ SEED_GRID = [0, 1, 2]
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--template", type=str, default="scripts/sbatch_template.sh", required=False, help="SBATCH template file"
+        "--template", type=str, default="scripts/sbatch_template_rice.sh", required=False, help="SBATCH template file"
     )
     parser.add_argument(
         "--mode",
