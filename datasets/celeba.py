@@ -1,5 +1,6 @@
 import itertools
 import logging
+import logging.config
 import os
 
 import numpy as np
@@ -10,6 +11,7 @@ from PIL import Image
 from torch.utils.data import Dataset
 
 from datasets.groupings import get_grouping_object
+from mtl.instance_weighting import entropy_maximization, entropy_maximization_pgd, min_max_difference, quadratic_programming
 
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger(__name__)
@@ -135,15 +137,15 @@ class CelebA(Dataset):
 
         # NOTE: wy only implemented for single task for now
         # Label 0 is groups [0,1]; Label 1 is groups [2,3]
-        if len(self.task_labels) == 1:
-            ones = self.attr[:, self.task_label_indices[0]].sum()
-            zeros = len(self.attr[:, self.task_label_indices[0]]) - ones
-            ones_w = float(len(self)) / float(ones)
-            zeros_w = float(len(self)) / float(zeros)
-            self.wy = [(attr * ones_w + (1 - attr) * zeros_w).item() for attr in self.attr[:, self.task_label_indices[0]]]
-        else:
-            logger.info("WY only for single task, but multiple are detected. Setting all weights to 1.")
-            self.wy = [1.0] * len(self.attr)
+        if split == "train":
+            if len(self.task_labels) == 1:
+                ones = self.attr[:, self.task_label_indices[0]].sum()
+                zeros = len(self.attr[:, self.task_label_indices[0]]) - ones
+                ones_w = float(len(self)) / float(ones)
+                zeros_w = float(len(self)) / float(zeros)
+                self.wy = [(attr * ones_w + (1 - attr) * zeros_w).item() for attr in self.attr[:, self.task_label_indices[0]]]
+            else:
+                self.wy = self.get_mtl_instance_w(config)
 
         if config.dataset.subsample is True and split == "train":
             task_labels = self.attr[:, self.task_label_indices]
@@ -156,21 +158,41 @@ class CelebA(Dataset):
             task_sizes[:, 1] = neg_counts
 
             if self.subgroup_labels:
-
                 self.subsample(config, task_sizes, self.counts)
-
             else:
                 self.subsample(config, task_sizes, None)
 
-    def subsample(self, config, class_sizes, group_sizes=None):
-        # sample by minimum sample in each group
+    def get_mtl_instance_w(self, config):
+        Y = self.attr[:, self.task_label_indices].T.numpy()
+        grouping_name = (";").join(list(sorted(config.dataset.groupings)))
 
-        if len(self.task_label_indices) > 1:
-            ## MTL Setting
-            raise ValueError("Semantics need to be discussed with Tatsu")
+        cvx = config.dataset.get("cvx", None)
 
+        # Solve for w
+        if cvx == "qp":
+            w, _ = quadratic_programming(Y, verbose=False, grouping_name=grouping_name)
+        elif cvx is None or cvx == "maxent":
+            if len(self.task_label_indices) <= 3:
+                w, _ = entropy_maximization(Y, verbose=False, grouping_name=grouping_name)
+            else:
+                w, _ = entropy_maximization_pgd(Y, verbose=False, grouping_name=grouping_name)
+        elif cvx == "minmax":
+            w, _ = min_max_difference(Y, verbose=False, grouping_name=grouping_name)
         else:
-            ## stl setting
+            raise ValueError(f"Unrecognized config.dataset.cvx specification: {cvx}")
+
+        # Normalize and apply rejection sampling
+        w = w / w.max()
+        return w
+
+    def subsample(self, config, class_sizes, group_sizes=None):
+        # MTL setting
+        if len(self.task_label_indices) > 1:
+            p = np.random.uniform(size=self.wy.shape)
+            sub_indices = np.where(self.wy > p)[0]
+
+        # STL setting
+        else:
             perm = torch.randperm(len(self)).tolist()
 
             if config.dataset.subsample_type == "subg":
@@ -195,11 +217,11 @@ class CelebA(Dataset):
                         counts_y[y] += 1
                         sub_indices.append(p)
 
-            self.attr = self.attr[sub_indices, :]
-            self.filename = self.filename[sub_indices]
+        self.attr = self.attr[sub_indices, :]
+        self.filename = self.filename[sub_indices]
 
-            if self.subgroup_labels:
-                self.subgroups = self.subgroups[sub_indices, :]
+        if self.subgroup_labels:
+            self.subgroups = self.subgroups[sub_indices, :]
 
     def __getitem__(self, index):
         image = Image.open(os.path.join(self.root, "img_align_celeba", self.filename[index]))

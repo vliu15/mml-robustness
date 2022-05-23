@@ -24,6 +24,8 @@ dataset:
     subsample: true
     subsample_type: "subg"
 
+    cvx: null  # defaults to maxent
+
 model:
     name: resnet50
     pretrained: true

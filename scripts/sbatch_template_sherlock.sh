@@ -8,18 +8,23 @@
 #SBATCH --mem=32GB                  # Job memory request
 #SBATCH --time=48:00:00             # Time limit hrs:min:sec
 #SBATCH --output=$LOG_FILE          # Standard output and error log
-#SBATCH --partition=gpu,normal      # Request a specific partition for the resource allocation
-#SBATCH --gres=gpu:1                # Specifies a comma-delimited list of generic consumable resources
+#SBATCH --partition=gpu             # Request a specific partition for the resource allocation
+#SBATCH --gpus 1                    # Specifies GPU
 
 export OMP_NUM_THREADS=8            # Set parallel threads to --cpus-per-task
 
+# load in cuda version
+# module load cuda/11.1.1
+
+# load in pytorch for safety
+# module load py-pytorch/1.11.0_py39 
+
+# load in conda enviornment
+source /home/users/${USER}/.bashrc
+conda activate mml-robustness
+
 # conda init bash
-cd /farmshare/user_data/$USER/mml-robustness
+cd /home/groups/thashim/mml-robustness
 
-# Activate the training environment
-if [[ $USER == "vliu15" ]]; then
-    export PATH=/usr/local/cuda-10.0/bin${PATH:+:${PATH}}
-    export LD_LIBRARY_PATH=/usr/local/cuda-10.0/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
-fi
-
+nvidia-smi
 $COMMAND
