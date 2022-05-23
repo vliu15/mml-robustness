@@ -24,4 +24,5 @@ fi
 
 conda activate mml-robustness
 
+nvidia-smi
 $COMMAND

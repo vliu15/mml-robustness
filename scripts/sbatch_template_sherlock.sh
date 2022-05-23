@@ -26,4 +26,5 @@ conda activate mml-robustness
 # conda init bash
 cd /home/groups/thashim/mml-robustness
 
+nvidia-smi
 $COMMAND

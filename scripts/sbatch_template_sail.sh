@@ -30,4 +30,5 @@ alias python=/sailhome/$USER/miniconda3/envs/mml-robustness/bin/python3
 # For python-installed commands like pylint,yapf,isort, since conda is probably installed in a non-default folder
 export PATH=/sailhome/$USER/miniconda3/envs/mml-robustness/bin${PATH:+:${PATH}}
 
+nvidia-smi
 $COMMAND
