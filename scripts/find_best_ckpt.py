@@ -231,7 +231,10 @@ def main(
 
     else:
         for task_name in task_names:
-            best_epoch[task_name] += 1
+            if task_name in best_epoch:
+                best_epoch[task_name] += 1
+            else:
+                best_epoch[task_name] = 1
 
     # Actually run evaluation on test set with this checkpoint
     if run_test:
