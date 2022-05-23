@@ -3,7 +3,7 @@ Handy script to run jobs for hyperparameter grid searches
 
 Sample usage:
 python -m scripts.run_hparam_grid_train \
-    --template ./scripts/sbatch_template.sh \
+    --template ./scripts/sbatch_template_rice.sh \
     --mode sbatch \
     --slurm_logs ./slurm_logs \
     --opt erm
@@ -870,8 +870,6 @@ def submit_mtl_erm_weak_tasks_train(args):
 
 def main():
     args = parse_args()
-    if args.mode == "sbatch":
-        os.makedirs(args.slurm_logs, exist_ok=True)
 
     #######################
     # [0] STL SPURIOUS ID #
