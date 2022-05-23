@@ -25,7 +25,7 @@ SEED_GRID = [0, 1, 2]
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--template", type=str, default="scripts/sbatch_template.sh", required=False, help="SBATCH template file"
+        "--template", type=str, default="scripts/sherlock_sbatch_template.sh", required=False, help="SBATCH template file"
     )
     parser.add_argument(
         "--mode",
@@ -140,7 +140,6 @@ def submit_stl_test(args):
         TASK_GRID = flatten(TASKS["MTL_DISJOINT"])
     else:  # we want to run erm on everything
         TASK_GRID = set(flatten(TASKS["MTL_DISJOINT"] + TASKS["MTL_NONDISJOINT"] + TASKS["MTL_SIMILAR"] + TASKS["MTL_STRONG"]))
-
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
 
     for task in TASK_GRID:
@@ -492,13 +491,18 @@ def main():
     # [3] MTL TASK ABLATION #
     #########################
 
-    # Evals MTL methods on task sizes from 3-6
-    elif args.opt in ["mtl_erm_ablate"]:
+    # Evals MTL methods on task sizes from 3-6 for disjoint
+    elif args.opt in ["mtl_erm_ablate_disjoint"]:
         submit_mtl_erm_ablate_disjoint_tasks_test(args)
 
     # Evals MTL methods on the lasts 4 disjoint task pairs
     elif args.opt in ["mtl_erm_disjoint"]:
         submit_mtl_erm_disjoint_tasks_test(args)
+
+    # Evals MTL methods on task sizes from 3-6 for nondisjoint
+    elif args.opt in ["mtl_erm_ablate_nondisjoint"]:
+        submit_mtl_erm_ablate_nondisjoint_tasks_test(args)
+
 
     ###############################
     # [4] DISJOINT VS NONDISJOINT #
