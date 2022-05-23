@@ -1,5 +1,6 @@
 import itertools
 import logging
+import logging.config
 import os
 
 import numpy as np
@@ -11,7 +12,6 @@ from torch.utils.data import Dataset
 
 from datasets.groupings import get_grouping_object
 from mtl.instance_weighting import entropy_maximization, entropy_maximization_pgd, min_max_difference, quadratic_programming
-import logging.config
 
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger(__name__)
@@ -166,18 +166,20 @@ class CelebA(Dataset):
         Y = self.attr[:, self.task_label_indices].T.numpy()
         grouping_name = (";").join(list(sorted(config.dataset.groupings)))
 
+        cvx = config.dataset.get("cvx", None)
+
         # Solve for w
-        if config.dataset.cvx is None or config.dataset.cvx == "qp":
+        if cvx == "qp":
             w, _ = quadratic_programming(Y, verbose=False, grouping_name=grouping_name)
-        elif config.dataset.cvx == "maxent":
+        elif cvx is None or cvx == "maxent":
             if len(self.task_label_indices) <= 3:
                 w, _ = entropy_maximization(Y, verbose=False, grouping_name=grouping_name)
             else:
                 w, _ = entropy_maximization_pgd(Y, verbose=False, grouping_name=grouping_name)
-        elif config.dataset.cvx == "minmax":
+        elif cvx == "minmax":
             w, _ = min_max_difference(Y, verbose=False, grouping_name=grouping_name)
         else:
-            raise ValueError(f"Unrecognized config.dataset.cvx specification: {config.dataset.cvx}")
+            raise ValueError(f"Unrecognized config.dataset.cvx specification: {cvx}")
 
         # Normalize and apply rejection sampling
         w = w / w.max()
