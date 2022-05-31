@@ -310,32 +310,38 @@ def flatten(t):
     return [item for sublist in t for item in sublist]
 
 
-def append_ckpt_for_respawn(command, job_name, epochs):
-    ckpt_dir = os.path.join(LOG_DIR, job_name, "ckpts")
+def append_ckpt_for_respawn(command, job_name, epochs, log_dir=None):
+    if log_dir is None:
+        log_dir = LOG_DIR
+    ckpt_dir = os.path.join(log_dir, job_name, "ckpts")
     if not os.path.exists(ckpt_dir):
         warnings.warn(f"Skipping respawn ... No existing checkpoint found for: {job_name}")
         return command
     ckpt_path, ckpt_num = find_last_checkpoint(ckpt_dir)
+    if ckpt_num is None:
+        return command
     if ckpt_num < epochs:
         return f"{command} exp.train.load_ckpt=\\'{ckpt_path}\\'"
     else:
         return command
 
 
-def append_ckpt_for_jtt_respawn(command, job_name, epochs1, epochs2):
-    stage_1_ckpt_dir = os.path.join(LOG_DIR, job_name, "stage_1", "ckpts")
+def append_ckpt_for_jtt_respawn(command, job_name, epochs1, epochs2, log_dir=None):
+    if log_dir is None:
+        log_dir = LOG_DIR
+    stage_1_ckpt_dir = os.path.join(log_dir, job_name, "stage_1", "ckpts")
     if not os.path.exists(stage_1_ckpt_dir):  # no stage 1 ckpts mean we haven't trained at all yet
         warnings.warn(f"Skipping respawn ... No existing checkpoint found for: {job_name}")
         return command
     stage_1_ckpt_path, stage_1_ckpt_num = find_last_checkpoint(stage_1_ckpt_dir)
 
-    stage_2_ckpt_dir = os.path.join(LOG_DIR, job_name, "stage_2", "ckpts")
+    stage_2_ckpt_dir = os.path.join(log_dir, job_name, "stage_2", "ckpts")
     if stage_1_ckpt_num == epochs1 and os.path.exists(stage_2_ckpt_dir):
         stage_2_ckpt_path, stage_2_ckpt_num = find_last_checkpoint(stage_2_ckpt_dir)
     else:
         stage_2_ckpt_path, stage_2_ckpt_num = "null", "null"
 
-    load_up_pkl_path = os.path.join(LOG_DIR, job_name, f"jtt_error_set_inv.pkl")  # default is inv merging, even for stl
+    load_up_pkl_path = os.path.join(log_dir, job_name, f"jtt_error_set_inv.pkl")  # default is inv merging, even for stl
 
     if stage_1_ckpt_num != epochs1 or (stage_1_ckpt_num == epochs1 and not os.path.exists(load_up_pkl_path)):
         return f"{command} exp.load_stage_1_ckpt=\\'{stage_1_ckpt_path}\\'"

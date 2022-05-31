@@ -2,6 +2,7 @@
 # All lazy imports to avoid importing unnecessary modules
 
 import logging
+import logging.config
 
 import torch.distributed as distributed
 

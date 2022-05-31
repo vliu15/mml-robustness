@@ -5,6 +5,7 @@ import logging.config
 import os
 import subprocess
 import uuid
+import warnings
 
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger(__name__)
@@ -26,7 +27,13 @@ class Color(object):
 class JobManager(object):
     """Wrapper class to abstract job submissions and management"""
 
-    def __init__(self, mode: str, template: str = "./scripts/sbatch_template_rice.sh", slurm_logs: str = "./slurm_logs"):
+    def __init__(
+        self,
+        mode: str,
+        template: str = "./scripts/sbatch_template_rice.sh",
+        slurm_logs: str = "./slurm_logs",
+        cpu: bool = False,
+    ):
         with open(template, "r") as f:
             self.template = f.read()
         self.slurm_logs = slurm_logs
@@ -35,6 +42,16 @@ class JobManager(object):
         assert mode in ["debug", "shell", "sbatch"]
         self.mode = mode
         self.counter = 0
+
+        if cpu:
+            if "rice" in template:
+                self.template = self.template.replace("--partition=gpu,normal", "--partition=normal")
+                self.template = self.template.replace("--gres=gpu:1", "--gres=gpu:0")
+            elif "sail" in template:
+                self.template = self.template.replace("--partition=jag-urgent,jag-hi,jag-standard", "--partition=john")
+                self.template = self.template.replace("--gres=gpu:1", "--gres=gpu:0")
+            else:
+                warnings.warn(f"No explicit CPU jobs written for SBATCH template {template}")
 
     def submit(self, command, job_name=None, log_file=None):
         if self.mode == "debug":

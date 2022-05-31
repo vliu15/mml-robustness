@@ -14,6 +14,7 @@ import argparse
 import os
 
 from scripts.job_manager import JobManager
+from scripts.run_hparam_grid_train import append_ckpt_for_respawn
 
 attributes = [
     "5_o_Clock_Shadow", "Arched_Eyebrows", "Attractive", "Bags_Under_Eyes", "Bald", "Bangs", "Big_Lips", "Big_Nose",
@@ -45,7 +46,7 @@ PARAMS = {
         "WD": 1e-2,
         "LR": 1e-4,
         "BATCH_SIZE": 2,
-        "EPOCHS": 50,
+        "EPOCHS": 25,
     },
 }
 
@@ -57,10 +58,11 @@ def parse_args():
 
     # No need to change any of these tbh
     parser.add_argument(
-        "--template", type=str, default="scripts/sbatch_template_rice.sh", required=False, help="SBATCH template file"
+        "--template", type=str, default="scripts/sbatch_template_sail.sh", required=False, help="SBATCH template file"
     )
     parser.add_argument("--slurm_logs", type=str, default="slurm_logs", required=False, help="Directory to output slurm logs")
     parser.add_argument("--log_dir", type=str, required=False, default="./logs/spurious_id", help="Log directory for all runs")
+    parser.add_argument("--respawn", action="store_true", default=False, help="Whether to respawn runs")
     return parser.parse_args()
 
 
@@ -84,6 +86,12 @@ def run_spurious_id(args, attributes_to_train):
             f"exp.train.log_dir=\\'{os.path.join(args.log_dir, job_name)}\\' "
             "exp.dataset.subgroup_labels=False"
         )
+        if args.respawn:
+            new_command = append_ckpt_for_respawn(command, job_name, epochs, log_dir=args.log_dir)
+            if command == new_command and os.path.exists(os.path.join(args.log_dir, job_name, "ckpts", "ckpt.last.pt")):
+                continue
+            else:
+                command = new_command
 
         job_manager.submit(command, job_name=job_name, log_file=log_file)
 
