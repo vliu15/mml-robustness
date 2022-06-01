@@ -135,7 +135,13 @@ def mean_std_results(
 
 
 def mean_ci_results(
-    *, exp_name: str, log_dirs: List[str], split: str, checkpoint_metric_type: str, mtl_checkpoint_type: str = None, dict_name: str=None
+    *,
+    exp_name: str,
+    log_dirs: List[str],
+    split: str,
+    checkpoint_metric_type: str,
+    mtl_checkpoint_type: str = None,
+    dict_name: str = None
 ):
     average_counts = defaultdict(
         lambda: defaultdict(list)
@@ -226,12 +232,21 @@ def mean_ci_results(
         )
 
         key_name = f"{task}:{task_to_attributes[task]}"
-        save_dict[key_name] = [(round(p_tilde_avg*100,2),(round((p_tilde_avg - ci_range_avg)*100, 2), round( (p_tilde_avg + ci_range_avg)*100, 2))), (round(p_tilde_group*100,2), (round((p_tilde_group - ci_range_group)*100, 2),round( (p_tilde_group + ci_range_group)*100, 2) ))]
+        save_dict[key_name] = [
+            (
+                round(p_tilde_avg * 100,
+                      2), (round((p_tilde_avg - ci_range_avg) * 100, 2), round((p_tilde_avg + ci_range_avg) * 100, 2))
+            ),
+            (
+                round(p_tilde_group * 100,
+                      2), (round((p_tilde_group - ci_range_group) * 100, 2), round((p_tilde_group + ci_range_group) * 100, 2))
+            )
+        ]
 
     dict_name = dict_name.split("/")[-1]
     save_name = f"{dict_name}_checkpoint_selection_{checkpoint_metric_type}_mtl_checkpoint_type_{mtl_checkpoint_type}.json"
     with open(os.path.join("./iclr_submission", "cached_results", save_name), "w") as f:
-            json.dump(save_dict, f)
+        json.dump(save_dict, f)
 
 
 def main():
@@ -272,7 +287,7 @@ def main():
             split=args.split,
             checkpoint_metric_type=args.checkpoint_metric_type,
             mtl_checkpoint_type=args.mtl_checkpoint_type,
-            dict_name = args.log_dirs,
+            dict_name=args.log_dirs,
         )
 
 
