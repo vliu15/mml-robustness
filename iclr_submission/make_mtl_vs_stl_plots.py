@@ -43,3 +43,23 @@ mtl_results["JTT"] = {
     "Bushy_Eyebrows:Blond_Hair":
         [(72.9, (72.55,73.26)), (67.22, (66.79,67.66)), (77.24, (76.91,77.58)), (68.85, (68.1,69.6))]
 }
+
+
+
+
+def make_plot(use_group_val_labels = True):
+
+    plt.figure(figsize=(20, 10))
+    avg_pairing_df = pd.DataFrame(avg_pairing_data, columns=['Avg Worst Group Accuracy', "Worst Group SE", 'Learning Type', 'Pairing Number'])
+
+    sns.barplot(x = 'Optimization Procedure',
+            y = 'Average Worst Group Accuracy',
+            hue = 'Learning Type',
+            data = avg_pairing_df)
+
+            
+    pass 
+
+
+make_plot(use_group_val_labels = True)
+make_plots(use_group_val_labels = False)

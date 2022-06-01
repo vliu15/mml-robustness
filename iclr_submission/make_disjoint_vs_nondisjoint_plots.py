@@ -138,25 +138,76 @@ def avg_gain_over_stl(stl_dict, mtl_dict, use_group_val_labels=True):
     avg_acc_gain = 0
     avg_worst_group_gain = 0
 
-    for task_name in stl_dict.keys():
+    for pairing_num in mtl_dict.keys():
+        for task_name in mtl_dict[pairing_num]:
 
-        for pairing_num in mtl_dict.keys():
-            if task_name in mtl_dict[pairing_num]:
-                mtl_results = mtl_dict[pairing_num][task_name]
-                stl_results = stl_dict[task_name]
+            mtl_results = mtl_dict[pairing_num][task_name]
+            stl_results = stl_dict[task_name]
 
-                if use_group_val_labels:
-                    avg_acc_gain += mtl_results[2][0] - stl_results[2][0]
-                    avg_worst_group_gain += mtl_results[3][0] - stl_results[3][0]
+            if use_group_val_labels:
+                avg_acc_gain += mtl_results[2][0] - stl_results[2][0]
+                avg_worst_group_gain += mtl_results[3][0] - stl_results[3][0]
 
-                else:
-                    avg_acc_gain += mtl_results[0][0] - stl_results[0][0]
-                    avg_worst_group_gain += mtl_results[1][0] - stl_results[1][0]
+            else:
+                avg_acc_gain += mtl_results[0][0] - stl_results[0][0]
+                avg_worst_group_gain += mtl_results[1][0] - stl_results[1][0]
 
     avg_acc_gain /= len(stl_dict.keys())
     avg_worst_group_gain /= len(stl_dict.keys())
 
     return avg_acc_gain, avg_worst_group_gain
+
+def wg_average_in_pairings(stl_dict, mtl_dict, use_group_val_labels=True):
+    pairing_to_res = {}
+
+    for pairing_num in mtl_dict.keys():
+        avg_mtl_wg = 0
+        avg_stl_wg = 0
+
+        combined_mtl_se = 0
+        combined_stl_se = 0
+
+        for task_name in mtl_dict[pairing_num]:
+
+            mtl_results = mtl_dict[pairing_num][task_name]
+            stl_results = stl_dict[task_name]
+
+            if use_group_val_labels:
+                avg_mtl_wg += mtl_results[3][0]
+                avg_stl_wg += stl_results[3][0]
+
+                mtl_se = mtl_results[3][1][1] - mtl_results[3][1][0]
+                mtl_se = mtl_se/2
+
+                stl_se = stl_results[3][1][1] - stl_results[3][1][0]
+                stl_se = stl_se/2
+
+                combined_mtl_se += mtl_se**2
+                combined_stl_se += stl_se**2
+
+
+            else:
+                avg_mtl_wg += mtl_results[1][0]
+                avg_stl_wg += stl_results[1][0]
+                
+                mtl_se = mtl_results[1][1][1] - mtl_results[1][1][0]
+                mtl_se = mtl_se/2
+
+                stl_se = stl_results[1][1][1] - stl_results[1][1][0]
+                stl_se = stl_se/2
+
+                combined_mtl_se += mtl_se**2
+                combined_stl_se += stl_se**2
+
+        avg_mtl_wg /= len(mtl_dict[pairing_num])
+        avg_stl_wg /= len(mtl_dict[pairing_num])
+
+        combined_mtl_se = np.sqrt(combined_mtl_se)
+        combined_stl_se = np.sqrt(combined_stl_se)
+
+        pairing_to_res[pairing_num] = [avg_stl_wg, combined_stl_se, avg_mtl_wg, combined_mtl_se]
+
+    return pairing_to_res
 
 
 def avg_difference_between_avg_acc_and_worst_group_acc(stl_dict, mtl_dict, use_group_val_labels=True):
@@ -186,6 +237,73 @@ def avg_difference_between_avg_acc_and_worst_group_acc(stl_dict, mtl_dict, use_g
     return avg_diff_mtl, avg_diff_stl
 
 
+def make_gain_over_stl_plot(use_group_val_labels = True):
+    nondisjoint_gains = avg_gain_over_stl(stl_nondisjoint_tasks, mtl_nondisjoint_tasks, use_group_val_labels)
+    disjoint_gains= avg_gain_over_stl(stl_disjoint_tasks, mtl_disjoint_tasks, use_group_val_labels)
+
+    gains_data = [[disjoint_gains[0], 'Average Acc', 'Disjoint Pairings'], [disjoint_gains[1], 'Worst Group Acc', 'Disjoint Pairings'], [nondisjoint_gains[0], 'Average Acc', 'Nondisjoint Pairings'], [nondisjoint_gains[1], 'Worst Group Acc', 'Nondisjoint Pairings']]
+    gains_df = pd.DataFrame(gains_data, columns=['Average Gain over STL', 'Metric', 'MTL Pairing Type'])
+    plt.figure(figsize=(10, 10))
+    sns.barplot(x = 'MTL Pairing Type',
+            y = 'Average Gain over STL',
+            hue = 'Metric',
+            data = gains_df)
+
+    ckpt_type = 'WG' if use_group_val_labels else "Avg"
+    plt.title(f"MTL when using Disjoint vs Nondisjoint Pairings [{ckpt_type} Ckpt]")
+    plt.savefig(f"./plots/disjoint_vs_nondisjoint_group_val_labels_{str(use_group_val_labels)}.png")
+    plt.close()
+
+
+def make_avg_in_pairing_plot(use_group_val_labels = True):
+
+    nondisjoint_gains = wg_average_in_pairings(stl_nondisjoint_tasks, mtl_nondisjoint_tasks, use_group_val_labels)
+    disjoint_gains = wg_average_in_pairings(stl_disjoint_tasks, mtl_disjoint_tasks, use_group_val_labels)
+
+    avg_pairing_data = []
+    for pairing_num in nondisjoint_gains:
+        res = nondisjoint_gains[pairing_num]
+        avg_pairing_data.append([res[0], res[1], "STL", f"ND {pairing_num}"])
+        avg_pairing_data.append([res[2], res[3], "MTL", f"ND {pairing_num}"])
+        
+    for pairing_num in disjoint_gains:
+        res = disjoint_gains[pairing_num]
+        avg_pairing_data.append([res[0], res[1], "STL", f"D {pairing_num}"])
+        avg_pairing_data.append([res[2], res[3], "MTL", f"D {pairing_num}"])
+
+    plt.figure(figsize=(20, 10))
+    avg_pairing_df = pd.DataFrame(avg_pairing_data, columns=['Avg Worst Group Accuracy', "Worst Group SE", 'Learning Type', 'Pairing Number'])
+
+    sns.barplot(x = 'Pairing Number',
+            y = 'Avg Worst Group Accuracy',
+            hue = 'Learning Type',
+            data = avg_pairing_df)
+
+
+    bar_indices = np.array([i for i in range(int(len(avg_pairing_data)/2))])
+    bar_indices = np.repeat(bar_indices, 2)
+
+    width = .25
+    add = np.array([-1*width, width])
+    add = np.tile(add, int(len(avg_pairing_data)/2))
+    x = bar_indices + add
+
+    plt.errorbar(x = x, y = avg_pairing_df['Avg Worst Group Accuracy'],
+                yerr=avg_pairing_df['Worst Group SE'], fmt='none', c= 'black', capsize = 2)
+
+    ckpt_type = 'WG' if use_group_val_labels else "Avg"
+    plt.title(f"Average Worst Group Accuracy Across Pairings [{ckpt_type} Ckpt]")
+    plt.savefig(f"./plots/disjoint_vs_nondisjoint_pairings_group_val_labels_{str(use_group_val_labels)}.png")
+    plt.close()
+  
+ 
+make_gain_over_stl_plot(use_group_val_labels = True)
+make_gain_over_stl_plot(use_group_val_labels = False)
+
+make_avg_in_pairing_plot(use_group_val_labels = True)
+make_avg_in_pairing_plot(use_group_val_labels = False)
+
+'''
 nondisjoint_gains_group_val = avg_gain_over_stl(stl_nondisjoint_tasks, mtl_nondisjoint_tasks, True)
 nondisjoint_gains_no_group_val = avg_gain_over_stl(stl_nondisjoint_tasks, mtl_nondisjoint_tasks, False)
 
@@ -230,12 +348,7 @@ print(
     f"MTL Disjoint using group val labels had an average difference between avg accuracy and worst group of {disjoint_diff_group_val[0]} whereas STL using group val labels had: {disjoint_diff_group_val[1]}"
 )
 
-#### how to factor in CI?
+#### how to factor in CI for differences? - clarify with tatsu and double check
 
-#### bar plot visualization - just group val labels
-
-#### all Tasks - ask Tatsu if needed
-
-#### avg gain - write out on board
-
-#### avg difference - write out on board
+#### all Tasks bar plot - ask Tatsu if needed
+'''
