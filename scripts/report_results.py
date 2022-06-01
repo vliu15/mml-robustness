@@ -206,9 +206,48 @@ def mean_ci_results(
 
     save_dict = {}
     for task in average_counts.keys():
-
         logger.info(f"TASK [{task}]:")
 
+        avg_mu_is = []
+        avg_sigma_i_squareds = []
+
+        wg_mu_is = []
+        wg_sigma_i_squareds = []
+
+        for seed in range(len(average_counts[task][f"{task}_total_counts"])):
+
+            avg_p = average_counts[task][f"{task}_correct_counts"][seed] / average_counts[task][f"{task}_total_counts"][seed]
+            wg_p = worst_group_counts[task][f"{task}_correct_counts"][seed] / worst_group_counts[task][f"{task}_total_counts"][seed]
+
+            avg_mu_is.append(avg_p)
+            wg_mu_is.append(wg_p)
+            
+            avg_sigma_i_squared = (1/average_counts[task][f"{task}_total_counts"][seed]) * avg_p * (1 - avg_p)
+            wg_sigma_i_squared = (1/worst_group_counts[task][f"{task}_total_counts"][seed]) * wg_p * (1 - wg_p)
+
+            avg_sigma_i_squareds.append(avg_sigma_i_squared)
+            wg_sigma_i_squareds.append(wg_sigma_i_squared)
+
+        avg_std_reciprocal = np.reciprocal(np.array(avg_sigma_i_squareds))
+        avg_mu_hat = np.sum(np.array(avg_mu_is * avg_std_reciprocal)) / (np.sum(avg_std_reciprocal))
+        avg_sigma_hat = 1 / (np.sum(avg_std_reciprocal))
+        ci_range_avg = z*np.sqrt(avg_sigma_hat)
+
+        wg_std_reciprocal = np.reciprocal(np.array(wg_sigma_i_squareds))
+        wg_mu_hat = np.sum(np.array(wg_mu_is) * wg_std_reciprocal)/(np.sum(wg_std_reciprocal))
+        wg_sigma_hat = 1 / (np.sum(wg_std_reciprocal))
+        ci_range_group = z*np.sqrt(wg_sigma_hat)
+
+        logger.info(
+            f"Estimated mean average accuracy: {round(avg_mu_hat*100,2)}, with 95% CI:({round((avg_mu_hat - ci_range_avg)*100, 2)},{round( (avg_mu_hat + ci_range_avg)*100, 2)}), over {len(average_counts[task][f'{task}_correct_counts'])} seeds"
+        )
+            
+        logger.info(
+            f"Estimated mean worst-group accuracy: {round(wg_mu_hat*100,2)}, with 95% CI:({round((wg_mu_hat - ci_range_group)*100, 2)},{round( (wg_mu_hat + ci_range_group)*100, 2)}), over {len(worst_group_counts[task][f'{task}_correct_counts'])} seeds\n"
+        )
+
+
+        '''
         total_avg_counts = np.sum(average_counts[task][f"{task}_total_counts"])
         total_avg_correct_counts = np.sum(average_counts[task][f"{task}_correct_counts"])
 
@@ -227,19 +266,19 @@ def mean_ci_results(
         p_tilde_group = (1 / n_tilde_group) * (total_worst_group_correct_counts + ((z**2) / 2))
         ci_range_group = z * np.sqrt((p_tilde_group / n_tilde_group) * (1 - p_tilde_group))
 
-        logger.info(
-            f"Estimated mean worst-group accuracy: {round(p_tilde_group*100,2)}, with 95% CI:({round((p_tilde_group - ci_range_group)*100, 2)},{round( (p_tilde_group + ci_range_group)*100, 2)}), over {len(worst_group_counts[task][f'{task}_correct_counts'])} seeds\n"
-        )
+        '''
+
+    
 
         key_name = f"{task}:{task_to_attributes[task]}"
         save_dict[key_name] = [
             (
-                round(p_tilde_avg * 100,
-                      2), (round((p_tilde_avg - ci_range_avg) * 100, 2), round((p_tilde_avg + ci_range_avg) * 100, 2))
+                round(avg_mu_hat * 100,
+                      2), (round((avg_mu_hat - ci_range_avg) * 100, 2), round((avg_mu_hat + ci_range_avg) * 100, 2))
             ),
             (
-                round(p_tilde_group * 100,
-                      2), (round((p_tilde_group - ci_range_group) * 100, 2), round((p_tilde_group + ci_range_group) * 100, 2))
+                round(wg_mu_hat * 100,
+                      2), (round((wg_mu_hat - ci_range_group) * 100, 2), round((wg_mu_hat + ci_range_group) * 100, 2))
             )
         ]
 
