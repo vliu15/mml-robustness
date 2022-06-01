@@ -45,42 +45,42 @@ TASKS = {
     "MTL_ABLATE_DISJOINT":
         [
             # PREVIOUS RUNS
-            # ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair"],
-            # ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Wearing_Lipstick:Male"],
-            # ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Wearing_Lipstick:Male", "High_Cheekbones:Smiling"],
 
             # MTL(2)
+            ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair"],
             ["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling"],
 
             # MTL(3)
-            #["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Gray_Hair:Young"],
-            #["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling"],
-            #["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Wearing_Lipstick:Male"],
-            #["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Brown_Hair:Wearing_Hat"],
-            #["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Gray_Hair:Young"],
+            ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Wearing_Lipstick:Male"],
+            ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Gray_Hair:Young"],
+            ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling"],
+            ["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Wearing_Lipstick:Male"],
+            ["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Brown_Hair:Wearing_Hat"],
+            ["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Gray_Hair:Young"],
 
             # MTL(4)
-            #["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Gray_Hair:Young", "High_Cheekbones:Smiling"],
-            #["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Wearing_Lipstick:Male"],
-            #["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Wearing_Lipstick:Male", "Gray_Hair:Young"],
-            #["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Brown_Hair:Wearing_Hat", "Big_Lips:Chubby"],
-            #["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Gray_Hair:Young", "Brown_Hair:Wearing_Hat"],
+            ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Wearing_Lipstick:Male", "High_Cheekbones:Smiling"],
+            ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Gray_Hair:Young", "High_Cheekbones:Smiling"],
+            ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Wearing_Lipstick:Male"],
+            ["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Wearing_Lipstick:Male", "Gray_Hair:Young"],
+            ["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Brown_Hair:Wearing_Hat", "Big_Lips:Chubby"],
+            ["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Gray_Hair:Young", "Brown_Hair:Wearing_Hat"],
         ],
 
     # 2 sets of ablations over nondisjoint tasks, for each: 1x MTL(2), 3x MTL(3), 3x MTL(4)
     "MTL_ABLATE_NONDISJOINT":
         [
             # MTL(2)
-            #["Arched_Eyebrows:Male", "Big_Nose:Male"],
-            #["Blond_Hair:Male", "Wearing_Earrings:Male"],
+            ["Arched_Eyebrows:Male", "Big_Nose:Male"],
+            ["Blond_Hair:Male", "Wearing_Earrings:Male"],
 
             # MTL(3)
-            #["Arched_Eyebrows:Male", "Big_Nose:Male", "Wearing_Earrings:Male"],
-            #["Arched_Eyebrows:Male", "Big_Nose:Male", "Wearing_Lipstick:Male"],
-            #["Arched_Eyebrows:Male", "Big_Nose:Male", "Attractive:Male"],
-            #["Blond_Hair:Male", "Wearing_Earrings:Male", "Wearing_Lipstick:Male"],
-            #["Blond_Hair:Male", "Wearing_Earrings:Male", "Big_Nose:Male"],
-            #["Blond_Hair:Male", "Wearing_Earrings:Male", "Arched_Eyebrows:Male"],
+            ["Arched_Eyebrows:Male", "Big_Nose:Male", "Wearing_Earrings:Male"],
+            ["Arched_Eyebrows:Male", "Big_Nose:Male", "Wearing_Lipstick:Male"],
+            ["Arched_Eyebrows:Male", "Big_Nose:Male", "Attractive:Male"],
+            ["Blond_Hair:Male", "Wearing_Earrings:Male", "Wearing_Lipstick:Male"],
+            ["Blond_Hair:Male", "Wearing_Earrings:Male", "Big_Nose:Male"],
+            ["Blond_Hair:Male", "Wearing_Earrings:Male", "Arched_Eyebrows:Male"],
 
             # MTL(4)
             ["Arched_Eyebrows:Male", "Big_Nose:Male", "Wearing_Earrings:Male", "Blond_Hair:Male"],
