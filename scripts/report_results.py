@@ -244,31 +244,7 @@ def mean_ci_results(
             
         logger.info(
             f"Estimated mean worst-group accuracy: {round(wg_mu_hat*100,2)}, with 95% CI:({round((wg_mu_hat - ci_range_group)*100, 2)},{round( (wg_mu_hat + ci_range_group)*100, 2)}), over {len(worst_group_counts[task][f'{task}_correct_counts'])} seeds\n"
-        )
-
-
-        '''
-        total_avg_counts = np.sum(average_counts[task][f"{task}_total_counts"])
-        total_avg_correct_counts = np.sum(average_counts[task][f"{task}_correct_counts"])
-
-        total_worst_group_counts = np.sum(worst_group_counts[task][f"{task}_total_counts"])
-        total_worst_group_correct_counts = np.sum(worst_group_counts[task][f"{task}_correct_counts"])
-
-        n_tilde_avg = total_avg_counts + z**2
-        p_tilde_avg = (1 / n_tilde_avg) * (total_avg_correct_counts + ((z**2) / 2))
-        ci_range_avg = z * np.sqrt((p_tilde_avg / n_tilde_avg) * (1 - p_tilde_avg))
-
-        logger.info(
-            f"Estimated mean average accuracy: {round(p_tilde_avg*100,2)}, with 95% CI:({round((p_tilde_avg - ci_range_avg)*100, 2)},{round( (p_tilde_avg + ci_range_avg)*100, 2)}), over {len(average_counts[task][f'{task}_correct_counts'])} seeds"
-        )
-
-        n_tilde_group = total_worst_group_counts + z**2
-        p_tilde_group = (1 / n_tilde_group) * (total_worst_group_correct_counts + ((z**2) / 2))
-        ci_range_group = z * np.sqrt((p_tilde_group / n_tilde_group) * (1 - p_tilde_group))
-
-        '''
-
-    
+        )    
 
         key_name = f"{task}:{task_to_attributes[task]}"
         save_dict[key_name] = [
