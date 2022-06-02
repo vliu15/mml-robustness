@@ -24,7 +24,7 @@ dataset:
     subsample: false
     subsample_type: null
 
-    cvx: null  # defaults to maxent
+    cvx: null  # defaults to qp
 
 model:
     name: resnet50

@@ -400,8 +400,10 @@ def submit_stl_train(args):
 
     if method in ["suby", "rwy", "jtt"]:
         TASK_GRID = flatten(TASKS["MTL_DISJOINT"])
+        
     else:  # we want to run erm on everything
         TASK_GRID = set(flatten(TASKS["MTL_DISJOINT"] + TASKS["MTL_NONDISJOINT"] + TASKS["MTL_SIMILAR"] + TASKS["MTL_STRONG"]))
+
 
     WD = PARAMS[method]["WD"]
     LR = PARAMS[method]["LR"]
@@ -795,7 +797,7 @@ def submit_mtl_erm_strong_tasks_train(args):
     mtl_method = args.opt.replace("_strong", "")
     method = mtl_method.replace("mtl_", "")
 
-    key = f"{mtl_method}_strong_ckpt_{args.mtl_weighting}_mtl_weighting"
+    key = f"{mtl_method}_group_ckpt_{args.mtl_weighting}_mtl_weighting"
     WD = PARAMS[key]["WD"]
     LR = PARAMS[key]["LR"]
     BATCH_SIZE = PARAMS[key]["BATCH_SIZE"]
