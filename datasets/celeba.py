@@ -169,9 +169,9 @@ class CelebA(Dataset):
         cvx = config.dataset.get("cvx", None)
 
         # Solve for w
-        if cvx == "qp":
+        if cvx is None or cvx == "qp":
             w, _ = quadratic_programming(Y, verbose=False, grouping_name=grouping_name)
-        elif cvx is None or cvx == "maxent":
+        elif cvx == "maxent":
             if len(self.task_label_indices) <= 3:
                 w, _ = entropy_maximization(Y, verbose=False, grouping_name=grouping_name)
             else:
