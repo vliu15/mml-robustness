@@ -260,6 +260,7 @@ def mean_ci_results(
 
     dict_name = dict_name.split("/")[-1]
     save_name = f"{dict_name}_checkpoint_selection_{checkpoint_metric_type}_mtl_checkpoint_type_{mtl_checkpoint_type}.json"
+    os.makedirs(os.path.join("./iclr_submission", "cached_results"), exist_ok=True)
     with open(os.path.join("./iclr_submission", "cached_results", save_name), "w") as f:
         json.dump(save_dict, f)
 
