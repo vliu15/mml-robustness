@@ -340,9 +340,9 @@ def append_ckpt_for_jtt_respawn(command, job_name, epochs1, epochs2):
     if stage_1_ckpt_num != epochs1 or (stage_1_ckpt_num == epochs1 and not os.path.exists(load_up_pkl_path)):
         return f"{command} exp.load_stage_1_ckpt=\\'{stage_1_ckpt_path}\\'"
     elif stage_1_ckpt_num == epochs1 and stage_2_ckpt_num is None:
-        return f"{command} exp.load_up_pkl={load_up_pkl_path}"
+        return f"{command} exp.load_up_pkl=\\'{load_up_pkl_path}\\'"
     elif stage_1_ckpt_num == epochs1 and stage_2_ckpt_num != epochs2:
-        return f"{command} exp.load_stage_2_ckpt={stage_2_ckpt_path}"
+        return f"{command} exp.load_up_pkl=\\'{load_up_pkl_path}\\' exp.load_stage_2_ckpt=\\'{stage_2_ckpt_path}\\'"
     else:
         return command
 
@@ -768,7 +768,7 @@ def submit_mtl_erm_similar_tasks_train(args):
     for seed in SEED_GRID:
         for idx, task in enumerate(TASK_GRID):
             task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(args.mtl_weighting, task)
-            job_name = f"mtl_train:{method},task:{len(task)}_tasks,semantic_similar:{idx + 1},{args.mtl_weighting}_task_weighting,seed:{seed}"
+            job_name = f"mtl_train:{method},task:{len(task)}_tasks,semantic_similar:{idx+1},{args.mtl_weighting}_task_weighting,seed:{seed}"
             log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
             command = (

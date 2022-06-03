@@ -14,7 +14,7 @@ stl_results["RWY"] = {"Big_Lips:Chubby": [(69.52, (69.15,69.89)), (49.34, (48.62
     "Bushy_Eyebrows:Blond_Hair": [(91.56, (91.33,91.78)), (30.30, (20.50,42.27)), (75.28, (74.93,75.62)), (66.92, (66.39,67.46))]}
 
 stl_results["SUBY"] = {"Big_Lips:Chubby": [(69.45, (69.08,69.82)), (28.90, (28.24,29.55)), (68.68, (68.31,69.05)), (60.39, (59.68,61.09))],
-     "Bushy_Eyebrows:Blond_Hair": [(91.30, (91.08,91.53)), (21.36, (11.75,30.98)), (76.99, (76.66,77.33)), (71.63, (71.21,72.05)]}
+     "Bushy_Eyebrows:Blond_Hair": [(91.30, (91.08,91.53)), (21.36, (11.75,30.98)), (76.99, (76.66,77.33)), (71.63, (71.21,72.05))]}
 
 stl_results["JTT"] = {"Big_Lips:Chubby": [(32.7, (32.33,33.08)), (0.01, (0.0,0.01)), (32.7, (32.33,33.08)), (0.01, (0.0,0.01))],
     "Bushy_Eyebrows:Blond_Hair": [(91.93, (91.71,92.15)), (22.80, (12.96,32.63)), (71.35, (70.99,71.71)), (64.07, (63.62,64.52))]}
@@ -45,21 +45,50 @@ mtl_results["JTT"] = {
 }
 
 
+def make_plot(wg_acc = True):
+
+    plt.figure(figsize=(12, 7))
+    avg_opt_data = []
+
+    y_label = "Mean Worst Group Accuracy Across Tasks" if wg_acc else "Mean Average Accuracy Across Tasks"
+
+    for opt_type in mtl_results.keys():
+        
+        avg_mtl = 0
+        avg_stl = 0
+
+        for task_name in mtl_results[opt_type]:
+
+            mtl_res = mtl_results[opt_type][task_name]
+            stl_res = stl_results[opt_type][task_name]
+
+            if wg_acc:
+                avg_mtl += mtl_res[3][0]
+                avg_stl += stl_res[3][0]
+            else:
+                avg_mtl += mtl_res[2][0]
+                avg_stl += stl_res[2][0]
+                
+
+        avg_mtl /= len(mtl_results[opt_type])
+        avg_stl /= len(mtl_results[opt_type])
+
+        avg_opt_data.append([avg_stl, "STL", opt_type])
+        avg_opt_data.append([avg_mtl, "MTL", opt_type])
 
 
-def make_plot(use_group_val_labels = True):
+    avg_opt_df = pd.DataFrame(avg_opt_data, columns=[y_label, 'Learning Type', 'Optimization Procedure'])
 
-    plt.figure(figsize=(20, 10))
-    avg_pairing_df = pd.DataFrame(avg_pairing_data, columns=['Avg Worst Group Accuracy', "Worst Group SE", 'Learning Type', 'Pairing Number'])
 
     sns.barplot(x = 'Optimization Procedure',
-            y = 'Average Worst Group Accuracy',
+            y = y_label,
             hue = 'Learning Type',
-            data = avg_pairing_df)
+            data = avg_opt_df)
 
             
-    pass 
+    plt.title(f"STL vs MTL Comparison")
+    plt.savefig(f"./plots/stl_mtl_comparison_wg_{wg_acc}.png")
+    plt.close()
 
-
-make_plot(use_group_val_labels = True)
-make_plots(use_group_val_labels = False)
+make_plot(wg_acc = True)
+make_plot(wg_acc = False)
