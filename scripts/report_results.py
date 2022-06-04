@@ -222,6 +222,11 @@ def mean_ci_results(
             avg_mu_is.append(avg_p)
             wg_mu_is.append(wg_p)
             
+            if wg_p == 0:
+                wg_p += 1e-9
+            if avg_p == 0:
+                avg_p += 1e-9
+
             avg_sigma_i_squared = (1/average_counts[task][f"{task}_total_counts"][seed]) * avg_p * (1 - avg_p)
             wg_sigma_i_squared = (1/worst_group_counts[task][f"{task}_total_counts"][seed]) * wg_p * (1 - wg_p)
 
