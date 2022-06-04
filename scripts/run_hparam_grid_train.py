@@ -665,7 +665,7 @@ def submit_mtl_jtt_disjoint_tasks_train(args):
                 f"exp.lbtw_alpha={lbtw_alpha} "
                 f"exp.epochs_stage_1={T} "
                 f"exp.epochs_stage_2={EPOCHS} "
-                f"exp.groupings='[{task}]' "
+                f"exp.groupings='{task}' "
                 f"exp.lambda_up={LAM_UP} "
                 f"exp.batch_size={BATCH_SIZE} "
                 f"exp.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
