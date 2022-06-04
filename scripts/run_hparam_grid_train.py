@@ -594,7 +594,7 @@ def submit_mtl_erm_ablate_nondisjoint_tasks_train(args):
 
 def submit_mtl_cvx_disjoint_tasks_train(args):
     TASK_GRID = TASKS["MTL_STL_COMPARISON"][1:]  # SINGLE PAIR
-    CVX_GRID = ["qp", "maxent"]
+    CVX_GRID = ["maxent"] #"qp", 
 
     assert args.opt in ["mtl_rwy", "mtl_suby"], "This method only supports --opt=mtl_rwy and --opt=mtl_suby"
     method = args.opt.replace("mtl_", "")
@@ -699,7 +699,7 @@ def submit_mtl_erm_disjoint_tasks_train(args):
             task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(args.mtl_weighting, task)
 
             # Appending of ,ckpt:{ckpt} in the job_name might be new, deprecated naming doesn't have this ...?
-            job_name = f"mtl_train:{method},task:{len(task)}_tasks,disjoint_idx_{idx},{args.mtl_weighting}_task_weighting,seed:{seed},ckpt:group"
+            job_name = f"mtl_train:{method},task:{len(task)}_tasks,disjoint_idx_{6},{args.mtl_weighting}_task_weighting,seed:{seed},ckpt:group"
             log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
             command = (

@@ -8,7 +8,7 @@
 #SBATCH --mem=32GB                                  # Job memory request
 #SBATCH --time=96:00:00                             # Time limit hrs:min:sec
 #SBATCH --output=$LOG_FILE                          # Standard output and error log
-#SBATCH --partition=jag-urgent,jag-hi,jag-standard  # Request a specific partition for the resource allocation
+#SBATCH --partition=jag-important,jag-hi,jag-standard  # Request a specific partition for the resource allocation
 #SBATCH --gres=gpu:1                                # Specifies a comma-delimited list of generic consumable resources
 
 export OMP_NUM_THREADS=8                            # Set parallel threads to --cpus-per-task
@@ -21,7 +21,7 @@ if [[ $USER == "vliu" ]]; then
     export LD_LIBRARY_PATH=/usr/local/cuda-11.1/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 fi
 
-conda activate mml-robustness
+conda activate mml-robustness-2
 
 # Use this alias to point `python` to `python3` so we don't have to change all command submissions ...
 # However, this is a bash alias, so this might not be picked by nested subprocess calls (i.e. train_jtt)
