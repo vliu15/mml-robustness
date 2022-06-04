@@ -91,6 +91,14 @@ TASKS = {
             ["Blond_Hair:Male", "Wearing_Earrings:Male", "Arched_Eyebrows:Male", "Big_Nose:Male"],
         ],
 
+    # 3 pairs of pairwise disjoint tasks
+    "MTL_STL_COMPARISON":
+        [
+            ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair"],
+            ["Wearing_Lipstick:Male", "Gray_Hair:Young"],
+            ["High_Cheekbones:Smiling", "Wearing_Lipstick:Male"]
+        ],
+
     # 5 pairs of pairwise disjoint tasks
     "MTL_DISJOINT":
         [
@@ -400,6 +408,7 @@ def submit_stl_train(args):
 
     if method in ["suby", "rwy", "jtt"]:
         TASK_GRID = flatten(TASKS["MTL_DISJOINT"])
+        #TASK_GRID = ["High_Cheekbones:Smiling"]
         
     else:  # we want to run erm on everything
         TASK_GRID = set(flatten(TASKS["MTL_DISJOINT"] + TASKS["MTL_NONDISJOINT"] + TASKS["MTL_SIMILAR"] + TASKS["MTL_STRONG"]))
@@ -584,7 +593,7 @@ def submit_mtl_erm_ablate_nondisjoint_tasks_train(args):
 
 
 def submit_mtl_cvx_disjoint_tasks_train(args):
-    TASK = TASKS["MTL_DISJOINT"][0]  # SINGLE PAIR
+    TASK_GRID = TASKS["MTL_STL_COMPARISON"][1:]  # SINGLE PAIR
     CVX_GRID = ["qp", "maxent"]
 
     assert args.opt in ["mtl_rwy", "mtl_suby"], "This method only supports --opt=mtl_rwy and --opt=mtl_suby"
@@ -596,35 +605,36 @@ def submit_mtl_cvx_disjoint_tasks_train(args):
     EPOCHS = PARAMS[args.opt]["EPOCHS"]
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
-    task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(args.mtl_weighting, TASK)
 
-    for seed in SEED_GRID:
-        for cvx in CVX_GRID:
-            job_name = f"mtl_train:{method},task:{len(TASK)}_tasks,{args.mtl_weighting}_task_weighting,seed:{seed},cvx:{cvx}"
-            log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+    for idx, task in enumerate(TASK_GRID):
+        for seed in SEED_GRID:
+            for cvx in CVX_GRID:
+                task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(args.mtl_weighting, task)
+                job_name = f"mtl_train:{method},task:{len(task)}_tasks_idx:{idx + 1},{args.mtl_weighting}_task_weighting,seed:{seed},cvx:{cvx}"
+                log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
-            command = (
-                f"python train_erm.py exp={method} "
-                f"exp.optimizer.weight_decay={WD} "
-                f"exp.optimizer.lr={LR} "
-                f"exp.seed={seed} "
-                f"exp.train.total_epochs={EPOCHS} "
-                f"exp.dataset.groupings='{TASK}' "
-                f"exp.dataloader.batch_size={BATCH_SIZE} "
-                f"exp.dataset.cvx={cvx} "
-                f"exp.dataset.task_weights='{task_weights}' "
-                f"exp.dataset.loss_based_task_weighting={use_loss_balanced} "
-                f"exp.dataset.lbtw_alpha={lbtw_alpha} "
-                f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
-            )
-            if args.respawn:
-                command = append_ckpt_for_respawn(command, job_name, EPOCHS)
+                command = (
+                    f"python train_erm.py exp={method} "
+                    f"exp.optimizer.weight_decay={WD} "
+                    f"exp.optimizer.lr={LR} "
+                    f"exp.seed={seed} "
+                    f"exp.train.total_epochs={EPOCHS} "
+                    f"exp.dataset.groupings='{task}' "
+                    f"exp.dataloader.batch_size={BATCH_SIZE} "
+                    f"exp.dataset.cvx={cvx} "
+                    f"exp.dataset.task_weights='{task_weights}' "
+                    f"exp.dataset.loss_based_task_weighting={use_loss_balanced} "
+                    f"exp.dataset.lbtw_alpha={lbtw_alpha} "
+                    f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                )
+                if args.respawn:
+                    command = append_ckpt_for_respawn(command, job_name, EPOCHS)
 
-            job_manager.submit(command, job_name=job_name, log_file=log_file)
+                job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 
 def submit_mtl_jtt_disjoint_tasks_train(args):
-    TASK = TASKS["MTL_DISJOINT"][0]  # SINGLE PAIR
+    TASK_GRID = TASKS["MTL_STL_COMPARISON"][1:]  # SINGLE PAIR
 
     assert args.opt in ["mtl_jtt"], "This method only supports --opt=mtl_jtt"
 
@@ -637,31 +647,33 @@ def submit_mtl_jtt_disjoint_tasks_train(args):
     LAM_UP = PARAMS["jtt"]["LAM_UP"]
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
-    task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(args.mtl_weighting, TASK)
+    
 
-    for seed in SEED_GRID:
-        job_name = f"mtl_train:jtt,task:{len(TASK)}_tasks,{args.mtl_weighting}_task_weighting,seed:{seed}"
-        log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+    for idx, task in enumerate(TASK_GRID):
+        for seed in SEED_GRID:
+            task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(args.mtl_weighting, task)
+            job_name = f"mtl_train:jtt,task:{len(task)}_tasks_idx:{idx + 1},{args.mtl_weighting}_task_weighting,seed:{seed}"
+            log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
-        command = (
-            f"python train_jtt.py exp=jtt "
-            f"exp.weight_decay={WD} "
-            f"exp.lr={LR} "
-            f"exp.seed={seed} "
-            f"exp.task_weights='{task_weights}' "
-            f"exp.loss_based_task_weighting={use_loss_balanced} "
-            f"exp.lbtw_alpha={lbtw_alpha} "
-            f"exp.epochs_stage_1={T} "
-            f"exp.epochs_stage_2={EPOCHS} "
-            f"exp.groupings='[{TASK}]' "
-            f"exp.lambda_up={LAM_UP} "
-            f"exp.batch_size={BATCH_SIZE} "
-            f"exp.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
-        )
-        if args.respawn:
-            command = append_ckpt_for_jtt_respawn(command, job_name, T, EPOCHS)
+            command = (
+                f"python train_jtt.py exp=jtt "
+                f"exp.weight_decay={WD} "
+                f"exp.lr={LR} "
+                f"exp.seed={seed} "
+                f"exp.task_weights='{task_weights}' "
+                f"exp.loss_based_task_weighting={use_loss_balanced} "
+                f"exp.lbtw_alpha={lbtw_alpha} "
+                f"exp.epochs_stage_1={T} "
+                f"exp.epochs_stage_2={EPOCHS} "
+                f"exp.groupings='[{task}]' "
+                f"exp.lambda_up={LAM_UP} "
+                f"exp.batch_size={BATCH_SIZE} "
+                f"exp.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+            )
+            if args.respawn:
+                command = append_ckpt_for_jtt_respawn(command, job_name, T, EPOCHS)
 
-        job_manager.submit(command, job_name=job_name, log_file=log_file)
+            job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 
 def submit_mtl_erm_disjoint_tasks_train(args):
