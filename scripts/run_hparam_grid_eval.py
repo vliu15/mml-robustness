@@ -229,7 +229,8 @@ def submit_mtl_erm_ablate_disjoint_tasks_test(args):
     for seed in SEED_GRID:
         for idx, task in enumerate(TASK_GRID):
             for checkpoint_type in ["group", "avg"]:
-                job_name = f"eval_mtl_train:{method},task:{len(task)}_tasks,task_ablation_disjoint_idx:{idx + 1},{args.mtl_weighting}_task_weighting,seed:{seed}"
+                #job_name = f"eval_mtl_train:{method},task:{len(task)}_tasks,task_ablation_disjoint_idx:{idx + 1},{args.mtl_weighting}_task_weighting,seed:{seed}"
+                job_name = f"eval_mtl_train:erm,task:3_tasks,disjoint_idx:0,static_equal_task_weighting,seed:{seed}"
                 log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
                 save_json = f"test_stats_{checkpoint_type}_checkpoint_{args.mtl_checkpoint_type}_mtl_type.json"
