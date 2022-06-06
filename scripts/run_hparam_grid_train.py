@@ -324,6 +324,9 @@ def append_ckpt_for_respawn(command, job_name, epochs):
         warnings.warn(f"Skipping respawn ... No existing checkpoint found for: {job_name}")
         return command
     ckpt_path, ckpt_num = find_last_checkpoint(ckpt_dir)
+    if ckpt_num is None:
+        return command
+
     if ckpt_num < epochs:
         return f"{command} exp.train.load_ckpt=\\'{ckpt_path}\\'"
     else:
@@ -508,6 +511,45 @@ def submit_mtl_tune_train(args):
 
                     job_manager.submit(command, job_name=job_name, log_file=log_file)
 
+def submit_mtl_stl_erm_train(args):
+    TASK_GRID = TASKS["MTL_STL_COMPARISON"][2:]
+
+    assert args.opt in ["mtl_erm_mtl_stl"]
+    mtl_method = args.opt.replace("_mtl_stl", "")
+    method = mtl_method.replace("mtl_", "")
+
+    key = f"{mtl_method}_group_ckpt_{args.mtl_weighting}_mtl_weighting"
+    WD = PARAMS[key]["WD"]
+    LR = PARAMS[key]["LR"]
+    BATCH_SIZE = PARAMS[key]["BATCH_SIZE"]
+    EPOCHS = PARAMS[key]["EPOCHS"]
+
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+
+    for seed in SEED_GRID:
+        for idx, task in enumerate(TASK_GRID):
+            task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(args.mtl_weighting, task)
+
+            job_name = f"mtl_train:{method},task:{len(task)}_tasks,task_mtl_stl_idx:{2},{args.mtl_weighting}_task_weighting,seed:{seed}"
+            log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+
+            command = (
+                f"python train_erm.py exp={method} "
+                f"exp.optimizer.weight_decay={WD} "
+                f"exp.optimizer.lr={LR} "
+                f"exp.seed={seed} "
+                f"exp.train.total_epochs={EPOCHS} "
+                f"exp.dataset.groupings='{task}' "
+                f"exp.dataloader.batch_size={BATCH_SIZE} "
+                f"exp.dataset.task_weights='{task_weights}' "
+                f"exp.dataset.loss_based_task_weighting={use_loss_balanced} "
+                f"exp.dataset.lbtw_alpha={lbtw_alpha} "
+                f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+            )
+            if args.respawn:
+                command = append_ckpt_for_respawn(command, job_name, EPOCHS)
+
+            job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 def submit_mtl_erm_ablate_disjoint_tasks_train(args):
     TASK_GRID = TASKS["MTL_ABLATE_DISJOINT"]
@@ -916,6 +958,10 @@ def main():
     # Trains MTL JTT on the first disjoint pair
     elif args.opt in ["mtl_jtt"]:
         submit_mtl_jtt_disjoint_tasks_train(args)
+
+    # Trains MTL ERM on the mtl stl comparison pairs
+    elif args.opt in ["mtl_erm_mtl_stl"]:
+        submit_mtl_stl_erm_train(args)
 
     #########################
     # [3] MTL TASK ABLATION #
