@@ -18,7 +18,7 @@ stl_disjoint_tasks = {
     "Brown_Hair:Wearing_Hat":
         [(88.68, (88.42,88.93)), (22.77, (13.49,32.05)), (86.49, (86.21,86.76)), (38.46, (27.66,49.26))],
     "No_Beard:Wearing_Lipstick":
-        [(96.05, (95.9,96.21), (20.0, (0.0,40.24)), (94.65, (94.47,94.83)), (0.0, (0.0,0.0))],
+        [(96.05, (95.9,96.21)), (20.0, (0.0,40.24)), (94.65, (94.47,94.83)), (0.0, (0.0,0.0))],
     "Young:Chubby": [(88.01, (87.75,88.27)), (63.12, (62.26,63.98)), (85.97, (85.69,86.25)), (66.57, (65.56,67.58))],
     "Bangs:Wearing_Hat": [(95.93, (95.77,96.08)), (63.16, (50.64,75.68)), (95.55, (95.38,95.71)), (77.36, (66.71,88.01))],
     "Pointy_Nose:Heavy_Makeup":
@@ -97,7 +97,7 @@ mtl_nondisjoint_tasks["Pairing_3"] = {
     "Attractive:Gray_Hair": [
         (82.72, (82.42,83.03)), (40.42, (27.46,53.38)), (77.9, (77.57,78.23)), (62.8, (62.11,63.49))
     ],
-    "Big_Nose:Gray_Hair": [(84.53, (84.24,84.82)), (53.95, (52.86,55.04), (81.47, (81.16,81.78)), (57.33, (53.99,60.66))]
+    "Big_Nose:Gray_Hair": [(84.53, (84.24,84.82)), (53.95, (52.86,55.04)), (81.47, (81.16,81.78)), (57.33, (53.99,60.66))]
 }
 
 mtl_nondisjoint_tasks["Pairing_4"] = {
@@ -212,8 +212,8 @@ def wg_average_in_pairings(stl_dict, mtl_dict, use_group_val_labels=True):
         avg_mtl_wg /= len(mtl_dict[pairing_num])
         avg_stl_wg /= len(mtl_dict[pairing_num])
 
-        combined_mtl_se = np.sqrt(combined_mtl_se)
-        combined_stl_se = np.sqrt(combined_stl_se)
+        combined_mtl_se = np.sqrt(combined_mtl_se)/len(mtl_dict[pairing_num])
+        combined_stl_se = np.sqrt(combined_stl_se)/len(mtl_dict[pairing_num])
 
         pairing_to_res[pairing_num] = [avg_stl_wg, combined_stl_se, avg_mtl_wg, combined_mtl_se]
 
