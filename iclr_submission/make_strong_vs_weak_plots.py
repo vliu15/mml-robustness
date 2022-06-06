@@ -2,7 +2,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 import numpy as np
+import os
 
+EPS = 1e-9
 
 mtl_strong_spur_corr_tasks = {}
 mtl_weak_spur_corr_tasks = {}
@@ -104,7 +106,7 @@ mtl_strong_spur_corr_tasks["Pairing_1"] = {
 
 mtl_strong_spur_corr_tasks["Pairing_2"] = {
    "Attractive:Gray_Hair": [(82.72, (82.42,83.03)), (40.42, (27.46,53.38)), (77.9, (77.57,78.23)), (62.8, (62.11,63.49))],
-    "Big_Nose:Gray_Hair": [(84.53, (84.24,84.82)), (53.95, (52.86,55.04), (81.47, (81.16,81.78)), (57.33, (53.99,60.66))]
+    "Big_Nose:Gray_Hair": [(84.53, (84.24,84.82)), (53.95, (52.86,55.04)), (81.47, (81.16,81.78)), (57.33, (53.99,60.66))]
 }
 
 mtl_strong_spur_corr_tasks["Pairing_3"] = {
@@ -129,9 +131,12 @@ mtl_strong_spur_corr_nondisjoint = ["Pairing_1", "Pairing_2", "Pairing_5"]
 mtl_weak_spur_corr_disjoint = ["Pairing_1", "Pairing_3", "Pairing_5"]
 mtl_weak_spur_corr_nondisjoint = ["Pairing_2", "Pairing_4"]
 
-def avg_gain_over_stl(stl_dict, mtl_dict, use_group_val_labels=True, use_pairings = ["Pairing_1", "Pairing_2", "Pairing_3", "Pairing_4", "Pairing_5"]):
+def avg_gain_over_stl(stl_dict, mtl_dict, use_group_val_labels=True, use_pairings = ["Pairing_1", "Pairing_2", "Pairing_3", "Pairing_4", "Pairing_5"], relative_gain = False):
     avg_acc_gain = 0
     avg_worst_group_gain = 0
+
+    avg_se = 0
+    wg_se = 0
 
     for pairing_num in use_pairings:
         for task_name in mtl_dict[pairing_num]:
@@ -140,17 +145,54 @@ def avg_gain_over_stl(stl_dict, mtl_dict, use_group_val_labels=True, use_pairing
             stl_results = stl_dict[task_name]
 
             if use_group_val_labels:
-                avg_acc_gain += mtl_results[2][0] - stl_results[2][0]
-                avg_worst_group_gain += mtl_results[3][0] - stl_results[3][0]
+                if relative_gain:
+                    avg_acc_gain += ((mtl_results[2][0] - stl_results[2][0])/(stl_results[2][0] + EPS))*100
+                    avg_worst_group_gain += ((mtl_results[3][0] - stl_results[3][0])/(stl_results[3][0] + EPS))*100
+                else:
+                    avg_acc_gain += mtl_results[2][0] - stl_results[2][0]
+                    avg_worst_group_gain += mtl_results[3][0] - stl_results[3][0]
+
+                mtl_avg_std = mtl_results[2][1][1] - mtl_results[2][1][0]
+                mtl_avg_std /= 2
+                mtl_wg_std = mtl_results[3][1][1] - mtl_results[3][1][0]
+                mtl_wg_std /= 2
+
+                stl_avg_std = stl_results[2][1][1] - stl_results[2][1][0]
+                stl_avg_std /= 2
+                stl_wg_std = stl_results[3][1][1] - stl_results[3][1][0]
+                stl_wg_std /= 2
+
+                avg_se += mtl_avg_std**2 + stl_avg_std**2
+                wg_se += mtl_wg_std**2 + stl_wg_std**2
 
             else:
-                avg_acc_gain += mtl_results[0][0] - stl_results[0][0]
-                avg_worst_group_gain += mtl_results[1][0] - stl_results[1][0]
+                if relative_gain:
+                    avg_acc_gain += ((mtl_results[0][0] - stl_results[0][0])/(stl_results[0][0] + EPS))*100
+                    avg_worst_group_gain += ((mtl_results[1][0] - stl_results[1][0])/(stl_results[1][0] + EPS))*100
+                else:
+                    avg_acc_gain += mtl_results[0][0] - stl_results[0][0]
+                    avg_worst_group_gain += mtl_results[1][0] - stl_results[1][0]
+
+                mtl_avg_std = mtl_results[0][1][1] - mtl_results[0][1][0]
+                mtl_avg_std /= 2
+                mtl_wg_std = mtl_results[1][1][1] - mtl_results[1][1][0]
+                mtl_wg_std /= 2
+
+                stl_avg_std = stl_results[0][1][1] - stl_results[0][1][0]
+                stl_avg_std /= 2
+                stl_wg_std = stl_results[1][1][1] - stl_results[1][1][0]
+                stl_wg_std /= 2
+
+                avg_se += mtl_avg_std**2 + stl_avg_std**2
+                wg_se += mtl_wg_std**2 + stl_wg_std**2
 
     avg_acc_gain /= len(use_pairings)*2
     avg_worst_group_gain /= len(use_pairings)*2
 
-    return avg_acc_gain, avg_worst_group_gain
+    avg_se = np.sqrt(avg_se)/(2*len(stl_dict.keys()))
+    wg_se = np.sqrt(wg_se)/(2*len(stl_dict.keys()))
+
+    return avg_acc_gain, avg_se, avg_worst_group_gain, wg_se
 
 def wg_average_in_pairings(stl_dict, mtl_dict, use_group_val_labels=True):
     pairing_to_res = {}
@@ -197,15 +239,15 @@ def wg_average_in_pairings(stl_dict, mtl_dict, use_group_val_labels=True):
         avg_mtl_wg /= len(mtl_dict[pairing_num])
         avg_stl_wg /= len(mtl_dict[pairing_num])
 
-        combined_mtl_se = np.sqrt(combined_mtl_se)
-        combined_stl_se = np.sqrt(combined_stl_se)
+        combined_mtl_se = np.sqrt(combined_mtl_se)/len(mtl_dict[pairing_num])
+        combined_stl_se = np.sqrt(combined_stl_se)/len(mtl_dict[pairing_num])
 
         pairing_to_res[pairing_num] = [avg_stl_wg, combined_stl_se, avg_mtl_wg, combined_mtl_se]
 
     return pairing_to_res
 
 
-def make_gain_over_stl_plot(use_group_val_labels = True, pairings_to_use = None):
+def make_gain_over_stl_plot(use_group_val_labels = True, pairings_to_use = None, relative_gain = False):
 
     weak_pairings = ["Pairing_1", "Pairing_2", "Pairing_3", "Pairing_4", "Pairing_5"]
     strong_pairings = ["Pairing_1", "Pairing_2", "Pairing_3", "Pairing_4", "Pairing_5"]
@@ -218,25 +260,38 @@ def make_gain_over_stl_plot(use_group_val_labels = True, pairings_to_use = None)
         strong_pairings = mtl_strong_spur_corr_nondisjoint
 
 
-    weak_spur_corr_gains = avg_gain_over_stl(stl_weak_spur_corr_tasks, mtl_weak_spur_corr_tasks, use_group_val_labels, weak_pairings)
-    strong_spur_corr_gains= avg_gain_over_stl(stl_strong_spur_corr_tasks, mtl_strong_spur_corr_tasks, use_group_val_labels, strong_pairings)
+    weak_spur_corr_gains = avg_gain_over_stl(stl_weak_spur_corr_tasks, mtl_weak_spur_corr_tasks, use_group_val_labels, weak_pairings, relative_gain)
+    strong_spur_corr_gains= avg_gain_over_stl(stl_strong_spur_corr_tasks, mtl_strong_spur_corr_tasks, use_group_val_labels, strong_pairings, relative_gain)
 
-    gains_data = [[strong_spur_corr_gains[0], 'Average Acc', 'Strong Pairings'], [strong_spur_corr_gains[1], 'Worst Group Acc', 'Strong Pairings'], [weak_spur_corr_gains[0], 'Average Acc', 'Weak Pairings'], [weak_spur_corr_gains[1], 'Worst Group Acc', 'Weak Pairings']]
-    gains_df = pd.DataFrame(gains_data, columns=['Average Gain over STL', 'Metric', 'MTL Pairing Type'])
+    gains_data = [[strong_spur_corr_gains[0], strong_spur_corr_gains[1], 'Average Acc', 'Strong Pairings'], [strong_spur_corr_gains[2], strong_spur_corr_gains[3], 'Worst Group Acc', 'Strong Pairings'], [weak_spur_corr_gains[0], weak_spur_corr_gains[1], 'Average Acc', 'Weak Pairings'], [weak_spur_corr_gains[2], weak_spur_corr_gains[3], 'Worst Group Acc', 'Weak Pairings']]
+    y_label = "Percent Gain over STL" if relative_gain else "Average Gain over STL"
+    gains_df = pd.DataFrame(gains_data, columns=[y_label, 'SE', 'Metric', 'MTL Pairing Type'])
     plt.figure(figsize=(10, 10))
     sns.barplot(x = 'MTL Pairing Type',
-            y = 'Average Gain over STL',
+            y = y_label,
             hue = 'Metric',
             data = gains_df)
 
+    bar_indices = np.array([0, 1])
+    bar_indices = np.repeat(bar_indices, 2)
+
+    width = .25
+    add = np.array([-1*width, width])
+    add = np.tile(add, 2)
+    x = bar_indices + add
+
+    plt.errorbar(x = x, y = gains_df[y_label],
+                yerr=gains_df['SE'], fmt='none', c= 'black', capsize = 2)
+
     ckpt_type = 'WG' if use_group_val_labels else "Avg"
+    os.makedirs(os.path.join("./plots", "strong_vs_weak"), exist_ok = True)
 
     if pairings_to_use is None:
         plt.title(f"MTL when using Strong vs Weak Pairings [{ckpt_type} Ckpt]")
-        plt.savefig(f"./plots/strong_vs_weak_group_val_labels_{str(use_group_val_labels)}.png")
+        plt.savefig(f"./plots/strong_vs_weak/stl_gain_group_val_labels_{str(use_group_val_labels)}_relative_gain_{str(relative_gain)}.png")
     else:
         plt.title(f"MTL when using Strong vs Weak Pairings for {pairings_to_use} [{ckpt_type} Ckpt]")
-        plt.savefig(f"./plots/strong_vs_weak_{pairings_to_use.lower()}_group_val_labels_{str(use_group_val_labels)}.png")
+        plt.savefig(f"./plots/strong_vs_weak/stl_gain_{pairings_to_use.lower()}_group_val_labels_{str(use_group_val_labels)}_relative_gain_{str(relative_gain)}.png")
 
     plt.close()
 
@@ -279,12 +334,16 @@ def make_avg_in_pairing_plot(use_group_val_labels = True):
 
     ckpt_type = 'WG' if use_group_val_labels else "Avg"
     plt.title(f"Average Worst Group Accuracy Across Pairings [{ckpt_type} Ckpt]")
-    plt.savefig(f"./plots/strong_vs_weak_pairings_group_val_labels_{str(use_group_val_labels)}.png")
+    os.makedirs(os.path.join("./plots", "strong_vs_weak"), exist_ok = True)
+    plt.savefig(f"./plots/strong_vs_weak/avg_across_pairings_group_val_labels_{str(use_group_val_labels)}.png")
     plt.close()
   
  
-make_gain_over_stl_plot(use_group_val_labels = True, pairings_to_use = "Nondisjoint")
-make_gain_over_stl_plot(use_group_val_labels = False, pairings_to_use = "Nondisjoint")
+make_gain_over_stl_plot(use_group_val_labels = True)
+make_gain_over_stl_plot(use_group_val_labels = False)
 
 make_avg_in_pairing_plot(use_group_val_labels = True)
 make_avg_in_pairing_plot(use_group_val_labels = False)
+
+make_gain_over_stl_plot(use_group_val_labels = True, relative_gain = True)
+make_gain_over_stl_plot(use_group_val_labels = False, relative_gain = True)

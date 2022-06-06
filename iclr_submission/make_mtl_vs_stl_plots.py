@@ -40,75 +40,122 @@ stl_results["JTT"] = {"Big_Lips:Chubby": [(32.7, (32.33,33.08)), (0.0, (0.0,0.0)
         [(TODO, (TODO)), (TODO, (TODO)), (TODO, (TODO), (TODO, (TODO))]}
 
 
-mtl_results["ERM"] = {
+mtl_results["ERM"] = { "Pairing_1" : {
     "Big_Lips:Chubby": [(70.6, (70.24,70.97)), (15.35, (14.84,15.87)), (66.92, (66.54,67.29)), (59.01, (58.4,59.61))],
     "Bushy_Eyebrows:Blond_Hair":
-        [(92.76, (92.55,92.97)), (11.75, (4.0,19.49)), (88.63, (88.37,88.88)), (39.17, (28.13,50.2))]
+        [(92.76, (92.55,92.97)), (11.75, (4.0,19.49)), (88.63, (88.37,88.88)), (39.17, (28.13,50.2))]},
+    "Pairing_2": {"Wearing_Lipstick:Male": [(93.64, (93.44,93.83)), (31.19, (23.54,38.83)), (93.6, (93.4,93.79)), (45.95, (37.78,54.13))],
+    "Gray_Hair:Young": [(98.17, (98.06,98.27)), (26.3, (16.14,36.46)), (96.93, (96.79,97.07)), (40.88, (29.78,51.99))]},
+    "Pairing_3": {}
 }
 
-mtl_results["RWY"] = {
+mtl_results["RWY"] = { "Pairing_1" : {
     "Big_Lips:Chubby": [(69.65, (69.28,70.02)), (28.98, (28.33,29.63)), (66.06, (65.68,66.44)), (58.87, (58.16,59.58))],
     "Bushy_Eyebrows:Blond_Hair":
-        [(88.79, (88.53,89.04)), (41.49, (30.25,52.73)), (80.75, (80.43,81.06)), (73.53, (72.82,74.24))]
+        [(88.79, (88.53,89.04)), (41.49, (30.25,52.73)), (80.75, (80.43,81.06)), (73.53, (72.82,74.24))]}, 
+    "Pairing_2": {},
+    "Pairing_3": {}
 }
 
-mtl_results["SUBY"] = {
+mtl_results["SUBY"] = {"Pairing_1":{
     "Big_Lips:Chubby": [(67.33, (66.96,67.71)), (47.29, (46.58,48.01)), (64.07, (63.68,64.45)), (61.45, (60.84,62.05))],
     "Bushy_Eyebrows:Blond_Hair":
-        [(84.37, (84.08,84.66)), (44.82, (33.07,56.57)), (79.56, (79.24,79.88)), (72.23, (71.51,72.96))]
+        [(84.37, (84.08,84.66)), (44.82, (33.07,56.57)), (79.56, (79.24,79.88)), (72.23, (71.51,72.96))]},
+    "Pairing_2": {},
+    "Pairing_3": {}
 }
 
-mtl_results["JTT"] = {
+mtl_results["JTT"] = {"Pairing_1":{
     "Big_Lips:Chubby": [(61.14, (60.75,61.53)), (54.02, (53.48,54.57)), (60.03, (59.63,60.42)), (50.47, (49.93,51.02))],
     "Bushy_Eyebrows:Blond_Hair":
-        [(72.96, (72.6,73.31)), (67.3, (66.86,67.74)), (77.42, (77.09,77.76)), (68.85, (68.11,69.6))]
+        [(72.96, (72.6,73.31)), (67.3, (66.86,67.74)), (77.42, (77.09,77.76)), (68.85, (68.11,69.6))]},
+    "Pairing_2": {},
+    "Pairing_3": {}
 }
 
 
-def make_plot(wg_acc = True):
+def mtl_stl_results(stl_dict, mtl_dict, group_acc=True):
+    mtl_acc = 0
+    stl_acc = 0
 
-    plt.figure(figsize=(12, 7))
-    avg_opt_data = []
+    mtl_se = 0
+    stl_se = 0
 
-    y_label = "Mean Worst Group Accuracy Across Tasks" if wg_acc else "Mean Average Accuracy Across Tasks"
+    for pairing_num in mtl_dict.keys():
+        for task_name in mtl_dict[pairing_num]:
 
-    for opt_type in mtl_results.keys():
-        
-        avg_mtl = 0
-        avg_stl = 0
+            mtl_results = mtl_dict[pairing_num][task_name]
+            stl_results = stl_dict[task_name]
 
-        for task_name in mtl_results[opt_type]:
+            if group_acc:
+                mtl_acc += mtl_results[3][0] 
+                stl_acc += stl_results[3][0]
 
-            mtl_res = mtl_results[opt_type][task_name]
-            stl_res = stl_results[opt_type][task_name]
+                mtl_wg_std = mtl_results[3][1][1] - mtl_results[3][1][0]
+                mtl_wg_std /= 2
 
-            if wg_acc:
-                avg_mtl += mtl_res[3][0]
-                avg_stl += stl_res[3][0]
+                stl_wg_std = stl_results[3][1][1] - stl_results[3][1][0]
+                stl_wg_std /= 2
+
+                mtl_se += mtl_wg_std**2 
+                stl_se += stl_wg_std**2
+
             else:
-                avg_mtl += mtl_res[2][0]
-                avg_stl += stl_res[2][0]
+                mtl_acc += mtl_results[2][0] 
+                stl_acc += stl_results[2][0]
                 
+                mtl_avg_std = mtl_results[2][1][1] - mtl_results[2][1][0]
+                mtl_avg_std /= 2
 
-        avg_mtl /= len(mtl_results[opt_type])
-        avg_stl /= len(mtl_results[opt_type])
+                stl_avg_std = stl_results[2][1][1] - stl_results[2][1][0]
+                stl_avg_std /= 2
 
-        avg_opt_data.append([avg_stl, "STL", opt_type])
-        avg_opt_data.append([avg_mtl, "MTL", opt_type])
+                mtl_se += mtl_avg_std**2 
+                stl_se += stl_avg_std**2
 
+    mtl_acc /= (len(mtl_dict.keys())*2)
+    stl_acc /= (len(mtl_dict.keys())*2)
 
-    avg_opt_df = pd.DataFrame(avg_opt_data, columns=[y_label, 'Learning Type', 'Optimization Procedure'])
+    mtl_se = np.sqrt(mtl_se)/(len(mtl_dict.keys())*2)
+    stl_se = np.sqrt(stl_se)/(len(mtl_dict.keys())*2)
 
+    return stl_acc, stl_se, mtl_acc, mtl_se
 
+def make_mtl_stl_plot(group_acc = True):
+    erm_gains = mtl_stl_results(stl_results["ERM"], mtl_results["ERM"], group_acc)
+    rwy_gains= mtl_stl_results(stl_results["RWY"], mtl_results["RWY"], group_acc)
+    suby_gains = mtl_stl_results(stl_results["SUBY"], mtl_results["SUBY"], group_acc)
+    jtt_gains= mtl_stl_results(stl_results["JTT"], mtl_results["JTT"], group_acc)
+
+    y_label = "Mean Worst Group Accuracy Across Tasks" if group_acc else "Mean Average Accuracy Across Tasks"
+
+    opt_data = [[erm_gains[0], erm_gains[1], 'STL', 'ERM'], [erm_gains[2], erm_gains[3], 'MTL', 'ERM'], 
+                  [rwy_gains[0], rwy_gains[1], 'STL', 'RWY'], [rwy_gains[2], rwy_gains[3], 'MTL', 'RWY'], 
+                  [suby_gains[0], suby_gains[1], 'STL', 'SUBY'], [suby_gains[2], suby_gains[3], 'MTL', 'SUBY'], 
+                  [jtt_gains[0], jtt_gains[1], 'STL', 'JTT'], [jtt_gains[2], jtt_gains[3], 'MTL', 'JTT']]
+
+    avg_opt_df = pd.DataFrame(opt_data, columns=[y_label, "SE", 'Learning Type', 'Optimization Procedure'])
+    plt.figure(figsize=(14, 10))
     sns.barplot(x = 'Optimization Procedure',
             y = y_label,
             hue = 'Learning Type',
             data = avg_opt_df)
 
-            
-    plt.title(f"STL vs MTL Comparison")
-    plt.savefig(f"./plots/stl_mtl_comparison_wg_{wg_acc}.png")
-    plt.close()
+    bar_indices = np.array([0, 1, 2, 3])
+    bar_indices = np.repeat(bar_indices, 2)
 
-make_plot(wg_acc = True)
-make_plot(wg_acc = False)
+    width = .25
+    add = np.array([-1*width, width])
+    add = np.tile(add, 2)
+    x = bar_indices + add
+
+    plt.errorbar(x = x, y = avg_opt_df[y_label],
+                yerr=avg_opt_df['SE'], fmt='none', c= 'black', capsize = 2)
+
+    os.makedirs(os.path.join("./plots", "mtl_vs_stl"), exist_ok = True)
+    plt.title(f"STL vs MTL Comparison")
+    plt.savefig(f"./plots/mtl_vs_stl/optimization_comparison_group_acc{str(group_acc)}.png")
+    plt.close()  
+ 
+make_mtl_stl_plot(group_acc = True)
+make_mtl_stl_plot(group_acc = False)
