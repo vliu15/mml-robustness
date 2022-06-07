@@ -162,7 +162,7 @@ where alpha is a specific parameter to the LBTW algorithm. When `exp.dataset.los
 Here, we specify the files and commands needed for all the experiments that we ran. We specifically investigated the benefit of MTL over the corresponding STL baseline as well as settings under which MTL performs best. 
 
 ### Training
-All commands to initiate training of experimnets can be found in [`scripts/run_hparam_grid_train.py`](https://github.com/vliu15/mml-robustness/blob/plots_and_analysis/scripts/run_hparam_grid_train.py). We support setting of runs either in the shell or using slurm via the `sbatch` command line argument. To specifiy the task weighting using the `--mtl_weighting` argument. We support three different types of task weighting currently: `static_equal` (where all weights are static and the same), `static_delta` (where all weights are static and based on normalized delta values for each grouping in the task pairing), and `dynamic` (which is LBTW). Note for `static_delta` we require that the delta values created in Spurious Correlation Extraction are stored somewhere. 
+All commands to initiate training of experiments can be found in [`scripts/run_hparam_grid_train.py`](https://github.com/vliu15/mml-robustness/tree/main/scripts/run_hparam_grid_train.py). We support setting of runs either in the shell or using slurm via the `sbatch` command line argument. To specifiy the task weighting using the `--mtl_weighting` argument. We support three different types of task weighting currently: `static_equal` (where all weights are static and the same), `static_delta` (where all weights are static and based on normalized delta values for each grouping in the task pairing), and `dynamic` (which is LBTW). Note for `static_delta` we require that the delta values created in Spurious Correlation Extraction are stored somewhere. 
 
 For whatever reason, if a series of runs do not complete for any experiment, then running the same command specified below along with the additional flag `--respawn` will ensure that the runs pick up at the last logged checkpoint.
 
@@ -262,7 +262,7 @@ python -m scripts.run_hparam_grid_train --opt mtl_erm_weak
 ```
 
 ### Evaluation 
-scripts.run_hparam_grid_eval -> walk through all opts 
+All commands to initiate training of experiments can be found in [`scripts/run_hparam_grid_eval.py`](https://github.com/vliu15/mml-robustness/tree/main/scripts/run_hparam_grid_eval.py). The commands for running specific experiments are the same as the training section above except with a call to this evaluation script. The only additional difference is that we support three various types of checkpoint for mtl models: `average`, `best-worst`, `per-task` which can be specified using the `--mtl_checkpoint_type` flag. Respectively these checkpointing types will take the checkpoint that has the best average performance across tasks, that maxmizes the worst performance across tasks, or chooses one checkpoint per task that each achieves the best per-task performance.
 
-### Results Visualization
-give overview of how to use report_results
+### Results
+Once the evaluation script has finished, [`scripts/report_results.py`](https://github.com/vliu15/mml-robustness/tree/main/scripts/report_results.py) is a handy script which aggregates results across seeds and provides confidence intervals on expected performance. We report results of both average and worst group performance.
