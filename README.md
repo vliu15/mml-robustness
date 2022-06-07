@@ -5,7 +5,7 @@ We explore the utility of multi-task learning in improving performance of group-
 - [Spurious Correlation Identification](#spurious-correlation-identification)
 - [Multi-Task Learning](#multi-task-learning)
 
-## Single-Task Learning
+## Single-Task Learning (STL)
 Currently we only experiment with ResNet-50 on the CelebA dataset with a couple group-robustness methods in addition to the standard Empirical Risk Minimization (ERM) optimization of neural networks. We use the `hydra-core` package for  general command-line control of hyperparameters.
 
 ### Empirical Risk Minimization
@@ -15,8 +15,10 @@ python train_erm.py exp=erm
 ```
 where default hyperparameters are specified in `configs/exp/erm.yaml`. Command-line control of config fields can be done with flags like
 ```bash
-python train_erm.py exp=erm exp.optimizer.lr=0.0001 exp.train.total_epochs=50
+python train_erm.py exp=erm exp.optimizer.lr=0.0001 exp.train.total_epochs=50 exp.dataset.groupings=['Blond_Hair:Male']
 ```
+The `exp.dataset.groupings` field manages the task that is being trained with any spurious correlations that should be taken into account seperated from the task by a colon. 
+
 In general, the `model` field should not be changed, the `optimizer` field should only be changed for hyperparameter tuning, and the `dataset`/`dataloader` fields should only be changed for data subsampling/reweighting methods, respectively.
 
 ### Just Train Twice
@@ -135,8 +137,35 @@ python -m scripts.spurious_eval --json_dir outputs/spurious_eval --out_dir outpu
 This script runs two methods:
 1. Biclustering: The 40x40 `T` matrix is column-normalized with softmax to emphasize larger values of `delta`, which is then put through `SpectralCoclustering`. Various combinations of `T` and `A = transpose(T)` are biclustered.
 2. SVD + Clustering: The 40x40 `T` matrix is column-normalized with L2 norm and passed into SVD for feature dimension reduction according to the specified `gamma` value. These are clustered with KMeans
+3.Deltas Heatmap: Creates a heatmap of the counts of all delta values across the 40x39 possible pairs. By observing where there is a dropoff in counts for a given value of delta we can determine the threshold for the dataset which which to start identiying which pairs exhibit spurious correlations.
 
-## Multi-Task Learning (EXPERIMENTAL)
-TODO
-- [ ] Explain how to specify multiple groupings works in `exp.datasets.groupings`
-- [ ] Loss-balanced task weighting
+## Multi-Task Learning (MTL)
+We implement MTL versions for each of the STL versions specified above. It is generally the same procedure to run a MTL method as it is for the STL version, the only differences that exist are in specifying the multiple tasks to train on as well as the weights for each of the individual tasks. Without loss of generality, we explain everyhting in the context of ERM. 
+
+In order to specify multiple tasks alter the `exp.dataset.groupings` file to contain multiple task, spurious correlation pairs and if you wish for the model to also be evaluated on the subgroups formed by the spurious correlation additionally specifiy that `exp.dataset.subgroup_labels=true`. Below is an ERM model trained for 3 tasks: 
+
+```bash
+python train_erm.py exp=erm exp.train.total_epochs=50 exp.dataset.groupings=['Blond_Hair:Male', 'Big_Lips:Chubby', 'Gray_Hair:Young'] exp.dataset.subgroup_labels=true
+```
+
+In addition, we can specify how to weight the specified tasks through the following field: `exp.dataset.task_weights`. A list of the same length of the number of tasks should be passed into this field where the value of the index will correspond to the task specified at that index. These weights should either all be 1 or  all sum to 1. Hence, a possible specification for the above scenario is the following: `exp.dataset.task_weights=[0.25, 0.5, 0.25]`
+
+However, note that these weights are all static throughout training and if it is desired to have weights that are dynamic throughout differnet epochs we also support [Loss Balanced Task Weighting](https://ojs.aaai.org//index.php/AAAI/article/view/5125) (LBTW) which updates the weights for a each task based on the loss ratio between the loss of the current batch and the loss of the initial batch. This ratio acts as a metric for how well the model has trained for that given task. LBTW can be specified as follows:
+
+```bash
+python train_erm.py exp=erm exp.train.total_epochs=50 exp.dataset.groupings=['Blond_Hair:Male', 'Big_Lips:Chubby', 'Gray_Hair:Young'] exp.dataset.subgroup_labels=true exp.dataset.loss_balanced_task_weighting=true exp.dataset.lbtw_alpha=0.5
+```
+
+where alpha is a specific parameter to the LBTW algorithm. When `exp.dataset.loss_balanced_task_weighting` is true, ensure that the weights in `exp.dataset.task_weights` are all 1. 
+
+## MTL Experiments 
+Here, we specify the files and commands needed for all the experiments that we ran. We specifically investigated the benefit of MTL over the corresponding STL baseline as well as settings under which MTL performs best. 
+
+### Training
+scripts.run_hparam_grid_train -> walk through all opts 
+
+### Evaluation 
+scripts.run_hparam_grid_eval -> walk through all opts 
+
+### Results Visualization
+give overview of how to use report_results
