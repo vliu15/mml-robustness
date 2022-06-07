@@ -104,7 +104,7 @@ In all large-scale scripts that require GPU workload asynchronously across tasks
 ### Tuning and Training
 Because tuning on hyperparameter grids on all tasks is very expensive, we instead tune on 5 tasks and apply these hyperparameters to neural networks for all tasks:
 ```bash
-python -m scripts.run_hparam_grid_search --opt erm
+python -m scripts.run_hparam_grid_search --opt erm_tune
 ```
 > These runs will get saved to `./logs`
 
@@ -123,7 +123,7 @@ python -m scripts.run_create_spurious_matrix --meta_log_dir ./logs/spurious_id -
 
 For each task, this will call `test.py` to run inference on each `$TASK` x `$ATTR` pair and then aggregate all 40 into heatmaps showing group performances, group sizes, and our spurious correlation delta metric: `delta = |g0 + g3 - g1 - g2|`.
 
-### Spurious Correlation Extraction (EXPERIMENTAL)
+### Spurious Correlation Extraction
 Finally, we take all 40x39 possible pairs of spurious correlations (namely, their `delta` metrics) and systematically identify which attributes are spuriously correlated with which tasks. We observe that attributes aren't IID - specifically, there are a lot of labelled attributes that are correlated with gender. Therefore, we use biclustering and SVD-based methods to extract correlations across/between attributes/tasks:
 ```bash
 python -m scripts.spurious_eval --json_dir outputs/spurious_eval --out_dir outputs/svd --gamma 0.9 --k 10
@@ -162,7 +162,104 @@ where alpha is a specific parameter to the LBTW algorithm. When `exp.dataset.los
 Here, we specify the files and commands needed for all the experiments that we ran. We specifically investigated the benefit of MTL over the corresponding STL baseline as well as settings under which MTL performs best. 
 
 ### Training
-scripts.run_hparam_grid_train -> walk through all opts 
+All commands to initiate training of experimnets can be found in [`scripts/run_hparam_grid_train.py`](https://github.com/vliu15/mml-robustness/blob/plots_and_analysis/scripts/run_hparam_grid_train.py). We support setting of runs either in the shell or using slurm via the `sbatch` command line argument. To specifiy the task weighting using the `--mtl_weighting` argument. We support three different types of task weighting currently: `static_equal` (where all weights are static and the same), `static_delta` (where all weights are static and based on normalized delta values for each grouping in the task pairing), and `dynamic` (which is LBTW). Note for `static_delta` we require that the delta values created in Spurious Correlation Extraction are stored somewhere. 
+
+For whatever reason, if a series of runs do not complete for any experiment, then running the same command specified below along with the additional flag `--respawn` will ensure that the runs pick up at the last logged checkpoint.
+
+
+
+#### MTL Tuning
+
+We currently only tune MTL ERM. To find the best known paramater combinations using the following command:
+
+```bash
+python -m scripts.run_hparam_grid_train --opt mtl_erm_tune
+```
+
+#### MTL vs STL Comparison
+
+We compare the MTL formulation of the STL baselines against each other.
+
+For STL ERM and MTL ERM run the following respectively:
+```bash
+python -m scripts.run_hparam_grid_train --opt erm 
+```
+
+```bash
+python -m scripts.run_hparam_grid_train --opt mtl_erm_mtl_stl 
+```
+
+For STL RWY and MTL RWY run the following respectively:
+```bash
+python -m scripts.run_hparam_grid_train --opt rwy 
+```
+
+```bash
+python -m scripts.run_hparam_grid_train --opt mtl_rwy 
+```
+
+For STL SUBY and MTL SUBY run the following respectively:
+```bash
+python -m scripts.run_hparam_grid_train --opt suby 
+```
+
+```bash
+python -m scripts.run_hparam_grid_train --opt mtl_suby 
+```
+
+For STL JTT and MTL JTT run the following respectively:
+```bash
+python -m scripts.run_hparam_grid_train --opt jtt 
+```
+
+```bash
+python -m scripts.run_hparam_grid_train --opt mtl_jtt 
+```
+
+#### MTL Task Ablation
+
+We seek to understand the impact that the number of tasks in a pairing has on resulting performance:
+
+```bash
+python -m scripts.run_hparam_grid_train --opt mtl_erm_ablate_disjoint 
+```
+
+```bash
+python -m scripts.run_hparam_grid_train --opt mtl_erm_ablate_nondisjoint 
+```
+
+#### MTL Disjoint vs Nondisjoint
+
+To understand if the relationships between spurious correlations of tasks in a pairing play a role, we run experiments where all tasks in a pairing have disjoint spurious correlations or where they all share at least one spurious correlation:
+
+```bash
+python -m scripts.run_hparam_grid_train --opt mtl_erm_disjoint 
+```
+
+```bash
+python -m scripts.run_hparam_grid_train --opt mtl_erm_nondisjoint 
+```
+
+#### MTL Similar vs Dissimilar
+
+Additionally, the relationship between the tasks that are being trained could impact MTL performance. Hence, we experiment with whether similar types of tasks leadst to better training than when they are dissimilar:
+
+
+```bash
+python -m scripts.run_hparam_grid_train --opt mtl_erm_similar 
+```
+
+#### MTL Strong Spurious Correlation vs Weak Spurious Correlation
+
+Lastly, we hypothesize that MTL performance may very when all tasks in the pairing have strong spurious correlations or when they all have weak spurious correlations:
+
+```bash
+python -m scripts.run_hparam_grid_train --opt mtl_erm_strong 
+```
+
+```bash
+python -m scripts.run_hparam_grid_train --opt mtl_erm_weak 
+```
 
 ### Evaluation 
 scripts.run_hparam_grid_eval -> walk through all opts 
