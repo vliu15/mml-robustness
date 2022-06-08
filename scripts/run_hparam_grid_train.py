@@ -22,7 +22,7 @@ from scripts.job_manager import JobManager
 
 USER = os.environ["USER"]
 LOG_DIR = "./logs"
-SEED_GRID = [0, 1, 2]
+SEED_GRID = [0,1,2]
 
 # Dictionary of task lists based on the type of ablation experiments we want to run
 TASKS = {
@@ -330,6 +330,7 @@ def append_ckpt_for_respawn(command, job_name, epochs):
     if ckpt_num < epochs:
         return f"{command} exp.train.load_ckpt=\\'{ckpt_path}\\'"
     else:
+        warnings.warn(f"All checkpoints already completed for: {job_name}")
         return command
 
 
@@ -355,6 +356,7 @@ def append_ckpt_for_jtt_respawn(command, job_name, epochs1, epochs2):
     elif stage_1_ckpt_num == epochs1 and stage_2_ckpt_num != epochs2:
         return f"{command} exp.load_up_pkl=\\'{load_up_pkl_path}\\' exp.load_stage_2_ckpt=\\'{stage_2_ckpt_path}\\'"
     else:
+        warnings.warn(f"All checkpoints already completed for: {job_name}")
         return command
 
 
@@ -652,7 +654,7 @@ def submit_mtl_cvx_disjoint_tasks_train(args):
         for seed in SEED_GRID:
             for cvx in CVX_GRID:
                 task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(args.mtl_weighting, task)
-                job_name = f"mtl_train:{method},task:{len(task)}_tasks_idx:{idx + 1},{args.mtl_weighting}_task_weighting,seed:{seed},cvx:{cvx}"
+                job_name = f"mtl_train:{method},task:{len(task)}_tasks_idx:{idx+1},{args.mtl_weighting}_task_weighting,seed:{seed},cvx:{cvx}"
                 log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
                 command = (
