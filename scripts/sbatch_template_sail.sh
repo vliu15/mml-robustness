@@ -9,7 +9,7 @@
 #SBATCH --time=96:00:00                             # Time limit hrs:min:sec
 #SBATCH --output=$LOG_FILE                          # Standard output and error log
 #SBATCH --partition=jag-hi,jag-important,jag-standard  # Request a specific partition for the resource allocation
-#SBATCH --nodelist=jagupard16                       # Specifies specific machine(s) to use
+#SBATCH --exclude=jagupard[10-14,28-31]             # Specifies nodes to not run on                       
 #SBATCH --gres=gpu:1                                # Specifies a comma-delimited list of generic consumable resources
 
 export OMP_NUM_THREADS=8                            # Set parallel threads to --cpus-per-task

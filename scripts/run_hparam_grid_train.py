@@ -22,7 +22,7 @@ from scripts.job_manager import JobManager
 
 USER = os.environ["USER"]
 LOG_DIR = "./logs"
-SEED_GRID = [0,1,2]
+SEED_GRID = [1,2]
 
 # Dictionary of task lists based on the type of ablation experiments we want to run
 TASKS = {
@@ -637,8 +637,8 @@ def submit_mtl_erm_ablate_nondisjoint_tasks_train(args):
 
 
 def submit_mtl_cvx_disjoint_tasks_train(args):
-    TASK_GRID = TASKS["MTL_STL_COMPARISON"][1:]  # SINGLE PAIR
-    CVX_GRID = ["maxent"] #"qp", 
+    TASK_GRID = TASKS["MTL_STL_COMPARISON"]  # SINGLE PAIR
+    CVX_GRID = ["qp", "maxent"]
 
     assert args.opt in ["mtl_rwy", "mtl_suby"], "This method only supports --opt=mtl_rwy and --opt=mtl_suby"
     method = args.opt.replace("mtl_", "")
@@ -678,7 +678,7 @@ def submit_mtl_cvx_disjoint_tasks_train(args):
 
 
 def submit_mtl_jtt_disjoint_tasks_train(args):
-    TASK_GRID = TASKS["MTL_STL_COMPARISON"][1:]  # SINGLE PAIR
+    TASK_GRID = TASKS["MTL_STL_COMPARISON"][2:]  # SINGLE PAIR
 
     assert args.opt in ["mtl_jtt"], "This method only supports --opt=mtl_jtt"
 
@@ -696,7 +696,7 @@ def submit_mtl_jtt_disjoint_tasks_train(args):
     for idx, task in enumerate(TASK_GRID):
         for seed in SEED_GRID:
             task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(args.mtl_weighting, task)
-            job_name = f"mtl_train:jtt,task:{len(task)}_tasks_idx:{idx + 1},{args.mtl_weighting}_task_weighting,seed:{seed}"
+            job_name = f"mtl_train:jtt,task:{len(task)}_tasks_idx:{2},{args.mtl_weighting}_task_weighting,seed:{seed}"
             log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
             command = (
