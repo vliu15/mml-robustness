@@ -10,7 +10,7 @@
 #SBATCH --output=$LOG_FILE          # Standard output and error log
 #SBATCH --partition=gpu             # Request a specific partition for the resource allocation
 #SBATCH --gpus 1                    # Specifies GPU
-#SBATCH -C GPU_SKU:RTX_2080Ti        # Specifies GPU type from: RTX_2080Ti,V100_SXM2,V100S_PCIE,V100_PCIE
+#SBATCH -C GPU_SKU:RTX_2080Ti        # Specifies GPU type from: RTX_2080Ti,V100_SXM2,V100S_PCIE,V100_PCIE, RTX_2080Ti
 
 export OMP_NUM_THREADS=8            # Set parallel threads to --cpus-per-task
 

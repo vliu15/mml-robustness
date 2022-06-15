@@ -138,6 +138,7 @@ def submit_stl_test(args):
 
     if method in ["suby", "rwy", "jtt"]:
         TASK_GRID = flatten(TASKS["MTL_DISJOINT"])
+        TASK_GRID = ["High_Cheekbones:Smiling"]
     else:  # we want to run erm on everything
         TASK_GRID = set(flatten(TASKS["MTL_DISJOINT"] + TASKS["MTL_NONDISJOINT"] + TASKS["MTL_SIMILAR"] + TASKS["MTL_STRONG"]))
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
@@ -171,26 +172,27 @@ def submit_mtl_stl_erm_test(args):
 
     for seed in SEED_GRID:
         for idx, task in enumerate(TASK_GRID):
-            job_name = f"eval_mtl_train:{method},task:{len(task)}_tasks,task_mtl_stl_idx:{2},{args.mtl_weighting}_task_weighting,seed:{seed}"
-            log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+            for checkpoint_type in ["avg", "group"]:
+                job_name = f"eval_mtl_train:{method},task:{len(task)}_tasks,task_mtl_stl_idx:{2},{args.mtl_weighting}_task_weighting,seed:{seed}"
+                log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
-            save_json = f"test_stats_{checkpoint_type}_checkpoint_{args.mtl_checkpoint_type}_mtl_type.json"
-            log_dir = os.path.join(LOG_DIR, job_name[5:])
-            results_dir = os.path.join(log_dir, "results")
-            save_json = os.path.join(results_dir, save_json)
+                save_json = f"test_stats_{checkpoint_type}_checkpoint_{args.mtl_checkpoint_type}_mtl_type.json"
+                log_dir = os.path.join(LOG_DIR, job_name[5:])
+                results_dir = os.path.join(log_dir, "results")
+                save_json = os.path.join(results_dir, save_json)
 
-            command = (
-                f"python -m scripts.find_best_ckpt --run_test --learning_type mtl "
-                f"--log_dir {log_dir} "
-                f"--metric {checkpoint_type} "
-                f"--mtl_checkpoint_type {args.mtl_checkpoint_type} "
-                f"--save_json {save_json}"
-            )
-            job_manager.submit(command, job_name=job_name, log_file=log_file)
+                command = (
+                    f"python -m scripts.find_best_ckpt --run_test --learning_type mtl "
+                    f"--log_dir {log_dir} "
+                    f"--metric {checkpoint_type} "
+                    f"--mtl_checkpoint_type {args.mtl_checkpoint_type} "
+                    f"--save_json {save_json}"
+                )
+                job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 def submit_mtl_cvx_disjoint_tasks_test(args):
     TASK_GRID = TASKS["MTL_STL_COMPARISON"][1:]  # SINGLE PAIR
-    CVX_GRID = ["qp", "maxent"]
+    CVX_GRID = ["maxent"] #"qp",
 
     assert args.opt in ["mtl_rwy", "mtl_suby"], "This method only supports --opt=mtl_rwy and --opt=mtl_suby"
     method = args.opt.replace("mtl_", "")
