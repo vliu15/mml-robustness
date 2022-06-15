@@ -220,7 +220,7 @@ def submit_mtl_cvx_disjoint_tasks_test(args):
 
 
 def submit_mtl_jtt_disjoint_tasks_test(args):
-    TASK = TASKS["MTL_STL_COMPARISON"][1:]  # SINGLE PAIR
+    TASK_GRID = TASKS["MTL_STL_COMPARISON"][1:]  # SINGLE PAIR
     assert args.opt in ["mtl_jtt"], "This method only supports --opt=mtl_jtt"
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
@@ -228,12 +228,12 @@ def submit_mtl_jtt_disjoint_tasks_test(args):
     for idx,task in enumerate(TASK_GRID):
         for seed in SEED_GRID:
             for checkpoint_type in ["avg", "group"]:
-                job_name = f"eval_mtl_train:jtt,task:{len(TASK)}_tasks_idx:{idx + 1},{args.mtl_weighting}_task_weighting,seed:{seed}"
+                job_name = f"eval_mtl_train:jtt,task:{len(task)}_tasks_idx:{idx + 1},{args.mtl_weighting}_task_weighting,seed:{seed}"
                 log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
                 save_json = f"test_stats_{checkpoint_type}_checkpoint_{args.mtl_checkpoint_type}_mtl_type.json"
 
-                log_dir = os.path.join(LOG_DIR, "mtl_jtt", job_name[5:], "stage_2")
+                log_dir = os.path.join(LOG_DIR, job_name[5:], "stage_2")
                 results_dir = os.path.join(log_dir, "results")
                 save_json = os.path.join(results_dir, save_json)
 
