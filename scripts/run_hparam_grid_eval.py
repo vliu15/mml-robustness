@@ -161,8 +161,9 @@ def submit_stl_test(args):
                 command = f"python -m scripts.find_best_ckpt --run_test --log_dir {log_dir} --metric {checkpoint_type} --learning_type stl --save_json {save_json}"
                 job_manager.submit(command, job_name=job_name, log_file=log_file)
 
+
 def submit_mtl_stl_erm_test(args):
-    TASK_GRID = TASKS["MTL_STL_COMPARISON"][2:]
+    TASK_GRID = TASKS["MTL_STL_COMPARISON"]
 
     assert args.opt in ["mtl_erm_mtl_stl"]
     mtl_method = args.opt.replace("_mtl_stl", "")
@@ -173,7 +174,7 @@ def submit_mtl_stl_erm_test(args):
     for seed in SEED_GRID:
         for idx, task in enumerate(TASK_GRID):
             for checkpoint_type in ["avg", "group"]:
-                job_name = f"eval_mtl_train:{method},task:{len(task)}_tasks,task_mtl_stl_idx:{2},{args.mtl_weighting}_task_weighting,seed:{seed}"
+                job_name = f"eval_mtl_train:{method},task:{len(task)}_tasks,task_mtl_stl_idx:{idx + 1},{args.mtl_weighting}_task_weighting,seed:{seed}"
                 log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
                 save_json = f"test_stats_{checkpoint_type}_checkpoint_{args.mtl_checkpoint_type}_mtl_type.json"
@@ -190,16 +191,17 @@ def submit_mtl_stl_erm_test(args):
                 )
                 job_manager.submit(command, job_name=job_name, log_file=log_file)
 
+
 def submit_mtl_cvx_disjoint_tasks_test(args):
     TASK_GRID = TASKS["MTL_STL_COMPARISON"][1:]  # SINGLE PAIR
-    CVX_GRID = ["maxent"] #"qp",
+    CVX_GRID = ["maxent"]  #"qp",
 
     assert args.opt in ["mtl_rwy", "mtl_suby"], "This method only supports --opt=mtl_rwy and --opt=mtl_suby"
     method = args.opt.replace("mtl_", "")
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
 
-    for idx,task in enumerate(TASK_GRID):
+    for idx, task in enumerate(TASK_GRID):
         for seed in SEED_GRID:
             for cvx in CVX_GRID:
                 for checkpoint_type in ["group", "avg"]:
@@ -227,7 +229,7 @@ def submit_mtl_jtt_disjoint_tasks_test(args):
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
 
-    for idx,task in enumerate(TASK_GRID):
+    for idx, task in enumerate(TASK_GRID):
         for seed in SEED_GRID:
             for checkpoint_type in ["avg", "group"]:
                 job_name = f"eval_mtl_train:jtt,task:{len(task)}_tasks_idx:{idx + 1},{args.mtl_weighting}_task_weighting,seed:{seed}"
@@ -262,7 +264,7 @@ def submit_mtl_erm_ablate_disjoint_tasks_test(args):
         for idx, task in enumerate(TASK_GRID):
             for checkpoint_type in ["group", "avg"]:
                 #job_name = f"eval_mtl_train:{method},task:{len(task)}_tasks,task_ablation_disjoint_idx:{idx + 1},{args.mtl_weighting}_task_weighting,seed:{seed}"
-                job_name = f"eval_mtl_train:erm,task:3_tasks,disjoint_idx:0,static_equal_task_weighting,seed:{seed}"
+                job_name = f"eval_mtl_train:{method},task:{len(task)}_tasks,task_ablation_disjoint_idx:{idx + 1},{args.mtl_weighting}_task_weighting,seed:{seed}"
                 log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
                 save_json = f"test_stats_{checkpoint_type}_checkpoint_{args.mtl_checkpoint_type}_mtl_type.json"

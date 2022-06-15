@@ -94,8 +94,7 @@ TASKS = {
     # 3 pairs of pairwise disjoint tasks
     "MTL_STL_COMPARISON":
         [
-            ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair"],
-            ["Wearing_Lipstick:Male", "Gray_Hair:Young"],
+            ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair"], ["Wearing_Lipstick:Male", "Gray_Hair:Young"],
             ["High_Cheekbones:Smiling", "Wearing_Lipstick:Male"]
         ],
 
@@ -414,10 +413,9 @@ def submit_stl_train(args):
     if method in ["suby", "rwy", "jtt"]:
         TASK_GRID = flatten(TASKS["MTL_DISJOINT"])
         #TASK_GRID = ["High_Cheekbones:Smiling"]
-        
+
     else:  # we want to run erm on everything
         TASK_GRID = set(flatten(TASKS["MTL_DISJOINT"] + TASKS["MTL_NONDISJOINT"] + TASKS["MTL_SIMILAR"] + TASKS["MTL_STRONG"]))
-
 
     WD = PARAMS[method]["WD"]
     LR = PARAMS[method]["LR"]
@@ -513,8 +511,9 @@ def submit_mtl_tune_train(args):
 
                     job_manager.submit(command, job_name=job_name, log_file=log_file)
 
+
 def submit_mtl_stl_erm_train(args):
-    TASK_GRID = TASKS["MTL_STL_COMPARISON"][2:]
+    TASK_GRID = TASKS["MTL_STL_COMPARISON"]
 
     assert args.opt in ["mtl_erm_mtl_stl"]
     mtl_method = args.opt.replace("_mtl_stl", "")
@@ -532,7 +531,7 @@ def submit_mtl_stl_erm_train(args):
         for idx, task in enumerate(TASK_GRID):
             task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(args.mtl_weighting, task)
 
-            job_name = f"mtl_train:{method},task:{len(task)}_tasks,task_mtl_stl_idx:{2},{args.mtl_weighting}_task_weighting,seed:{seed}"
+            job_name = f"mtl_train:{method},task:{len(task)}_tasks,task_mtl_stl_idx:{idx + 1},{args.mtl_weighting}_task_weighting,seed:{seed}"
             log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
             command = (
@@ -552,6 +551,7 @@ def submit_mtl_stl_erm_train(args):
                 command = append_ckpt_for_respawn(command, job_name, EPOCHS)
 
             job_manager.submit(command, job_name=job_name, log_file=log_file)
+
 
 def submit_mtl_erm_ablate_disjoint_tasks_train(args):
     TASK_GRID = TASKS["MTL_ABLATE_DISJOINT"]
@@ -691,7 +691,6 @@ def submit_mtl_jtt_disjoint_tasks_train(args):
     LAM_UP = PARAMS["jtt"]["LAM_UP"]
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
-    
 
     for idx, task in enumerate(TASK_GRID):
         for seed in SEED_GRID:
