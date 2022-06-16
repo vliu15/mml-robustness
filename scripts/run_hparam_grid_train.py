@@ -45,42 +45,42 @@ TASKS = {
     "MTL_ABLATE_DISJOINT":
         [
             # PREVIOUS RUNS
-            # ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair"],
-            # ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Wearing_Lipstick:Male"],
-            # ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Wearing_Lipstick:Male", "High_Cheekbones:Smiling"],
 
             # MTL(2)
+            ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair"],
             ["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling"],
 
             # MTL(3)
-            #["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Gray_Hair:Young"],
-            #["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling"],
-            #["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Wearing_Lipstick:Male"],
-            #["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Brown_Hair:Wearing_Hat"],
-            #["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Gray_Hair:Young"],
+            ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Wearing_Lipstick:Male"],
+            ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Gray_Hair:Young"],
+            ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling"],
+            ["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Wearing_Lipstick:Male"],
+            ["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Brown_Hair:Wearing_Hat"],
+            ["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Gray_Hair:Young"],
 
             # MTL(4)
-            #["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Gray_Hair:Young", "High_Cheekbones:Smiling"],
-            #["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Wearing_Lipstick:Male"],
-            #["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Wearing_Lipstick:Male", "Gray_Hair:Young"],
-            #["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Brown_Hair:Wearing_Hat", "Big_Lips:Chubby"],
-            #["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Gray_Hair:Young", "Brown_Hair:Wearing_Hat"],
+            ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Wearing_Lipstick:Male", "High_Cheekbones:Smiling"],
+            ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "Gray_Hair:Young", "High_Cheekbones:Smiling"],
+            ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Wearing_Lipstick:Male"],
+            ["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Wearing_Lipstick:Male", "Gray_Hair:Young"],
+            ["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Brown_Hair:Wearing_Hat", "Big_Lips:Chubby"],
+            ["Bushy_Eyebrows:Blond_Hair", "High_Cheekbones:Smiling", "Gray_Hair:Young", "Brown_Hair:Wearing_Hat"],
         ],
 
     # 2 sets of ablations over nondisjoint tasks, for each: 1x MTL(2), 3x MTL(3), 3x MTL(4)
     "MTL_ABLATE_NONDISJOINT":
         [
             # MTL(2)
-            #["Arched_Eyebrows:Male", "Big_Nose:Male"],
-            #["Blond_Hair:Male", "Wearing_Earrings:Male"],
+            ["Arched_Eyebrows:Male", "Big_Nose:Male"],
+            ["Blond_Hair:Male", "Wearing_Earrings:Male"],
 
             # MTL(3)
-            #["Arched_Eyebrows:Male", "Big_Nose:Male", "Wearing_Earrings:Male"],
-            #["Arched_Eyebrows:Male", "Big_Nose:Male", "Wearing_Lipstick:Male"],
-            #["Arched_Eyebrows:Male", "Big_Nose:Male", "Attractive:Male"],
-            #["Blond_Hair:Male", "Wearing_Earrings:Male", "Wearing_Lipstick:Male"],
-            #["Blond_Hair:Male", "Wearing_Earrings:Male", "Big_Nose:Male"],
-            #["Blond_Hair:Male", "Wearing_Earrings:Male", "Arched_Eyebrows:Male"],
+            ["Arched_Eyebrows:Male", "Big_Nose:Male", "Wearing_Earrings:Male"],
+            ["Arched_Eyebrows:Male", "Big_Nose:Male", "Wearing_Lipstick:Male"],
+            ["Arched_Eyebrows:Male", "Big_Nose:Male", "Attractive:Male"],
+            ["Blond_Hair:Male", "Wearing_Earrings:Male", "Wearing_Lipstick:Male"],
+            ["Blond_Hair:Male", "Wearing_Earrings:Male", "Big_Nose:Male"],
+            ["Blond_Hair:Male", "Wearing_Earrings:Male", "Arched_Eyebrows:Male"],
 
             # MTL(4)
             ["Arched_Eyebrows:Male", "Big_Nose:Male", "Wearing_Earrings:Male", "Blond_Hair:Male"],
@@ -89,6 +89,13 @@ TASKS = {
             ["Blond_Hair:Male", "Wearing_Earrings:Male", "Wearing_Lipstick:Male", "Arched_Eyebrows:Male"],
             ["Blond_Hair:Male", "Wearing_Earrings:Male", "Big_Nose:Male", "Attractive:Male"],
             ["Blond_Hair:Male", "Wearing_Earrings:Male", "Arched_Eyebrows:Male", "Big_Nose:Male"],
+        ],
+
+    # 3 pairs of pairwise disjoint tasks
+    "MTL_STL_COMPARISON":
+        [
+            ["Big_Lips:Chubby", "Bushy_Eyebrows:Blond_Hair"], ["Wearing_Lipstick:Male", "Gray_Hair:Young"],
+            ["High_Cheekbones:Smiling", "Wearing_Lipstick:Male"]
         ],
 
     # 5 pairs of pairwise disjoint tasks
@@ -316,9 +323,13 @@ def append_ckpt_for_respawn(command, job_name, epochs):
         warnings.warn(f"Skipping respawn ... No existing checkpoint found for: {job_name}")
         return command
     ckpt_path, ckpt_num = find_last_checkpoint(ckpt_dir)
+    if ckpt_num is None:
+        return command
+
     if ckpt_num < epochs:
         return f"{command} exp.train.load_ckpt=\\'{ckpt_path}\\'"
     else:
+        warnings.warn(f"All checkpoints already completed for: {job_name}")
         return command
 
 
@@ -340,10 +351,11 @@ def append_ckpt_for_jtt_respawn(command, job_name, epochs1, epochs2):
     if stage_1_ckpt_num != epochs1 or (stage_1_ckpt_num == epochs1 and not os.path.exists(load_up_pkl_path)):
         return f"{command} exp.load_stage_1_ckpt=\\'{stage_1_ckpt_path}\\'"
     elif stage_1_ckpt_num == epochs1 and stage_2_ckpt_num is None:
-        return f"{command} exp.load_up_pkl={load_up_pkl_path}"
+        return f"{command} exp.load_up_pkl=\\'{load_up_pkl_path}\\'"
     elif stage_1_ckpt_num == epochs1 and stage_2_ckpt_num != epochs2:
-        return f"{command} exp.load_stage_2_ckpt={stage_2_ckpt_path}"
+        return f"{command} exp.load_up_pkl=\\'{load_up_pkl_path}\\' exp.load_stage_2_ckpt=\\'{stage_2_ckpt_path}\\'"
     else:
+        warnings.warn(f"All checkpoints already completed for: {job_name}")
         return command
 
 
@@ -400,6 +412,8 @@ def submit_stl_train(args):
 
     if method in ["suby", "rwy", "jtt"]:
         TASK_GRID = flatten(TASKS["MTL_DISJOINT"])
+        #TASK_GRID = ["High_Cheekbones:Smiling"]
+
     else:  # we want to run erm on everything
         TASK_GRID = set(flatten(TASKS["MTL_DISJOINT"] + TASKS["MTL_NONDISJOINT"] + TASKS["MTL_SIMILAR"] + TASKS["MTL_STRONG"]))
 
@@ -498,6 +512,47 @@ def submit_mtl_tune_train(args):
                     job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 
+def submit_mtl_stl_erm_train(args):
+    TASK_GRID = TASKS["MTL_STL_COMPARISON"]
+
+    assert args.opt in ["mtl_erm_mtl_stl"]
+    mtl_method = args.opt.replace("_mtl_stl", "")
+    method = mtl_method.replace("mtl_", "")
+
+    key = f"{mtl_method}_group_ckpt_{args.mtl_weighting}_mtl_weighting"
+    WD = PARAMS[key]["WD"]
+    LR = PARAMS[key]["LR"]
+    BATCH_SIZE = PARAMS[key]["BATCH_SIZE"]
+    EPOCHS = PARAMS[key]["EPOCHS"]
+
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+
+    for seed in SEED_GRID:
+        for idx, task in enumerate(TASK_GRID):
+            task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(args.mtl_weighting, task)
+
+            job_name = f"mtl_train:{method},task:{len(task)}_tasks,task_mtl_stl_idx:{idx + 1},{args.mtl_weighting}_task_weighting,seed:{seed}"
+            log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+
+            command = (
+                f"python train_erm.py exp={method} "
+                f"exp.optimizer.weight_decay={WD} "
+                f"exp.optimizer.lr={LR} "
+                f"exp.seed={seed} "
+                f"exp.train.total_epochs={EPOCHS} "
+                f"exp.dataset.groupings='{task}' "
+                f"exp.dataloader.batch_size={BATCH_SIZE} "
+                f"exp.dataset.task_weights='{task_weights}' "
+                f"exp.dataset.loss_based_task_weighting={use_loss_balanced} "
+                f"exp.dataset.lbtw_alpha={lbtw_alpha} "
+                f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+            )
+            if args.respawn:
+                command = append_ckpt_for_respawn(command, job_name, EPOCHS)
+
+            job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+
 def submit_mtl_erm_ablate_disjoint_tasks_train(args):
     TASK_GRID = TASKS["MTL_ABLATE_DISJOINT"]
 
@@ -582,7 +637,7 @@ def submit_mtl_erm_ablate_nondisjoint_tasks_train(args):
 
 
 def submit_mtl_cvx_disjoint_tasks_train(args):
-    TASK = TASKS["MTL_DISJOINT"][0]  # SINGLE PAIR
+    TASK_GRID = TASKS["MTL_STL_COMPARISON"]  # SINGLE PAIR
     CVX_GRID = ["qp", "maxent"]
 
     assert args.opt in ["mtl_rwy", "mtl_suby"], "This method only supports --opt=mtl_rwy and --opt=mtl_suby"
@@ -594,35 +649,36 @@ def submit_mtl_cvx_disjoint_tasks_train(args):
     EPOCHS = PARAMS[args.opt]["EPOCHS"]
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
-    task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(args.mtl_weighting, TASK)
 
-    for seed in SEED_GRID:
-        for cvx in CVX_GRID:
-            job_name = f"mtl_train:{method},task:{len(TASK)}_tasks,{args.mtl_weighting}_task_weighting,seed:{seed},cvx:{cvx}"
-            log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+    for idx, task in enumerate(TASK_GRID):
+        for seed in SEED_GRID:
+            for cvx in CVX_GRID:
+                task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(args.mtl_weighting, task)
+                job_name = f"mtl_train:{method},task:{len(task)}_tasks_idx:{idx+1},{args.mtl_weighting}_task_weighting,seed:{seed},cvx:{cvx}"
+                log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
-            command = (
-                f"python train_erm.py exp={method} "
-                f"exp.optimizer.weight_decay={WD} "
-                f"exp.optimizer.lr={LR} "
-                f"exp.seed={seed} "
-                f"exp.train.total_epochs={EPOCHS} "
-                f"exp.dataset.groupings='{TASK}' "
-                f"exp.dataloader.batch_size={BATCH_SIZE} "
-                f"exp.dataset.cvx={cvx} "
-                f"exp.dataset.task_weights='{task_weights}' "
-                f"exp.dataset.loss_based_task_weighting={use_loss_balanced} "
-                f"exp.dataset.lbtw_alpha={lbtw_alpha} "
-                f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
-            )
-            if args.respawn:
-                command = append_ckpt_for_respawn(command, job_name, EPOCHS)
+                command = (
+                    f"python train_erm.py exp={method} "
+                    f"exp.optimizer.weight_decay={WD} "
+                    f"exp.optimizer.lr={LR} "
+                    f"exp.seed={seed} "
+                    f"exp.train.total_epochs={EPOCHS} "
+                    f"exp.dataset.groupings='{task}' "
+                    f"exp.dataloader.batch_size={BATCH_SIZE} "
+                    f"exp.dataset.cvx={cvx} "
+                    f"exp.dataset.task_weights='{task_weights}' "
+                    f"exp.dataset.loss_based_task_weighting={use_loss_balanced} "
+                    f"exp.dataset.lbtw_alpha={lbtw_alpha} "
+                    f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                )
+                if args.respawn:
+                    command = append_ckpt_for_respawn(command, job_name, EPOCHS)
 
-            job_manager.submit(command, job_name=job_name, log_file=log_file)
+                job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 
 def submit_mtl_jtt_disjoint_tasks_train(args):
-    TASK = TASKS["MTL_DISJOINT"][0]  # SINGLE PAIR
+    TASK_GRID = TASKS["MTL_STL_COMPARISON"]  # SINGLE PAIR
 
     assert args.opt in ["mtl_jtt"], "This method only supports --opt=mtl_jtt"
 
@@ -635,31 +691,32 @@ def submit_mtl_jtt_disjoint_tasks_train(args):
     LAM_UP = PARAMS["jtt"]["LAM_UP"]
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
-    task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(args.mtl_weighting, TASK)
 
-    for seed in SEED_GRID:
-        job_name = f"mtl_train:jtt,task:{len(TASK)}_tasks,{args.mtl_weighting}_task_weighting,seed:{seed}"
-        log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+    for idx, task in enumerate(TASK_GRID):
+        for seed in SEED_GRID:
+            task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(args.mtl_weighting, task)
+            job_name = f"mtl_train:jtt,task:{len(task)}_tasks_idx:{idx + 1},{args.mtl_weighting}_task_weighting,seed:{seed}"
+            log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
-        command = (
-            f"python train_jtt.py exp=jtt "
-            f"exp.weight_decay={WD} "
-            f"exp.lr={LR} "
-            f"exp.seed={seed} "
-            f"exp.task_weights='{task_weights}' "
-            f"exp.loss_based_task_weighting={use_loss_balanced} "
-            f"exp.lbtw_alpha={lbtw_alpha} "
-            f"exp.epochs_stage_1={T} "
-            f"exp.epochs_stage_2={EPOCHS} "
-            f"exp.groupings='[{TASK}]' "
-            f"exp.lambda_up={LAM_UP} "
-            f"exp.batch_size={BATCH_SIZE} "
-            f"exp.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
-        )
-        if args.respawn:
-            command = append_ckpt_for_jtt_respawn(command, job_name, T, EPOCHS)
+            command = (
+                f"python train_jtt.py exp=jtt "
+                f"exp.weight_decay={WD} "
+                f"exp.lr={LR} "
+                f"exp.seed={seed} "
+                f"exp.task_weights='{task_weights}' "
+                f"exp.loss_based_task_weighting={use_loss_balanced} "
+                f"exp.lbtw_alpha={lbtw_alpha} "
+                f"exp.epochs_stage_1={T} "
+                f"exp.epochs_stage_2={EPOCHS} "
+                f"exp.groupings='{task}' "
+                f"exp.lambda_up={LAM_UP} "
+                f"exp.batch_size={BATCH_SIZE} "
+                f"exp.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+            )
+            if args.respawn:
+                command = append_ckpt_for_jtt_respawn(command, job_name, T, EPOCHS)
 
-        job_manager.submit(command, job_name=job_name, log_file=log_file)
+            job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 
 def submit_mtl_erm_disjoint_tasks_train(args):
@@ -685,7 +742,7 @@ def submit_mtl_erm_disjoint_tasks_train(args):
             task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(args.mtl_weighting, task)
 
             # Appending of ,ckpt:{ckpt} in the job_name might be new, deprecated naming doesn't have this ...?
-            job_name = f"mtl_train:{method},task:{len(task)}_tasks,disjoint_idx_{idx},{args.mtl_weighting}_task_weighting,seed:{seed},ckpt:group"
+            job_name = f"mtl_train:{method},task:{len(task)}_tasks,disjoint_idx_{idx + 1},{args.mtl_weighting}_task_weighting,seed:{seed},ckpt:group"
             log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
             command = (
@@ -766,7 +823,7 @@ def submit_mtl_erm_similar_tasks_train(args):
     for seed in SEED_GRID:
         for idx, task in enumerate(TASK_GRID):
             task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(args.mtl_weighting, task)
-            job_name = f"mtl_train:{method},task:{len(task)}_tasks,semantic_similar:{idx + 1},{args.mtl_weighting}_task_weighting,seed:{seed}"
+            job_name = f"mtl_train:{method},task:{len(task)}_tasks,semantic_similar:{idx+1},{args.mtl_weighting}_task_weighting,seed:{seed}"
             log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
             command = (
@@ -795,7 +852,7 @@ def submit_mtl_erm_strong_tasks_train(args):
     mtl_method = args.opt.replace("_strong", "")
     method = mtl_method.replace("mtl_", "")
 
-    key = f"{mtl_method}_strong_ckpt_{args.mtl_weighting}_mtl_weighting"
+    key = f"{mtl_method}_group_ckpt_{args.mtl_weighting}_mtl_weighting"
     WD = PARAMS[key]["WD"]
     LR = PARAMS[key]["LR"]
     BATCH_SIZE = PARAMS[key]["BATCH_SIZE"]
@@ -902,6 +959,10 @@ def main():
     # Trains MTL JTT on the first disjoint pair
     elif args.opt in ["mtl_jtt"]:
         submit_mtl_jtt_disjoint_tasks_train(args)
+
+    # Trains MTL ERM on the mtl stl comparison pairs
+    elif args.opt in ["mtl_erm_mtl_stl"]:
+        submit_mtl_stl_erm_train(args)
 
     #########################
     # [3] MTL TASK ABLATION #

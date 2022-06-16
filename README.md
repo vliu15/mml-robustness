@@ -5,7 +5,7 @@ We explore the utility of multi-task learning in improving performance of group-
 - [Spurious Correlation Identification](#spurious-correlation-identification)
 - [Multi-Task Learning](#multi-task-learning)
 
-## Single-Task Learning
+## Single-Task Learning (STL)
 Currently we only experiment with ResNet-50 on the CelebA dataset with a couple group-robustness methods in addition to the standard Empirical Risk Minimization (ERM) optimization of neural networks. We use the `hydra-core` package for  general command-line control of hyperparameters.
 
 ### Empirical Risk Minimization
@@ -15,8 +15,10 @@ python train_erm.py exp=erm
 ```
 where default hyperparameters are specified in `configs/exp/erm.yaml`. Command-line control of config fields can be done with flags like
 ```bash
-python train_erm.py exp=erm exp.optimizer.lr=0.0001 exp.train.total_epochs=50
+python train_erm.py exp=erm exp.optimizer.lr=0.0001 exp.train.total_epochs=50 exp.dataset.groupings=['Blond_Hair:Male']
 ```
+The `exp.dataset.groupings` field manages the task that is being trained with any spurious correlations that should be taken into account seperated from the task by a colon. 
+
 In general, the `model` field should not be changed, the `optimizer` field should only be changed for hyperparameter tuning, and the `dataset`/`dataloader` fields should only be changed for data subsampling/reweighting methods, respectively.
 
 ### Just Train Twice
@@ -102,7 +104,7 @@ In all large-scale scripts that require GPU workload asynchronously across tasks
 ### Tuning and Training
 Because tuning on hyperparameter grids on all tasks is very expensive, we instead tune on 5 tasks and apply these hyperparameters to neural networks for all tasks:
 ```bash
-python -m scripts.run_hparam_grid_search --opt erm
+python -m scripts.run_hparam_grid_search --opt erm_tune
 ```
 > These runs will get saved to `./logs`
 
@@ -121,7 +123,7 @@ python -m scripts.run_create_spurious_matrix --meta_log_dir ./logs/spurious_id -
 
 For each task, this will call `test.py` to run inference on each `$TASK` x `$ATTR` pair and then aggregate all 40 into heatmaps showing group performances, group sizes, and our spurious correlation delta metric: `delta = |g0 + g3 - g1 - g2|`.
 
-### Spurious Correlation Extraction (EXPERIMENTAL)
+### Spurious Correlation Extraction
 Finally, we take all 40x39 possible pairs of spurious correlations (namely, their `delta` metrics) and systematically identify which attributes are spuriously correlated with which tasks. We observe that attributes aren't IID - specifically, there are a lot of labelled attributes that are correlated with gender. Therefore, we use biclustering and SVD-based methods to extract correlations across/between attributes/tasks:
 ```bash
 python -m scripts.spurious_eval --json_dir outputs/spurious_eval --out_dir outputs/svd --gamma 0.9 --k 10
@@ -135,8 +137,132 @@ python -m scripts.spurious_eval --json_dir outputs/spurious_eval --out_dir outpu
 This script runs two methods:
 1. Biclustering: The 40x40 `T` matrix is column-normalized with softmax to emphasize larger values of `delta`, which is then put through `SpectralCoclustering`. Various combinations of `T` and `A = transpose(T)` are biclustered.
 2. SVD + Clustering: The 40x40 `T` matrix is column-normalized with L2 norm and passed into SVD for feature dimension reduction according to the specified `gamma` value. These are clustered with KMeans
+3.Deltas Heatmap: Creates a heatmap of the counts of all delta values across the 40x39 possible pairs. By observing where there is a dropoff in counts for a given value of delta we can determine the threshold for the dataset which which to start identiying which pairs exhibit spurious correlations.
 
-## Multi-Task Learning (EXPERIMENTAL)
-TODO
-- [ ] Explain how to specify multiple groupings works in `exp.datasets.groupings`
-- [ ] Loss-balanced task weighting
+## Multi-Task Learning (MTL)
+We implement MTL versions for each of the STL versions specified above. It is generally the same procedure to run a MTL method as it is for the STL version, the only differences that exist are in specifying the multiple tasks to train on as well as the weights for each of the individual tasks. Without loss of generality, we explain everyhting in the context of ERM. 
+
+In order to specify multiple tasks alter the `exp.dataset.groupings` file to contain multiple task, spurious correlation pairs and if you wish for the model to also be evaluated on the subgroups formed by the spurious correlation additionally specifiy that `exp.dataset.subgroup_labels=true`. Below is an ERM model trained for 3 tasks: 
+
+```bash
+python train_erm.py exp=erm exp.train.total_epochs=50 exp.dataset.groupings=['Blond_Hair:Male', 'Big_Lips:Chubby', 'Gray_Hair:Young'] exp.dataset.subgroup_labels=true
+```
+
+In addition, we can specify how to weight the specified tasks through the following field: `exp.dataset.task_weights`. A list of the same length of the number of tasks should be passed into this field where the value of the index will correspond to the task specified at that index. These weights should either all be 1 or  all sum to 1. Hence, a possible specification for the above scenario is the following: `exp.dataset.task_weights=[0.25, 0.5, 0.25]`
+
+However, note that these weights are all static throughout training and if it is desired to have weights that are dynamic throughout differnet epochs we also support [Loss Balanced Task Weighting](https://ojs.aaai.org//index.php/AAAI/article/view/5125) (LBTW) which updates the weights for a each task based on the loss ratio between the loss of the current batch and the loss of the initial batch. This ratio acts as a metric for how well the model has trained for that given task. LBTW can be specified as follows:
+
+```bash
+python train_erm.py exp=erm exp.train.total_epochs=50 exp.dataset.groupings=['Blond_Hair:Male', 'Big_Lips:Chubby', 'Gray_Hair:Young'] exp.dataset.subgroup_labels=true exp.dataset.loss_balanced_task_weighting=true exp.dataset.lbtw_alpha=0.5
+```
+
+where alpha is a specific parameter to the LBTW algorithm. When `exp.dataset.loss_balanced_task_weighting` is true, ensure that the weights in `exp.dataset.task_weights` are all 1. 
+
+## MTL Experiments 
+Here, we specify the files and commands needed for all the experiments that we ran. We specifically investigated the benefit of MTL over the corresponding STL baseline as well as settings under which MTL performs best. 
+
+### Training
+All commands to initiate training of experiments can be found in [`scripts/run_hparam_grid_train.py`](https://github.com/vliu15/mml-robustness/tree/main/scripts/run_hparam_grid_train.py). We support setting of runs either in the shell or using slurm via the `sbatch` command line argument. To specifiy the task weighting using the `--mtl_weighting` argument. We support three different types of task weighting currently: `static_equal` (where all weights are static and the same), `static_delta` (where all weights are static and based on normalized delta values for each grouping in the task pairing), and `dynamic` (which is LBTW). Note for `static_delta` we require that the delta values created in Spurious Correlation Extraction are stored somewhere. 
+
+For whatever reason, if a series of runs do not complete for any experiment, then running the same command specified below along with the additional flag `--respawn` will ensure that the runs pick up at the last logged checkpoint.
+
+
+
+#### MTL Tuning
+
+We currently only tune MTL ERM. To find the best known paramater combinations using the following command:
+
+```bash
+python -m scripts.run_hparam_grid_train --opt mtl_erm_tune
+```
+
+#### MTL vs STL Comparison
+
+We compare the MTL formulation of the STL baselines against each other.
+
+For STL ERM and MTL ERM run the following respectively:
+```bash
+python -m scripts.run_hparam_grid_train --opt erm 
+```
+
+```bash
+python -m scripts.run_hparam_grid_train --opt mtl_erm_mtl_stl 
+```
+
+For STL RWY and MTL RWY run the following respectively:
+```bash
+python -m scripts.run_hparam_grid_train --opt rwy 
+```
+
+```bash
+python -m scripts.run_hparam_grid_train --opt mtl_rwy 
+```
+
+For STL SUBY and MTL SUBY run the following respectively:
+```bash
+python -m scripts.run_hparam_grid_train --opt suby 
+```
+
+```bash
+python -m scripts.run_hparam_grid_train --opt mtl_suby 
+```
+
+For STL JTT and MTL JTT run the following respectively:
+```bash
+python -m scripts.run_hparam_grid_train --opt jtt 
+```
+
+```bash
+python -m scripts.run_hparam_grid_train --opt mtl_jtt 
+```
+
+#### MTL Task Ablation
+
+We seek to understand the impact that the number of tasks in a pairing has on resulting performance:
+
+```bash
+python -m scripts.run_hparam_grid_train --opt mtl_erm_ablate_disjoint 
+```
+
+```bash
+python -m scripts.run_hparam_grid_train --opt mtl_erm_ablate_nondisjoint 
+```
+
+#### MTL Disjoint vs Nondisjoint
+
+To understand if the relationships between spurious correlations of tasks in a pairing play a role, we run experiments where all tasks in a pairing have disjoint spurious correlations or where they all share at least one spurious correlation:
+
+```bash
+python -m scripts.run_hparam_grid_train --opt mtl_erm_disjoint 
+```
+
+```bash
+python -m scripts.run_hparam_grid_train --opt mtl_erm_nondisjoint 
+```
+
+#### MTL Similar vs Dissimilar
+
+Additionally, the relationship between the tasks that are being trained could impact MTL performance. Hence, we experiment with whether similar types of tasks leadst to better training than when they are dissimilar:
+
+
+```bash
+python -m scripts.run_hparam_grid_train --opt mtl_erm_similar 
+```
+
+#### MTL Strong Spurious Correlation vs Weak Spurious Correlation
+
+Lastly, we hypothesize that MTL performance may very when all tasks in the pairing have strong spurious correlations or when they all have weak spurious correlations:
+
+```bash
+python -m scripts.run_hparam_grid_train --opt mtl_erm_strong 
+```
+
+```bash
+python -m scripts.run_hparam_grid_train --opt mtl_erm_weak 
+```
+
+### Evaluation 
+All commands to initiate training of experiments can be found in [`scripts/run_hparam_grid_eval.py`](https://github.com/vliu15/mml-robustness/tree/main/scripts/run_hparam_grid_eval.py). The commands for running specific experiments are the same as the training section above except with a call to this evaluation script. The only additional difference is that we support three various types of checkpoint for mtl models: `average`, `best-worst`, `per-task` which can be specified using the `--mtl_checkpoint_type` flag. Respectively these checkpointing types will take the checkpoint that has the best average performance across tasks, that maxmizes the worst performance across tasks, or chooses one checkpoint per task that each achieves the best per-task performance.
+
+### Results
+Once the evaluation script has finished, [`scripts/report_results.py`](https://github.com/vliu15/mml-robustness/tree/main/scripts/report_results.py) is a handy script which aggregates results across seeds and provides confidence intervals on expected performance. We report results of both average and worst group performance.

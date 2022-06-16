@@ -33,8 +33,6 @@ logger = logging.getLogger(__name__)
 alpha = 0.05  ## Change this if something other than a 95% CI is desired
 z = stats.norm.ppf(1 - alpha / 2)
 
-###TODO:FIX THE PER-TASK ONE
-
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -135,7 +133,13 @@ def mean_std_results(
 
 
 def mean_ci_results(
-    *, exp_name: str, log_dirs: List[str], split: str, checkpoint_metric_type: str, mtl_checkpoint_type: str = None
+    *,
+    exp_name: str,
+    log_dirs: List[str],
+    split: str,
+    checkpoint_metric_type: str,
+    mtl_checkpoint_type: str = None,
+    dict_name: str = None
 ):
     average_counts = defaultdict(
         lambda: defaultdict(list)
@@ -198,31 +202,71 @@ def mean_ci_results(
     else:
         logger.info(f"Split [{split}] | Checkpoint selection [{checkpoint_metric_type}] :\n")
 
+    save_dict = {}
     for task in average_counts.keys():
-
         logger.info(f"TASK [{task}]:")
 
-        total_avg_counts = np.sum(average_counts[task][f"{task}_total_counts"])
-        total_avg_correct_counts = np.sum(average_counts[task][f"{task}_correct_counts"])
+        avg_mu_is = []
+        avg_sigma_i_squareds = []
 
-        total_worst_group_counts = np.sum(worst_group_counts[task][f"{task}_total_counts"])
-        total_worst_group_correct_counts = np.sum(worst_group_counts[task][f"{task}_correct_counts"])
+        wg_mu_is = []
+        wg_sigma_i_squareds = []
 
-        n_tilde_avg = total_avg_counts + z**2
-        p_tilde_avg = (1 / n_tilde_avg) * (total_avg_correct_counts + ((z**2) / 2))
-        ci_range_avg = z * np.sqrt((p_tilde_avg / n_tilde_avg) * (1 - p_tilde_avg))
+        for seed in range(len(average_counts[task][f"{task}_total_counts"])):
+
+            avg_p = average_counts[task][f"{task}_correct_counts"][seed] / average_counts[task][f"{task}_total_counts"][seed]
+            wg_p = worst_group_counts[task][f"{task}_correct_counts"][seed] / worst_group_counts[task][f"{task}_total_counts"][
+                seed]
+
+            avg_mu_is.append(avg_p)
+            wg_mu_is.append(wg_p)
+
+            if wg_p == 0:
+                wg_p += 1e-9
+            if avg_p == 0:
+                avg_p += 1e-9
+
+            avg_sigma_i_squared = (1 / average_counts[task][f"{task}_total_counts"][seed]) * avg_p * (1 - avg_p)
+            wg_sigma_i_squared = (1 / worst_group_counts[task][f"{task}_total_counts"][seed]) * wg_p * (1 - wg_p)
+
+            avg_sigma_i_squareds.append(avg_sigma_i_squared)
+            wg_sigma_i_squareds.append(wg_sigma_i_squared)
+
+        avg_std_reciprocal = np.reciprocal(np.array(avg_sigma_i_squareds))
+        avg_mu_hat = np.sum(np.array(avg_mu_is * avg_std_reciprocal)) / (np.sum(avg_std_reciprocal))
+        avg_sigma_hat = 1 / (np.sum(avg_std_reciprocal))
+        ci_range_avg = z * np.sqrt(avg_sigma_hat)
+
+        wg_std_reciprocal = np.reciprocal(np.array(wg_sigma_i_squareds))
+        wg_mu_hat = np.sum(np.array(wg_mu_is) * wg_std_reciprocal) / (np.sum(wg_std_reciprocal))
+        wg_sigma_hat = 1 / (np.sum(wg_std_reciprocal))
+        ci_range_group = z * np.sqrt(wg_sigma_hat)
 
         logger.info(
-            f"Estimated mean average accuracy: {round(p_tilde_avg*100,2)}, with 95% CI:({round((p_tilde_avg - ci_range_avg)*100, 2)},{round( (p_tilde_avg + ci_range_avg)*100, 2)}), over {len(average_counts[task][f'{task}_correct_counts'])} seeds"
+            f"Estimated mean average accuracy: {round(avg_mu_hat*100,2)}, with 95% CI:({round((avg_mu_hat - ci_range_avg)*100, 2)},{round( (avg_mu_hat + ci_range_avg)*100, 2)}), over {len(average_counts[task][f'{task}_correct_counts'])} seeds"
         )
-
-        n_tilde_group = total_worst_group_counts + z**2
-        p_tilde_group = (1 / n_tilde_group) * (total_worst_group_correct_counts + ((z**2) / 2))
-        ci_range_group = z * np.sqrt((p_tilde_group / n_tilde_group) * (1 - p_tilde_group))
 
         logger.info(
-            f"Estimated mean worst-group accuracy: {round(p_tilde_group*100,2)}, with 95% CI:({round((p_tilde_group - ci_range_group)*100, 2)},{round( (p_tilde_group + ci_range_group)*100, 2)}), over {len(worst_group_counts[task][f'{task}_correct_counts'])} seeds\n"
+            f"Estimated mean worst-group accuracy: {round(wg_mu_hat*100,2)}, with 95% CI:({round((wg_mu_hat - ci_range_group)*100, 2)},{round( (wg_mu_hat + ci_range_group)*100, 2)}), over {len(worst_group_counts[task][f'{task}_correct_counts'])} seeds\n"
         )
+
+        key_name = f"{task}:{task_to_attributes[task]}"
+        save_dict[key_name] = [
+            (
+                round(avg_mu_hat * 100,
+                      2), (round((avg_mu_hat - ci_range_avg) * 100, 2), round((avg_mu_hat + ci_range_avg) * 100, 2))
+            ),
+            (
+                round(wg_mu_hat * 100,
+                      2), (round((wg_mu_hat - ci_range_group) * 100, 2), round((wg_mu_hat + ci_range_group) * 100, 2))
+            )
+        ]
+
+    dict_name = dict_name.split("/")[-1]
+    save_name = f"{dict_name}_checkpoint_selection_{checkpoint_metric_type}_mtl_checkpoint_type_{mtl_checkpoint_type}.json"
+    os.makedirs(os.path.join("./iclr_submission", "cached_results"), exist_ok=True)
+    with open(os.path.join("./iclr_submission", "cached_results", save_name), "w") as f:
+        json.dump(save_dict, f)
 
 
 def main():
@@ -263,6 +307,7 @@ def main():
             split=args.split,
             checkpoint_metric_type=args.checkpoint_metric_type,
             mtl_checkpoint_type=args.mtl_checkpoint_type,
+            dict_name=args.log_dirs,
         )
 
 
