@@ -22,7 +22,7 @@ if [[ $USER == "vliu" ]]; then
     export LD_LIBRARY_PATH=/usr/local/cuda-11.1/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 fi
 
-conda activate mml-robustness-2
+conda activate mml-robustness
 
 # Use this alias to point `python` to `python3` so we don't have to change all command submissions ...
 # However, this is a bash alias, so this might not be picked by nested subprocess calls (i.e. train_jtt)

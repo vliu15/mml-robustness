@@ -33,8 +33,6 @@ logger = logging.getLogger(__name__)
 alpha = 0.05  ## Change this if something other than a 95% CI is desired
 z = stats.norm.ppf(1 - alpha / 2)
 
-###TODO:FIX THE PER-TASK ONE
-
 
 def parse_args():
     parser = argparse.ArgumentParser()
