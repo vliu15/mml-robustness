@@ -13,6 +13,9 @@ def init_model(config, device="cuda"):
     if config.model.name == "resnet50":
         from models.resnet import ResNet50
         model = ResNet50(config)
+    elif config.model.name == "clip_resnet50":
+        from models.clip import CLIPResNet50
+        model = CLIPResNet50(config)
     else:
         raise ValueError(f"Didn't recognize model name {config.model.name}")
 
