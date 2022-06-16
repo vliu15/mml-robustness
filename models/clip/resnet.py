@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class CLIPResNetConfig(object):
-    embed_dim: int = 1024
+    embed_dim: int = 1024  # this is checked below to make sure that it matches the checkpoint embed_dim
     width: int = 64
 
 

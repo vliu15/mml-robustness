@@ -8,8 +8,7 @@
 #SBATCH --mem=32GB                                  # Job memory request
 #SBATCH --time=96:00:00                             # Time limit hrs:min:sec
 #SBATCH --output=$LOG_FILE                          # Standard output and error log
-#SBATCH --partition=jag-hi,jag-important,jag-standard  # Request a specific partition for the resource allocation
-#SBATCH --exclude=jagupard[10-15,28-31]             # Specifies nodes to not run on                     
+#SBATCH --partition=jag-standard,jag-hi,jag-urgent  # Request a specific partition for the resource allocation                 
 #SBATCH --gres=gpu:1                                # Specifies a comma-delimited list of generic consumable resources
 
 export OMP_NUM_THREADS=8                            # Set parallel threads to --cpus-per-task

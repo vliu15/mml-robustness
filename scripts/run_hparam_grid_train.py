@@ -17,6 +17,8 @@ import os
 import re
 import warnings
 
+import numpy as np
+
 from mtl.utils import get_mtl_task_weights
 from scripts.job_manager import JobManager
 
@@ -278,6 +280,10 @@ def parse_args():
     parser.add_argument(
         "--slurm_logs", type=str, default="./slurm_logs", required=False, help="Directory to output slurm logs"
     )
+
+    parser.add_argument(
+        "--model", type=str, default="resnet50", choices=["resnet50", "clip_resnet50"], help="Name of model to use"
+    )
     parser.add_argument("--opt", type=str, required=True, help="The name of the submit_*_grid_jobs function to call.")
     parser.add_argument("--respawn", action='store_true', help="Whether to respawn runs from last completed checkpoint")
     parser.add_argument(
@@ -291,6 +297,13 @@ def parse_args():
 
     # Convert relative paths to absolute paths to help slurm out
     args.slurm_logs = os.path.abspath(args.slurm_logs)
+
+    # Raise warnings here in case some flags aren't implemented for some methods
+    warnings.warn(
+        "The --model arg is only used for --opt=[erm_tune,suby_tune,] options. Update this warning accordingly.",
+        category=FutureWarning
+    )
+
     return args
 
 
@@ -383,7 +396,7 @@ def submit_stl_tune_train(args):
         raise ValueError("Only --opt=erm and --opt=suby are supported in this function.")
 
     if args.respawn:
-        warnings.warn("--respawn is not implemented for this function.", category=warnings.FutureWarning)
+        warnings.warn("--respawn is not implemented for this function.", category=FutureWarning)
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
 
@@ -396,12 +409,13 @@ def submit_stl_tune_train(args):
 
                     command = (
                         f"python train_erm.py exp={method} "
+                        f"exp.model.name={args.model} "
                         f"exp.optimizer.weight_decay={wd} "
                         f"exp.optimizer.lr={lr} "
                         f"exp.dataloader.batch_size={batch_size} "
                         f"exp.train.total_epochs={EPOCHS} "
                         f"exp.dataset.groupings='[{task}]' "
-                        f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+                        f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, args.model, job_name)}\\'"
                     )
                     job_manager.submit(command, job_name=job_name, log_file=log_file)
 
