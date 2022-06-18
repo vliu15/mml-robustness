@@ -13,9 +13,10 @@ import argparse
 import json
 import os
 
+from scripts.const import GRIDS, TASKS
 from scripts.find_best_ckpt import main as find_best_ckpt
 from scripts.job_manager import JobManager
-from scripts.run_hparam_grid_train import flatten, GRIDS, TASKS
+from scripts.run_hparam_grid_train import flatten
 
 USER = os.environ["USER"]
 LOG_DIR = "./logs"

@@ -23,7 +23,7 @@ import numpy as np
 from tqdm import tqdm
 
 import datasets.groupings as groupings
-from scripts.spurious_matrix import attributes
+from scripts.const import ATTRIBUTES
 
 
 def parse_args():
@@ -213,4 +213,4 @@ def main(attributes):
 
 
 if __name__ == "__main__":
-    main(attributes)
+    main(ATTRIBUTES)

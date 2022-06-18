@@ -1,3 +1,14 @@
+"""
+Gathers all best average accuracies from hparam tuning
+from log directories specified by the regex args.log_dirs
+and prints out hparams for each task found, sorted by accuracy
+
+Sample usage:
+python -m scripts.gather_tuning_results \
+    --log_dirs "logs/spurious_id_tune/.*" \
+    --learning_type stl
+"""
+
 import argparse
 import json
 import logging
