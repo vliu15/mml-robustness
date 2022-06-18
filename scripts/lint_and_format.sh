@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo '*** PYLINT ***'
-pylint *
+pylint --verbose *
 
 # Excluding `data` excludes `datasets` since yapf uses fnmatch.fnmatch. Until
 # a cleaner way to apply exclusions, run yapf on `datasets` separately after.

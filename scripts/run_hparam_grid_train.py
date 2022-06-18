@@ -40,6 +40,15 @@ TASKS = {
             "Oval_Face:Rosy_Cheeks",
             "Young:Attractive",
         ],
+    "SPURIOUS_ID_ALL":
+        [
+            "5_o_Clock_Shadow", "Arched_Eyebrows", "Attractive", "Bags_Under_Eyes", "Bald", "Bangs", "Big_Lips", "Big_Nose",
+            "Black_Hair", "Blond_Hair", "Blurry", "Brown_Hair", "Bushy_Eyebrows", "Chubby", "Double_Chin", "Eyeglasses",
+            "Goatee", "Gray_Hair", "Heavy_Makeup", "High_Cheekbones", "Male", "Mouth_Slightly_Open", "Mustache", "Narrow_Eyes",
+            "No_Beard", "Oval_Face", "Pale_Skin", "Pointy_Nose", "Receding_Hairline", "Rosy_Cheeks", "Sideburns", "Smiling",
+            "Straight_Hair", "Wavy_Hair", "Wearing_Earrings", "Wearing_Hat", "Wearing_Lipstick", "Wearing_Necklace",
+            "Wearing_Necktie", "Young"
+        ],
 
     # 2 sets of ablations over disjoint tasks, for each: 1x MTL(2), 3x MTL(3), 3x MTL(4)
     "MTL_ABLATE_DISJOINT":
@@ -306,7 +315,10 @@ def parse_args():
     args.slurm_logs = os.path.abspath(args.slurm_logs)
 
     # Raise warnings here in case some flags aren't implemented for some methods
-    warnings.warn("The --model arg is only currently used for --opt=[erm_tune,suby_tune,] options.", category=FutureWarning)
+    warnings.warn(
+        "The --model arg is only currently used for --opt=[erm_tune,suby_tune,erm_id,suby_id] options.",
+        category=FutureWarning
+    )
     warnings.warn(
         "The `clip_erm` hparams in `PARAMS` is not implemented into any of the functions in this file yet.",
         category=FutureWarning
@@ -426,6 +438,40 @@ def submit_stl_tune_train(args):
                         f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, args.model, job_name)}\\'"
                     )
                     job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+
+def submit_spurious_id_train(args):
+    ATTRIBUTES = TASKS["SPURIOUS_ID_ALL"]
+
+    # HACK(vliu): we only use CLIP models for spurious ID, so it's not worth refactoring PARAMS dict right now
+    if args.model == "resnet50":
+        wd = PARAMS[args.opt]["WD"]
+        lr = PARAMS[args.opt]["LR"]
+        batch_size = PARAMS[args.opt]["BATCH_SIZE"]
+        epochs = PARAMS[args.opt]["EPOCHS"]
+    elif args.model == "clip_resnet50":
+        wd = PARAMS[f"clip_{args.opt}"]["WD"]
+        lr = PARAMS[f"clip_{args.opt}"]["LR"]
+        batch_size = PARAMS[f"clip_{args.opt}"]["BATCH_SIZE"]
+        epochs = PARAMS[f"clip_{args.opt}"]["EPOCHS"]
+
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+    for attribute in ATTRIBUTES:
+        job_name = f"task:{attribute},wd:{wd},lr:{lr}"
+        log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+
+        command = (
+            "python train_erm.py exp.dataset.subgroup_labels=False "
+            f"exp={args.opt} "
+            f"exp.model.name={args.model} "
+            f"exp.dataset.groupings='[{attribute}:Blond_Hair]' "
+            f"exp.dataloader.batch_size={batch_size} "
+            f"exp.optimizer.lr={lr} "
+            f"exp.optimizer.weight_decay={wd} "
+            f"exp.train.total_epochs={epochs} "
+            f"exp.train.log_dir=\\'{os.path.join(args.log_dir, job_name)}\\'"
+        )
+        job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 
 def submit_stl_train(args):
@@ -957,6 +1003,10 @@ def main():
     # Tunes STL methods on the list of spurious ID pairs
     if args.opt in ["erm_tune", "suby_tune"]:
         submit_stl_tune_train(args)
+
+    # Runs STL methods on all attributes for spurious ID training
+    elif args.opt in ["erm_id", "suby_id"]:
+        submit_spurious_id_train(args)
 
     ####################
     # [1] TUNE MTL ERM #

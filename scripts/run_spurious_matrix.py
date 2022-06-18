@@ -42,7 +42,7 @@ def main():
         job_name = f"SPURIOUS_{log_dir}"
         log_file = os.path.join("./slurm_logs", f"{job_name}.log")
         log_dir = os.path.join(args.meta_log_dir, log_dir)
-        command = ("python -m scripts.spurious_matrix " f"--log_dir {log_dir} " f"--json_dir {args.json_dir} ")
+        command = f"python -m scripts.spurious_matrix --log_dir {log_dir} --json_dir {args.json_dir}"
         job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 

@@ -20,5 +20,5 @@ dedent_closing_brackets = true                      # closing bracket is dedente
 [tool.pylint.'MESSAGES CONTROL']
 max-line-length = 127
 disable = 'all'
-ignore = 'logs/,data/'
+ignore = 'logs/,data/,outputs/,slurm_logs/'
 enable = 'unused-variable,unused-import'
