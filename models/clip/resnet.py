@@ -37,7 +37,6 @@ class CLIPResNet(ResNet):
         )
 
         if config.model.pretrained:
-            # NOTE(vliu15): throw out the fc weights since these are linear projections to ImageNet classes
             # NOTE(vliu15): download link is currently hard-coded to be ResNet-50 weights
             pt = download_clip(
                 "https://openaipublic.azureedge.net/clip/models/afeb0e10f9e5a86da6080e35cf09123aca3b358a0c3e3b6c78a7b63bc04b6762/RN50.pt"

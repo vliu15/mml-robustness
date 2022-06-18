@@ -47,6 +47,12 @@ PARAMS = {
         "BATCH_SIZE": 2,
         "EPOCHS": 50,
     },
+    "clip_erm": {
+        "WD": 1e-1,
+        "LR": 1e-4,
+        "BATCH_SIZE": 128,  # BATCH_SIZE wasn't tuned for CLIP tuning
+        "EPOCHS": 50
+    },
 }
 
 
@@ -54,6 +60,9 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", type=str, choices=["debug", "shell", "sbatch"], default="debug", help="Spawn job mode")
     parser.add_argument("--opt", type=str, required=True, help="Type of optimization run to spawn")
+    parser.add_argument(
+        "--model", type=str, default="resnet50", choices=["resnet50", "clip_resnet50"], help="Model architecture to use."
+    )
 
     # No need to change any of these tbh
     parser.add_argument(
@@ -65,8 +74,16 @@ def parse_args():
 
 
 def run_spurious_id(args, attributes_to_train):
-    wd, lr, batch_size, epochs = PARAMS[args.opt]["WD"], PARAMS[args.opt]["LR"], PARAMS[args.opt]["BATCH_SIZE"], PARAMS[
-        args.opt]["EPOCHS"]
+    if args.model == "resnet50":
+        wd = PARAMS[args.opt]["WD"]
+        lr = PARAMS[args.opt]["LR"]
+        batch_size = PARAMS[args.opt]["BATCH_SIZE"]
+        epochs = PARAMS[args.opt]["EPOCHS"]
+    elif args.model == "clip_resnet50":
+        wd = PARAMS[f"clip_{args.opt}"]["WD"]
+        lr = PARAMS[f"clip_{args.opt}"]["LR"]
+        batch_size = PARAMS[f"clip_{args.opt}"]["BATCH_SIZE"]
+        epochs = PARAMS[f"clip_{args.opt}"]["EPOCHS"]
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
     for attribute in attributes_to_train:
@@ -74,15 +91,15 @@ def run_spurious_id(args, attributes_to_train):
         log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
         command = (
-            "python train_erm.py "
+            "python train_erm.py exp.dataset.subgroup_labels=False "
             f"exp={args.opt} "
+            f"exp.model.name={args.model} "
             f"exp.dataset.groupings='[{attribute}:Blond_Hair]' "
             f"exp.dataloader.batch_size={batch_size} "
             f"exp.optimizer.lr={lr} "
             f"exp.optimizer.weight_decay={wd} "
             f"exp.train.total_epochs={epochs} "
-            f"exp.train.log_dir=\\'{os.path.join(args.log_dir, job_name)}\\' "
-            "exp.dataset.subgroup_labels=False"
+            f"exp.train.log_dir=\\'{os.path.join(args.log_dir, job_name)}\\'"
         )
 
         job_manager.submit(command, job_name=job_name, log_file=log_file)

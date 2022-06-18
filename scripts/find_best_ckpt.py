@@ -81,6 +81,9 @@ def main(
     save_json="",
     mtl_checkpoint_type="average"
 ):
+    if run_test:
+        assert save_json != "", "If running test set evaluation, must specify a save_json."
+
     results_dir = os.path.join(log_dir, "results")
 
     val_stats_json_regex = re.compile(r"val_stats_[0-9]+\.json")

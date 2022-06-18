@@ -17,8 +17,6 @@ import os
 import re
 import warnings
 
-import numpy as np
-
 from mtl.utils import get_mtl_task_weights
 from scripts.job_manager import JobManager
 
@@ -262,6 +260,15 @@ PARAMS = {
             "T": 1,
             "LAM_UP": 50,  # some extras here for jtt, handled with an if statement
         },
+
+    # CLIP models
+    # TODO(vliu but not necessary) find a way to decouple this dict for --opt and --model
+    "clip_erm": {
+        "WD": 1e-1,
+        "LR": 1e-4,
+        "BATCH_SIZE": 128,  # BATCH_SIZE wasn't tuned for CLIP tuning
+        "EPOCHS": 50
+    }
 }
 
 
@@ -299,8 +306,9 @@ def parse_args():
     args.slurm_logs = os.path.abspath(args.slurm_logs)
 
     # Raise warnings here in case some flags aren't implemented for some methods
+    warnings.warn("The --model arg is only currently used for --opt=[erm_tune,suby_tune,] options.", category=FutureWarning)
     warnings.warn(
-        "The --model arg is only used for --opt=[erm_tune,suby_tune,] options. Update this warning accordingly.",
+        "The `clip_erm` hparams in `PARAMS` is not implemented into any of the functions in this file yet.",
         category=FutureWarning
     )
 
