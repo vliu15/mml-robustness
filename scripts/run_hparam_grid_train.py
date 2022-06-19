@@ -172,6 +172,7 @@ def submit_stl_tune_train(args):
                     job_name = job_name_generator(task, wd, lr, batch_size)
                     log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
+                    log_dir = os.path.join(LOG_DIR, f"{args.model}_tune", job_name)
                     command = (
                         f"python train_erm.py exp={method} "
                         f"exp.model.name={args.model} "
@@ -180,7 +181,7 @@ def submit_stl_tune_train(args):
                         f"exp.dataloader.batch_size={batch_size} "
                         f"exp.train.total_epochs={EPOCHS} "
                         f"exp.dataset.groupings='[{task}]' "
-                        f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, args.model, job_name)}\\'"
+                        f"exp.train.log_dir=\\'{log_dir}\\'"
                     )
                     job_manager.submit(command, job_name=job_name, log_file=log_file)
 
@@ -188,33 +189,38 @@ def submit_stl_tune_train(args):
 def submit_spurious_id_train(args):
     ATTRIBUTES = TASKS["SPURIOUS_ID_ALL"]
 
+    assert args.opt.endswith("_id"), "This method should only be called with --opt=.*_id"
+    method = args.opt.replace("_id", "")
+    assert method in ["erm", "suby"]  # just to double check
+
     # HACK(vliu): we only use CLIP models for spurious ID, so it's not worth refactoring PARAMS dict right now
     if args.model == "resnet50":
-        wd = PARAMS[args.opt]["WD"]
-        lr = PARAMS[args.opt]["LR"]
-        batch_size = PARAMS[args.opt]["BATCH_SIZE"]
-        epochs = PARAMS[args.opt]["EPOCHS"]
+        wd = PARAMS[method]["WD"]
+        lr = PARAMS[method]["LR"]
+        batch_size = PARAMS[method]["BATCH_SIZE"]
+        epochs = PARAMS[method]["EPOCHS"]
     elif args.model == "clip_resnet50":
-        wd = PARAMS[f"clip_{args.opt}"]["WD"]
-        lr = PARAMS[f"clip_{args.opt}"]["LR"]
-        batch_size = PARAMS[f"clip_{args.opt}"]["BATCH_SIZE"]
-        epochs = PARAMS[f"clip_{args.opt}"]["EPOCHS"]
+        wd = PARAMS[f"clip_{method}"]["WD"]
+        lr = PARAMS[f"clip_{method}"]["LR"]
+        batch_size = PARAMS[f"clip_{method}"]["BATCH_SIZE"]
+        epochs = PARAMS[f"clip_{method}"]["EPOCHS"]
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
     for attribute in ATTRIBUTES:
         job_name = f"task:{attribute},wd:{wd},lr:{lr}"
         log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
+        log_dir = os.path.join(LOG_DIR, f"{args.model}_id", job_name)
         command = (
             "python train_erm.py exp.dataset.subgroup_labels=False "
-            f"exp={args.opt} "
+            f"exp={method} "
             f"exp.model.name={args.model} "
             f"exp.dataset.groupings='[{attribute}:Blond_Hair]' "
             f"exp.dataloader.batch_size={batch_size} "
             f"exp.optimizer.lr={lr} "
             f"exp.optimizer.weight_decay={wd} "
             f"exp.train.total_epochs={epochs} "
-            f"exp.train.log_dir=\\'{os.path.join(args.log_dir, job_name)}\\'"
+            f"exp.train.log_dir=\\'{log_dir}\\'"
         )
         job_manager.submit(command, job_name=job_name, log_file=log_file)
 
