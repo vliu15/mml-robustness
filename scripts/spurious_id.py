@@ -2,7 +2,7 @@
 Runs SVD on the entire matrix of spurious deltas created by
 create_spurious_matrix.py for all tasks.
 
-python -m scripts.spurious_eval \
+python -m scripts.spurious_id \
     --json_dir outputs/spurious_eval \
     --out_dir outputs/svd \
     --gamma 0.9 \
@@ -10,8 +10,10 @@ python -m scripts.spurious_eval \
 """
 
 import argparse
+import csv
 import json
 import logging
+import logging.config
 import os
 from collections import defaultdict
 
@@ -22,7 +24,7 @@ from scipy.special import softmax
 from sklearn.cluster import KMeans, SpectralCoclustering
 from tqdm import tqdm
 
-from scripts.spurious_matrix import attributes
+from scripts.const import ATTRIBUTES
 
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger(__name__)
@@ -57,6 +59,22 @@ def parse_args():
     # Some additional checks
     assert 0 <= args.gamma < 1, "$$\gamma$$ should be between [0, 1)"
     return args
+
+
+def dump_all_spurious_correlations(save_name: str, T: np.ndarray, eps: float):
+    # T should be indexed as T[attr, task]
+    spurious_correlation_indices = np.argwhere(T > eps)
+    spurious_correlations = []
+    for attr_idx, task_idx in spurious_correlation_indices:
+        attr = ATTRIBUTES[attr_idx]
+        task = ATTRIBUTES[task_idx]
+        spurious_correlations.append([f"{task}:{attr}", T[attr_idx, task_idx].item()])
+
+    spurious_correlations.sort(reverse=True, key=lambda x: x[1])  # sort by delta
+    with open(save_name, "w", newline="") as f:
+        spurious_correlations = [["spurious_correlation", "delta"]] + spurious_correlations
+        writer = csv.writer(f)
+        writer.writerows(spurious_correlations)
 
 
 def cosine_similarity(A: np.ndarray, B: np.ndarray):
@@ -128,7 +146,7 @@ def cluster(save_name: str, X: np.ndarray, k: int):
 
     # Aggregate clusters
     clusters = defaultdict(list)
-    for label, attr in zip(kmeans.labels_, attributes):
+    for label, attr in zip(kmeans.labels_, ATTRIBUTES):
         clusters[int(label.item())].append(attr)
 
     with open(save_name, "w") as f:
@@ -148,7 +166,7 @@ def make_deltas_histogram(save_name: str, X: np.ndarray):
     legend = ax.get_legend()
     handles = legend.legendHandles
     legend.remove()
-    ax.legend(handles, attributes, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., ncol=2)
+    ax.legend(handles, ATTRIBUTES, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., ncol=2)
 
     # Revise axes scales and ticks
     ax.xaxis.set_ticks(np.arange(0, 101, 10))
@@ -173,8 +191,8 @@ def make_deltas_heatmap(save_name: str, X: np.ndarray, xlabel: str = None, ylabe
         vmin=0,
         vmax=1,
         square=True,
-        xticklabels=attributes,
-        yticklabels=attributes,
+        xticklabels=ATTRIBUTES,
+        yticklabels=ATTRIBUTES,
         cmap=plt.cm.Greens
     )
     fig.suptitle(f"Raw $\delta$ values", fontsize=18)
@@ -206,8 +224,8 @@ def make_bicluster_heatmap(save_name: str, X: np.ndarray, k: int, xlabel: str = 
     cols = np.argsort(clustering.column_labels_)
 
     C = X[rows][:, cols]
-    xticklabels = [attributes[c] for c in cols]
-    yticklabels = [attributes[r] for r in rows]
+    xticklabels = [ATTRIBUTES[c] for c in cols]
+    yticklabels = [ATTRIBUTES[r] for r in rows]
 
     fig, ax = plt.subplots(figsize=(13, 13))
     heatmap = sns.heatmap(
@@ -250,8 +268,8 @@ def make_cossim_heatmap(save_name: str, X: np.ndarray, xlabel: str = None, ylabe
         vmin=-1,
         vmax=1,
         square=True,
-        xticklabels=attributes,
-        yticklabels=attributes,
+        xticklabels=ATTRIBUTES,
+        yticklabels=ATTRIBUTES,
         cmap="mako"
     )
     fig.suptitle(f"Pairwise Cosine Similarity", fontsize=18)
@@ -271,14 +289,16 @@ def main():
 
     # Load JSON files for each task
     T = []
-    for task in tqdm(attributes, desc="Loading JSONs", total=len(attributes)):
+    for task in tqdm(ATTRIBUTES, desc="Loading JSONs", total=len(ATTRIBUTES)):
         with open(os.path.join(args.json_dir, task, f"{task}_spurious_eval.json"), "r") as f:
             data = json.load(f)
-            column = np.array([data[attr] for attr in attributes], dtype=np.float32)
+            column = np.array([data[attr] for attr in ATTRIBUTES], dtype=np.float32)
             T.append(column)
 
     # Vectorize
     T = np.array(T).T  # shape (40, 40) that corresponds to (attr, task)
+
+    dump_all_spurious_correlations(os.path.join(args.out_dir, "spurious_correlations.csv"), T, args.eps)
 
     # Histogram of deltas
     make_deltas_histogram(os.path.join(args.out_dir, "deltas_histogram.png"), T)

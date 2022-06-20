@@ -17,8 +17,12 @@ split_before_first_argument = true
 split_before_expression_after_opening_paren = true  # puts all args on newline after opening paren
 dedent_closing_brackets = true                      # closing bracket is dedented on newline after args
 
-[tool.pylint.'MESSAGES CONTROL']
+[tool.pylint.format]
 max-line-length = 127
+
+[tool.pylint.MASTER]
+ignore = 'logs/,data/,outputs/,slurm_logs/'
+
+[tool.pylint.'MESSAGES CONTROL']
 disable = 'all'
-ignore = 'logs/,data/'
 enable = 'unused-variable,unused-import'

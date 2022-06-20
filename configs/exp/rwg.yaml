@@ -31,13 +31,6 @@ model:
     pretrained: true
     num_classes: null  # should be len(config.dataset.groupings)
 
-    # Defaults for ResNet
-    zero_init_residual: False
-    groups: 1
-    width_per_group: 64
-    replace_stride_with_dilation: null
-    norm_layer: null
-
 optimizer:
     name: sgd
     lr: 0.00001  # [RWG] 10^{-5.0 \pm 0.0}

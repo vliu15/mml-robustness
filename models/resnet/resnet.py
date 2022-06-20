@@ -1,7 +1,10 @@
 import logging
+import logging.config
+from typing import Callable, List, Optional
 
 import numpy as np
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 
@@ -11,6 +14,15 @@ from models.resnet.modules import Bottleneck, ResNet as _ResNet
 
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger(__name__)
+
+
+class ResNetConfig(object):
+    """Default config fields for ResNet models. Not meant to be controllable from CLI"""
+    zero_init_residual: bool = False
+    groups: int = 1
+    width_per_group: int = 64
+    replace_stride_with_dilation: Optional[List[bool]] = None
+    norm_layer: Optional[Callable[..., nn.Module]] = None
 
 
 class ResNet(ClassificationModel):
@@ -27,15 +39,18 @@ class ResNet(ClassificationModel):
             block=block,
             layers=layers,
             num_classes=len(config.dataset.groupings),
-            zero_init_residual=config.model.zero_init_residual,
-            groups=config.model.groups,
-            width_per_group=config.model.width_per_group,
-            replace_stride_with_dilation=config.model.replace_stride_with_dilation,
-            norm_layer=config.model.norm_layer,
+
+            # The rest of the configs are defaults
+            zero_init_residual=ResNetConfig.zero_init_residual,
+            groups=ResNetConfig.groups,
+            width_per_group=ResNetConfig.width_per_group,
+            replace_stride_with_dilation=ResNetConfig.replace_stride_with_dilation,
+            norm_layer=ResNetConfig.norm_layer,
         )
 
         if config.model.pretrained:
             # NOTE(vliu15): throw out the fc weights since these are linear projections to ImageNet classes
+            # NOTE(vliu15): download link is currently hard-coded to be ResNet-50 weights
             state_dict = torchvision.models.resnet50(pretrained=True).state_dict()
             state_dict.pop("fc.weight")
             state_dict.pop("fc.bias")

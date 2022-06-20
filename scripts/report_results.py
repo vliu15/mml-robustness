@@ -36,7 +36,7 @@ z = stats.norm.ppf(1 - alpha / 2)
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--log_dirs", type=str, required=True, help="Path to log directories with results")
+    parser.add_argument("--log_dirs", type=str, required=True, help="Regex pattern of log directories with results")
     parser.add_argument(
         "--split", type=str, required=True, choices=["val", "test"], help="Type of metric to report results on"
     )

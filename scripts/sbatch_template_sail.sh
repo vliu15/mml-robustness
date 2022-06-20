@@ -8,9 +8,9 @@
 #SBATCH --mem=32GB                                  # Job memory request
 #SBATCH --time=96:00:00                             # Time limit hrs:min:sec
 #SBATCH --output=$LOG_FILE                          # Standard output and error log
-#SBATCH --partition=jag-hi,jag-important,jag-standard  # Request a specific partition for the resource allocation
-#SBATCH --exclude=jagupard[10-15,28-31]             # Specifies nodes to not run on                     
+#SBATCH --partition=jag-standard,jag-hi,jag-urgent  # Request a specific partition for the resource allocation
 #SBATCH --gres=gpu:1                                # Specifies a comma-delimited list of generic consumable resources
+#SBATCH --exclude=jagupard[14,28-30]                # Specifies nodes to not run on (these are currently down/drained)
 
 export OMP_NUM_THREADS=8                            # Set parallel threads to --cpus-per-task
 
@@ -25,7 +25,7 @@ fi
 conda activate mml-robustness
 
 # Use this alias to point `python` to `python3` so we don't have to change all command submissions ...
-# However, this is a bash alias, so this might not be picked by nested subprocess calls (i.e. train_jtt)
+# However, this is a bash alias, so this might not be picked up by nested subprocess calls (i.e. train_jtt)
 alias python=/sailhome/$USER/miniconda3/envs/mml-robustness/bin/python3
 
 # For python-installed commands like pylint,yapf,isort, since conda is probably installed in a non-default folder

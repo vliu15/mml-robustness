@@ -27,8 +27,11 @@ class JobManager(object):
     """Wrapper class to abstract job submissions and management"""
 
     def __init__(self, mode: str, template: str = "./scripts/sbatch_template_rice.sh", slurm_logs: str = "./slurm_logs"):
-        with open(template, "r") as f:
-            self.template = f.read()
+        if mode == "sbatch":
+            with open(template, "r") as f:
+                self.template = f.read()
+        else:
+            self.template = ""
         self.slurm_logs = slurm_logs
         os.makedirs(slurm_logs, exist_ok=True)
 
@@ -56,9 +59,15 @@ class JobManager(object):
 
             sbatch = self.template.replace("$JOB_NAME", job_name).replace("$LOG_FILE", log_file).replace("$COMMAND", command)
             uniq_id = uuid.uuid4()
-            with open(f"{uniq_id}.sh", "w") as f:
-                f.write(sbatch)
-            subprocess.run(f"sbatch {uniq_id}.sh", shell=True, check=True)
-            os.remove(f"{uniq_id}.sh")
+
+            # As soon as we begin writing to temporary file ...
+            try:
+                with open(f"{uniq_id}.sh", "w") as f:
+                    f.write(sbatch)
+                subprocess.run(f"sbatch {uniq_id}.sh", shell=True, check=True)
+
+            # Make sure that we remove it before the script exists
+            finally:
+                os.remove(f"{uniq_id}.sh")
 
         self.counter += 1
