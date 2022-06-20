@@ -222,6 +222,9 @@ def submit_spurious_id_train(args):
             f"exp.train.total_epochs={epochs} "
             f"exp.train.log_dir=\\'{log_dir}\\'"
         )
+        if args.respawn:
+            command = append_ckpt_for_respawn(command, os.path.join(f"{args.model}_id", job_name), epochs)
+
         job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 
