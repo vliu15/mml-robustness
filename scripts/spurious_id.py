@@ -10,8 +10,10 @@ python -m scripts.spurious_id \
 """
 
 import argparse
+import csv
 import json
 import logging
+import logging.config
 import os
 from collections import defaultdict
 
@@ -57,6 +59,22 @@ def parse_args():
     # Some additional checks
     assert 0 <= args.gamma < 1, "$$\gamma$$ should be between [0, 1)"
     return args
+
+
+def dump_all_spurious_correlations(save_name: str, T: np.ndarray, eps: float):
+    # T should be indexed as T[attr, task]
+    spurious_correlation_indices = np.argwhere(T > eps)
+    spurious_correlations = []
+    for attr_idx, task_idx in spurious_correlation_indices:
+        attr = ATTRIBUTES[attr_idx]
+        task = ATTRIBUTES[task_idx]
+        spurious_correlations.append([f"{task}:{attr}", T[attr_idx, task_idx].item()])
+
+    spurious_correlations.sort(reverse=True, key=lambda x: x[1])  # sort by delta
+    with open(save_name, "w", newline="") as f:
+        spurious_correlations = [["spurious_correlation", "delta"]] + spurious_correlations
+        writer = csv.writer(f)
+        writer.writerows(spurious_correlations)
 
 
 def cosine_similarity(A: np.ndarray, B: np.ndarray):
@@ -279,6 +297,8 @@ def main():
 
     # Vectorize
     T = np.array(T).T  # shape (40, 40) that corresponds to (attr, task)
+
+    dump_all_spurious_correlations(os.path.join(args.out_dir, "spurious_correlations.csv"), T, args.eps)
 
     # Histogram of deltas
     make_deltas_histogram(os.path.join(args.out_dir, "deltas_histogram.png"), T)

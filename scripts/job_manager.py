@@ -27,8 +27,11 @@ class JobManager(object):
     """Wrapper class to abstract job submissions and management"""
 
     def __init__(self, mode: str, template: str = "./scripts/sbatch_template_rice.sh", slurm_logs: str = "./slurm_logs"):
-        with open(template, "r") as f:
-            self.template = f.read()
+        if mode == "sbatch":
+            with open(template, "r") as f:
+                self.template = f.read()
+        else:
+            self.template = ""
         self.slurm_logs = slurm_logs
         os.makedirs(slurm_logs, exist_ok=True)
 
