@@ -6,7 +6,7 @@ We explore the utility of multi-task learning in improving performance of group-
 - [Multi-Task Learning](#multi-task-learning)
 
 ## Single-Task Learning (STL)
-Currently we only experiment with ResNet-50 on the CelebA dataset with a couple group-robustness methods in addition to the standard Empirical Risk Minimization (ERM) optimization of neural networks. We use the `hydra-core` package for  general command-line control of hyperparameters.
+Currently we only experiment with ResNet-50 on the CelebA dataset with a couple group-robustness methods in addition to the standard Empirical Risk Minimization (ERM) optimization of neural networks. We can use either a standard ResNet-50 pretrained on ImageNet or a CLIP trained ResNet-50. We use the `hydra-core` package for  general command-line control of hyperparameters.
 
 ### Empirical Risk Minimization
 Run
@@ -17,6 +17,8 @@ where default hyperparameters are specified in `configs/exp/erm.yaml`. Command-l
 ```bash
 python train_erm.py exp=erm exp.optimizer.lr=0.0001 exp.train.total_epochs=50 exp.dataset.groupings=['Blond_Hair:Male']
 ```
+The `exp.model.name` field manages which weights to load into the ResNet-50. For CLIP pretraining specify `exp.model.name='clip_resnet50'` and for ImageNet pretraining specify `exp.model.name='resnet50'.
+
 The `exp.dataset.groupings` field manages the task that is being trained with any spurious correlations that should be taken into account seperated from the task by a colon. 
 
 In general, the `model` field should not be changed, the `optimizer` field should only be changed for hyperparameter tuning, and the `dataset`/`dataloader` fields should only be changed for data subsampling/reweighting methods, respectively.
