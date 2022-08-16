@@ -1,4 +1,4 @@
-# Distributionally Robust Multi-Task Networks
+# Multi-Task Networks are more Group-Robust
 
 We explore the utility of multi-task learning in improving performance of group-robustness approaches. Because all group-robustness approaches only consider one pair of spuriously correlated attributes (`Blond_Hair` x `Male`), the reader should skim this README in order:
 - [Single-Task Learning](#single-task-learning)
