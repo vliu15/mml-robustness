@@ -496,12 +496,12 @@ def submit_stl_erm_cxr_test(args):
     TASK_GRID = ["Pneumothorax:Old", "Pneumonia:Male", "Pneumonia:Old", "Pneumothorax:Male"]
     SEED_GRID = [0]
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
-    dataset_name = "chestxray8_small"
+    dataset_name = "chestxray8"
 
     for task in TASK_GRID:
         for seed in SEED_GRID:
             for checkpoint_type in ["avg", "group"]:
-                job_name = f"eval_baseline:{method},task:{task},{dataset_name}_2,seed:{seed}"
+                job_name = f"eval_baseline:{method},task:{task},{dataset_name},seed:{seed}"
                 log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
                 save_json = f"test_stats_{checkpoint_type}_checkpoint.json"
 
@@ -524,8 +524,8 @@ def submit_mtl_erm_cxr_test(args):
 
     if args.mtl_checkpoint_type is None:
         raise ValueError(f"Please specify an option for --mtl_checkpoint_type={args.mtl_checkpoint_type}")
-    dataset_name = "chestxray8_small"
-    
+    dataset_name = "chestxray8"
+
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
     SEED_GRID=[0]
     for seed in SEED_GRID:
