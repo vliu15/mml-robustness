@@ -23,7 +23,7 @@ from scripts.job_manager import JobManager
 
 USER = os.environ["USER"]
 LOG_DIR = "./logs"
-SEED_GRID = [0, 1, 2]
+SEED_GRID = [0] #, 1, 2]
 
 
 def parse_args():
@@ -746,6 +746,88 @@ def submit_mtl_erm_weak_tasks_train(args):
 
             job_manager.submit(command, job_name=job_name, log_file=log_file)
 
+def submit_stl_erm_cxr_train(args):
+
+    assert args.opt in ["stl_erm_cxr"]
+    stl_method = args.opt.replace("_cxr", "")
+    method = stl_method.replace("stl_", "")
+
+    TASK_GRID = ["Pneumothorax:Old", "Pneumonia:Male", "Pneumonia:Old", "Pneumothorax:Male"]
+
+    WD = PARAMS[method]["WD"]
+    LR = PARAMS[method]["LR"]
+    BATCH_SIZE = PARAMS[method]["BATCH_SIZE"]
+    EPOCHS = 5
+    SEED_GRID=[0]
+
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+    dataset_name = "chestxray8_small"
+
+    for task in TASK_GRID:
+        for seed in SEED_GRID:
+            job_name = f"baseline:{method},task:{task},{dataset_name}_2,seed:{seed}"
+            log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+
+            
+            command = (
+                f"python train_erm.py exp={method} "
+                f"exp.optimizer.weight_decay={WD} "
+                f"exp.optimizer.lr={LR} "
+                f"exp.seed={seed} "
+                f"exp.train.total_epochs={EPOCHS} "
+                f"exp.dataset.groupings='[{task}]' "
+                f"exp.dataset.name='{dataset_name}' "
+                f"exp.dataloader.batch_size={BATCH_SIZE} "
+                f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+            )
+            if args.respawn:
+                command = append_ckpt_for_respawn(command, job_name, EPOCHS)
+
+
+            job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+def submit_mtl_erm_cxr_train(args):
+    TASK_GRID = [["Pneumothorax:Old", "Pneumonia:Male"],["Pneumothorax:Old", "Pneumonia:Old"], ["Pneumothorax:Male", "Pneumonia:Male"]]
+
+    assert args.opt in ["mtl_erm_cxr"]
+    mtl_method = args.opt.replace("_cxr", "")
+    method = mtl_method.replace("mtl_", "")
+
+    key = f"{mtl_method}_group_ckpt_{args.mtl_weighting}_mtl_weighting"
+    WD = PARAMS[key]["WD"]
+    LR = PARAMS[key]["LR"]
+    BATCH_SIZE = PARAMS[key]["BATCH_SIZE"]
+    EPOCHS = 5
+    SEED_GRID=[0]
+
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+    dataset_name = "chestxray8_small"
+    for seed in SEED_GRID:
+        for idx, task in enumerate(TASK_GRID):
+            task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(args.mtl_weighting, task)
+            job_name = f"mtl_train:{method},task:{len(task)}_tasks,{dataset_name}_idx:{idx},{args.mtl_weighting}_task_weighting,seed:{seed}"
+            log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+
+
+            command = (
+                f"python train_erm.py exp={method} "
+                f"exp.optimizer.weight_decay={WD} "
+                f"exp.optimizer.lr={LR} "
+                f"exp.seed={seed} "
+                f"exp.train.total_epochs={EPOCHS} "
+                f"exp.dataset.name='{dataset_name}' "
+                f"exp.dataset.groupings='{task}' "
+                f"exp.dataloader.batch_size={BATCH_SIZE} "
+                f"exp.dataset.task_weights='{task_weights}' "
+                f"exp.dataset.loss_based_task_weighting={use_loss_balanced} "
+                f"exp.dataset.lbtw_alpha={lbtw_alpha} "
+                f"exp.train.log_dir=\\'{os.path.join(LOG_DIR, job_name)}\\'"
+            )
+            if args.respawn:
+                command = append_ckpt_for_respawn(command, job_name, EPOCHS)
+
+            job_manager.submit(command, job_name=job_name, log_file=log_file)
+
 
 def main():
     args = parse_args()
@@ -832,6 +914,18 @@ def main():
     # Trains MTL methods on 2 additional strongly spuriously correlated task pairs
     elif args.opt in ["mtl_erm_weak"]:
         submit_mtl_erm_weak_tasks_train(args)
+
+    ###############################
+    # [7] ChestXray Training #
+    ###############################
+
+    # Trains MTL methods on 2 additional strongly spuriously correlated task pairs
+    elif args.opt in ["mtl_erm_cxr"]:
+        submit_mtl_erm_cxr_train(args)
+
+    # Trains MTL methods on 2 additional strongly spuriously correlated task pairs
+    elif args.opt in ["stl_erm_cxr"]:
+        submit_stl_erm_cxr_train(args)
 
     else:
         raise ValueError(f"Didn't recognize opt={args.opt}. Did you forget to add a check for this function?")

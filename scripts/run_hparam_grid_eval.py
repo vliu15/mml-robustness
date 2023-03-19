@@ -225,7 +225,7 @@ def submit_mtl_cvx_disjoint_tasks_test(args):
 
 
 def submit_mtl_jtt_disjoint_tasks_test(args):
-    TASK_GRID = TASKS["MTL_STL_COMPARISON"][1:]  # SINGLE PAIR
+    TASK_GRID = TASKS["MTL_STL_COMPARISON"]  # SINGLE PAIR
     assert args.opt in ["mtl_jtt"], "This method only supports --opt=mtl_jtt"
 
     job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
@@ -487,6 +487,71 @@ def submit_mtl_erm_weak_tasks_test(args):
                 job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 
+def submit_stl_erm_cxr_test(args):
+
+    assert args.opt in ["stl_erm_cxr"]
+    stl_method = args.opt.replace("_cxr", "")
+    method = stl_method.replace("stl_", "")
+
+    TASK_GRID = ["Pneumothorax:Old", "Pneumonia:Male", "Pneumonia:Old", "Pneumothorax:Male"]
+    SEED_GRID = [0]
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+    dataset_name = "chestxray8_small"
+
+    for task in TASK_GRID:
+        for seed in SEED_GRID:
+            for checkpoint_type in ["avg", "group"]:
+                job_name = f"eval_baseline:{method},task:{task},{dataset_name}_2,seed:{seed}"
+                log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+                save_json = f"test_stats_{checkpoint_type}_checkpoint.json"
+
+                log_dir = os.path.join(LOG_DIR, job_name[5:])
+                if not os.path.exists(log_dir):
+                    continue
+                results_dir = os.path.join(log_dir, "results")
+                save_json = os.path.join(results_dir, save_json)
+
+                command = f"python -m scripts.find_best_ckpt --run_test --log_dir {log_dir} --metric {checkpoint_type} --learning_type stl --save_json {save_json}"
+                job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+def submit_mtl_erm_cxr_test(args):
+
+    TASK_GRID = [["Pneumothorax:Old", "Pneumonia:Male"],["Pneumothorax:Old", "Pneumonia:Old"], ["Pneumothorax:Male", "Pneumonia:Male"]]
+
+    assert args.opt in ["mtl_erm_cxr"]
+    mtl_method = args.opt.replace("_cxr", "")
+    method = mtl_method.replace("mtl_", "")
+
+    if args.mtl_checkpoint_type is None:
+        raise ValueError(f"Please specify an option for --mtl_checkpoint_type={args.mtl_checkpoint_type}")
+    dataset_name = "chestxray8_small"
+    
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+    SEED_GRID=[0]
+    for seed in SEED_GRID:
+        for idx, task in enumerate(TASK_GRID):
+            for checkpoint_type in ["avg", "group"]:
+                job_name = f"eval_mtl_train:{method},task:{len(task)}_tasks,{dataset_name}_idx:{idx},{args.mtl_weighting}_task_weighting,seed:{seed}"
+                log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+
+                save_json = f"test_stats_{checkpoint_type}_checkpoint_{args.mtl_checkpoint_type}_mtl_type.json"
+
+                log_dir = os.path.join(LOG_DIR, job_name[5:])
+                results_dir = os.path.join(log_dir, "results")
+                save_json = os.path.join(results_dir, save_json)
+
+                command = (
+                    f"python -m scripts.find_best_ckpt --run_test --learning_type mtl "
+                    f"--log_dir {log_dir} "
+                    f"--metric {checkpoint_type} "
+                    f"--save_json {save_json} "
+                    f"--mtl_checkpoint_type {args.mtl_checkpoint_type}"
+                )
+                job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+
+
+
 def main():
     args = parse_args()
 
@@ -566,6 +631,19 @@ def main():
 
     elif args.opt in ["mtl_erm_weak"]:
         submit_mtl_erm_weak_tasks_test(args)
+
+    ###############################
+    # [7] ChestXray Training #
+    ###############################
+
+    # Trains MTL methods on 2 additional strongly spuriously correlated task pairs
+    elif args.opt in ["mtl_erm_cxr"]:
+        submit_mtl_erm_cxr_test(args)
+
+    # Trains MTL methods on 2 additional strongly spuriously correlated task pairs
+    elif args.opt in ["stl_erm_cxr"]:
+        submit_stl_erm_cxr_test(args)
+
 
     else:
         raise ValueError(f"Didn't recognize opt={args.opt}. Did you forget to add a check for this function?")

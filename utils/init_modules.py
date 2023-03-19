@@ -40,6 +40,13 @@ def init_datasets(config):
     if config.dataset.name == "celeba":
         from datasets.celeba import CelebA
         dataset = CelebA
+    elif config.dataset.name == "chestxray8_small":
+        from datasets.chestxray8 import Chestxray8
+        dataset = Chestxray8
+    elif config.dataset.name == "chestxray8":
+        from datasets.chestxray8 import Chestxray8
+        dataset = Chestxray8
+        return dataset(config, split='train', size="full"), dataset(config, split='val', size="full")
     else:
         raise ValueError(f"Didn't recognize dataset name {config.dataset.name}")
 
@@ -128,6 +135,13 @@ def init_test_dataset(config):
     if config.dataset.name == "celeba":
         from datasets.celeba import CelebA
         dataset = CelebA
+    elif config.dataset.name == "chestxray8_small":
+        from datasets.chestxray8 import Chestxray8
+        dataset = Chestxray8
+    elif config.dataset.name == "chestxray8":
+        from datasets.chestxray8 import Chestxray8
+        dataset = Chestxray8
+        return dataset(config, split='test', size="full")
     else:
         raise ValueError(f"Didn't recognize dataset name {config.dataset.name}")
 

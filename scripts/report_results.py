@@ -26,6 +26,7 @@ from scipy import stats
 from tqdm import tqdm
 
 from datasets.celeba import CelebA
+from datasets.chestxray8 import Chestxray8
 
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger(__name__)
@@ -48,6 +49,13 @@ def parse_args():
         help="Whether to choose avg or worst group checkpoint"
     )
     parser.add_argument(
+        "--dataset",
+        type=str,
+        required=True,
+        choices=["celeba", "chestxray8"],
+        help="Whether to choose avg or worst group checkpoint"
+    )
+    parser.add_argument(
         "--mtl_checkpoint_type",
         type=str,
         required=False,
@@ -58,12 +66,16 @@ def parse_args():
     return parser.parse_args()
 
 
-def get_group_sizes(config, task, attr, split):
+def get_group_sizes(config, task, attr, split, args):
     config = deepcopy(config)
     config.dataset.subgroup_labels = True
     config.dataset.groupings = [f"{task}:{attr}"]
 
-    dataset = CelebA(config, split=split)
+    if args.dataset == "celeba":
+        dataset = CelebA(config, split=split)
+    elif args.dataset == "chestxray8":
+        dataset = Chestxray8(config, split=split)
+
     counts = dataset.counts.squeeze(0).tolist()
 
     # In the event that there are subgroups with size 0, there are two cases:
@@ -139,7 +151,8 @@ def mean_ci_results(
     split: str,
     checkpoint_metric_type: str,
     mtl_checkpoint_type: str = None,
-    dict_name: str = None
+    dict_name: str = None,
+    args=None
 ):
     average_counts = defaultdict(
         lambda: defaultdict(list)
@@ -166,7 +179,7 @@ def mean_ci_results(
 
         for task, attribute in task_to_attributes.items():
             ### get group total counts
-            group_sizes = get_group_sizes(config, task, attribute, split)
+            group_sizes = get_group_sizes(config, task, attribute, split, args)
 
             worst_group_acc = float("inf")
             worst_group_correct = 0
@@ -308,6 +321,7 @@ def main():
             checkpoint_metric_type=args.checkpoint_metric_type,
             mtl_checkpoint_type=args.mtl_checkpoint_type,
             dict_name=args.log_dirs,
+            args=args,
         )
 
 
