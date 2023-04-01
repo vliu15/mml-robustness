@@ -13,7 +13,7 @@ up_type: upsample  # one of [upsample, upweight (deprecated)]
 lambda_up: 50
 load_up_pkl: null  # specify this to load it
 
-mtl_join_type: inv  # one of [xor, inv, task]
+mtl_join_type: uniform  # one of [xor, inv, task]
 
 load_stage_1_ckpt: null
 load_stage_2_ckpt: null

@@ -92,6 +92,18 @@ def merge_error_sets(
         # Set the weight for each one to be 1/frequency
         weighted_error_indices = {key: 1. / value for key, value in weighted_error_indices.items()}
 
+    elif how == "prop":
+        # Accumulate the frequencies of each index
+        weighted_error_indices = Counter([index for error_set in error_sets.values() for index in error_set])
+        # Set the weight for each one to be 1/frequency
+        weighted_error_indices = {key: 1. * value for key, value in weighted_error_indices.items()}
+
+    elif how == "uniform":
+        # Accumulate the frequencies of each index
+        weighted_error_indices = Counter([index for error_set in error_sets.values() for index in error_set])
+        # Set the weight for each one to be 1
+        weighted_error_indices = {key: 1. for key, value in weighted_error_indices.items()}
+
     elif how == "task":
         # Grab the final validation losses per task
         final_epoch_val_stats = val_stats[-1]
