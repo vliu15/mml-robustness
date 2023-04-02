@@ -227,6 +227,49 @@ def submit_spurious_id_train(args):
 
         job_manager.submit(command, job_name=job_name, log_file=log_file)
 
+def submit_spurious_id_train_cxr(args):
+    CXR_ATTRIBUTES = TASKS["SPURIOUS_ID_ALL_CXR"]
+
+    assert args.opt.endswith("_cxr_id"), "This method should only be called with --opt=.*_id"
+    method = args.opt.replace("_cxr_id", "")
+    assert method in ["erm", "suby"]  # just to double check
+
+    # HACK(vliu): we only use CLIP models for spurious ID, so it's not worth refactoring PARAMS dict right now
+    if args.model == "resnet50":
+        wd = PARAMS[method]["WD"]
+        lr = PARAMS[method]["LR"]
+        batch_size = PARAMS[method]["BATCH_SIZE"]
+        epochs = PARAMS[method]["EPOCHS"]
+    elif args.model == "clip_resnet50":
+        wd = PARAMS[f"clip_{method}"]["WD"]
+        lr = PARAMS[f"clip_{method}"]["LR"]
+        batch_size = PARAMS[f"clip_{method}"]["BATCH_SIZE"]
+        epochs = PARAMS[f"clip_{method}"]["EPOCHS"]
+    dataset_name = "chestxray8"
+    job_manager = JobManager(mode=args.mode, template=args.template, slurm_logs=args.slurm_logs)
+    for attribute in CXR_ATTRIBUTES:
+        job_name = f"method:{method},task:{attribute},wd:{wd},lr:{lr}"
+        log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
+
+        log_dir = os.path.join(LOG_DIR, f"{args.model}_id", job_name)
+        command = (
+            "python train_erm.py exp.dataset.subgroup_labels=False "
+            f"exp={method} "
+            f"exp.model.name={args.model} "
+            f"exp.dataset.groupings='[{attribute}:Old]' "
+            f"exp.dataloader.batch_size={batch_size} "
+            f"exp.optimizer.lr={lr} "
+            f"exp.dataset.name='{dataset_name}' "
+            f"exp.optimizer.weight_decay={wd} "
+            f"exp.train.total_epochs={epochs} "
+            f"exp.train.log_dir=\\'{log_dir}\\'"
+        )
+        if args.respawn:
+            command = append_ckpt_for_respawn(command, os.path.join(f"{args.model}_id", job_name), epochs)
+
+        job_manager.submit(command, job_name=job_name, log_file=log_file)
+
+
 
 def submit_stl_train(args):
     method = args.opt
@@ -843,6 +886,10 @@ def main():
     # Runs STL methods on all attributes for spurious ID training
     elif args.opt in ["erm_id", "suby_id"]:
         submit_spurious_id_train(args)
+
+    # Runs STL methods on all attributes for spurious ID training
+    elif args.opt in ["erm_cxr_id", "suby_cxr_id"]:
+        submit_spurious_id_train_cxr(args)
 
     ####################
     # [1] TUNE MTL ERM #
