@@ -22,8 +22,8 @@ from scripts.const import GRIDS, PARAMS, TASKS
 from scripts.job_manager import JobManager
 
 USER = os.environ["USER"]
-LOG_DIR = "./logs"
-SEED_GRID = [0] #, 1, 2]
+LOG_DIR = "./new_logs"
+SEED_GRID = [0, 1, 2] #, 1, 2]
 
 
 def parse_args():
@@ -124,7 +124,7 @@ def append_ckpt_for_jtt_respawn(command, job_name, epochs1, epochs2):
     else:
         stage_2_ckpt_path, stage_2_ckpt_num = "null", "null"
 
-    load_up_pkl_path = os.path.join(LOG_DIR, job_name, f"jtt_error_set_inv.pkl")  # default is inv merging, even for stl
+    load_up_pkl_path = os.path.join(LOG_DIR, job_name, f"jtt_error_set_uniform.pkl")  # default is inv merging, even for stl
 
     if stage_1_ckpt_num != epochs1 or (stage_1_ckpt_num == epochs1 and not os.path.exists(load_up_pkl_path)):
         return f"{command} exp.load_stage_1_ckpt=\\'{stage_1_ckpt_path}\\'"
@@ -233,7 +233,7 @@ def submit_stl_train(args):
     assert method in ["erm", "suby", "rwy", "jtt"]  # just to double check
 
     if method in ["suby", "rwy", "jtt"]:
-        TASK_GRID = flatten(TASKS["MTL_DISJOINT"])
+        TASK_GRID = ["Blond_Hair:Male"] #flatten(TASKS["MTL_DISJOINT"])
         #TASK_GRID = ["High_Cheekbones:Smiling"]
 
     else:  # we want to run erm on everything
@@ -517,7 +517,7 @@ def submit_mtl_jtt_disjoint_tasks_train(args):
     for idx, task in enumerate(TASK_GRID):
         for seed in SEED_GRID:
             task_weights, use_loss_balanced, lbtw_alpha = get_mtl_task_weights(args.mtl_weighting, task)
-            job_name = f"mtl_train:jtt,task:{len(task)}_tasks_idx:{idx + 1},{args.mtl_weighting}_task_weighting,seed:{seed}"
+            job_name = f"mtl_train:jtt,task:{len(task)}_tasks_idx:{idx + 1},{args.mtl_weighting}_task_weighting,seed:{seed},uniform"
             log_file = os.path.join(args.slurm_logs, f"{job_name}.log")
 
             command = (
