@@ -8,6 +8,8 @@ ATTRIBUTES = [
     "Wavy_Hair", "Wearing_Earrings", "Wearing_Hat", "Wearing_Lipstick", "Wearing_Necklace", "Wearing_Necktie", "Young"
 ]
 
+CXR_ATTRIBUTES = ["Infiltration", "Fibrosis", "Hernia", "Mass", "Pleural_Thickening", "No Finding", "Pneumonia", "Atelectasis", "Nodule", "Edema", "Consolidation", "Cardiomegaly", "Effusion", "Emphysema", "Pneumothorax", "Male", "Old"]
+
 # Dictionary of task lists based on the type of ablation experiments we want to run
 TASKS = {
 
@@ -25,6 +27,7 @@ TASKS = {
             "Young:Attractive",
         ],
     "SPURIOUS_ID_ALL": ATTRIBUTES,
+    "SPURIOUS_ID_ALL_CXR": CXR_ATTRIBUTES,
 
     # 2 sets of ablations over disjoint tasks, for each: 1x MTL(2), 3x MTL(3), 3x MTL(4)
     "MTL_ABLATE_DISJOINT":
