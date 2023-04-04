@@ -8,7 +8,8 @@ Sample usage:
 python -m scripts.run_spurious_matrix \
     --meta_log_dir logs/spurious_id \
     --json_dir outputs/spurious_eval \
-    --mode debug
+    --mode debug \
+    --dataset celeba
 """
 
 import argparse
@@ -36,6 +37,13 @@ def parse_args():
         "--slurm_logs", type=str, default="./slurm_logs", required=False, help="Directory to output slurm logs"
     )
     parser.add_argument("--mode", type=str, choices=["debug", "shell", "sbatch"], default="debug", help="Spawn job mode")
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        required=True,
+        default="celeba",
+        help="Which dataset to run spurious analysis on"
+    )
     return parser.parse_args()
 
 
@@ -46,9 +54,9 @@ def main():
     args = parse_args()
     for log_dir in os.listdir(args.meta_log_dir):
         job_name = f"SPURIOUS_{log_dir}"
-        log_file = os.path.join("./slurm_logs", f"{job_name}.log")
+        log_file = os.path.join("./new_slurm_logs", f"{job_name}.log")
         log_dir = os.path.join(args.meta_log_dir, log_dir)
-        command = f"python -m scripts.spurious_analysis --log_dir {log_dir} --json_dir {args.json_dir}"
+        command = f"python -m scripts.spurious_analysis --log_dir {log_dir} --json_dir {args.json_dir} --dataset {args.dataset}"
         job_manager.submit(command, job_name=job_name, log_file=log_file)
 
 
