@@ -28,6 +28,7 @@ from scipy import stats
 from tqdm import tqdm
 
 from datasets.celeba import CelebA
+from datasets.chestxray8 import Chestxray8
 from scripts.const import ATTRIBUTES, CXR_ATTRIBUTES
 from scripts.find_best_ckpt import main as find_best_ckpt
 
@@ -60,12 +61,16 @@ def parse_args():
     return parser.parse_args()
 
 
-def get_group_sizes(config, task, attr):
+def get_group_sizes(config, task, attr, dataset):
     config = deepcopy(config)
     config.dataset.subgroup_labels = True
     config.dataset.groupings = [f"{task}:{attr}"]
 
-    dataset = CelebA(config, split="val")
+    if dataset == "celeba":
+        dataset = CelebA(config, split="val")
+    elif dataset == "chestxray8":
+        dataset = Chestxray8(config, split='val', size="full")
+        
     counts = dataset.counts.squeeze(0).tolist()
 
     # In the event that there are subgroups with size 0, there are two cases:
@@ -198,7 +203,7 @@ def main():
     group_size_dict = defaultdict(list)
     avg_task_acc = None
     for attr in tqdm(attributes, desc="Aggregating test.py JSON files", total=len(attributes)):
-        group_sizes = get_group_sizes(config, task_label, attr)
+        group_sizes = get_group_sizes(config, task_label, attr, args.dataset)
 
         with open(os.path.join(json_dir, f"{task_label}:{attr}.json"), "r") as f:
             data = json.load(f)
