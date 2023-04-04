@@ -6,7 +6,7 @@ Sample usage for running spurious idenfication inference:
 python -m scripts.spurious_analysis \
     --log_dir logs/erm/Blond_Hair:Male \
     --json_dir outputs/spurious_eval \
-    --mode debug
+    --dataset celeba
 """
 
 import argparse
@@ -28,7 +28,7 @@ from scipy import stats
 from tqdm import tqdm
 
 from datasets.celeba import CelebA
-from scripts.const import ATTRIBUTES
+from scripts.const import ATTRIBUTES, CXR_ATTRIBUTES
 from scripts.find_best_ckpt import main as find_best_ckpt
 
 logging.config.fileConfig("logger.conf")
@@ -50,6 +50,13 @@ def parse_args():
         default="outputs/spurious_eval",
         help="Path to json directory dumped by this script"
     )
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        required=True,
+        default="celeba",
+        help="Which dataset to run spurious analysis on"
+    )
     return parser.parse_args()
 
 
@@ -70,10 +77,10 @@ def get_group_sizes(config, task, attr):
     return counts
 
 
-def create_group_acc_heatmap(group_acc_dict, json_dir, task_label, class_accuracies):
+def create_group_acc_heatmap(group_acc_dict, json_dir, task_label, class_accuracies, attributes):
     # Create PD dataframe
     group_acc_df = pd.DataFrame.from_dict(group_acc_dict)
-    group_acc_df = group_acc_df.rename(index={ind: v for ind, v in enumerate(ATTRIBUTES)})
+    group_acc_df = group_acc_df.rename(index={ind: v for ind, v in enumerate(attributes)})
 
     # Create and save heatplot
     fig, ax = plt.subplots(figsize=(13, 13))
@@ -92,10 +99,10 @@ def create_group_acc_heatmap(group_acc_dict, json_dir, task_label, class_accurac
     logger.info(f"Saved group accuracies heatmap to {heatmap_file}")
 
 
-def create_group_size_heatmap(group_size_dict, json_dir, task_label):
+def create_group_size_heatmap(group_size_dict, json_dir, task_label, attributes):
     # Create PD dataframe
     group_size_df = pd.DataFrame.from_dict(group_size_dict)
-    group_size_df = group_size_df.rename(index={ind: v for ind, v in enumerate(ATTRIBUTES)})
+    group_size_df = group_size_df.rename(index={ind: v for ind, v in enumerate(attributes)})
 
     # Create and save heatplot
     _, ax = plt.subplots(figsize=(13, 13))
@@ -109,16 +116,16 @@ def create_group_size_heatmap(group_size_dict, json_dir, task_label):
     logger.info(f"Saved group sizes heatmap to {heatmap_file}")
 
 
-def create_spurious_eval_heatmap(group_acc_dict, group_size_dict, avg_task_acc, json_dir, task_label):
+def create_spurious_eval_heatmap(group_acc_dict, group_size_dict, avg_task_acc, json_dir, task_label, attributes):
     # Compute spurious eval
     spurious_eval_list = []
-    for i in range(len(ATTRIBUTES)):
+    for i in range(len(attributes)):
         group_accs = np.array([group_acc_dict[f"Group {j}"][i] for j in range(4)])
 
         delta = np.nan if np.isnan(group_accs).any() else abs(group_accs[0] + group_accs[3] - group_accs[1] - group_accs[2])
         spurious_eval_list.append(delta)
 
-    spurious_eval_df = pd.DataFrame({f"Average Accuracy: {avg_task_acc:.4f}": spurious_eval_list}, index=ATTRIBUTES)
+    spurious_eval_df = pd.DataFrame({f"Average Accuracy: {avg_task_acc:.4f}": spurious_eval_list}, index=attributes)
     _, ax = plt.subplots(figsize=(6, 13))
     heatmap = sns.heatmap(spurious_eval_df, annot=True, fmt=".4f", linewidths=1.0, ax=ax, vmin=0, vmax=100)
     ax.set_title(f"Task Label: {task_label}", fontsize=18, pad=20)
@@ -128,7 +135,7 @@ def create_spurious_eval_heatmap(group_acc_dict, group_size_dict, avg_task_acc, 
 
     ### save spurious_eval_list with attribute information
     spurious_eval_list = [None if np.isnan(delta) else delta for delta in spurious_eval_list]
-    spurious_eval_dict = {attr: delta for attr, delta in zip(ATTRIBUTES, spurious_eval_list)}
+    spurious_eval_dict = {attr: delta for attr, delta in zip(attributes, spurious_eval_list)}
     spurious_eval_file = os.path.join(json_dir, f"{task_label}_spurious_eval.json")
     f = open(spurious_eval_file, "w")
     json.dump(spurious_eval_dict, f)
@@ -141,7 +148,13 @@ def create_spurious_eval_heatmap(group_acc_dict, group_size_dict, avg_task_acc, 
 
 def main():
     args = parse_args()
-
+    if args.dataset == "celeba":
+        attributes = ATTRIBUTES
+    elif args.dataset == "chestxray8":
+        attributes = CXR_ATTRIBUTES
+    else:
+        raise ValueError("This dataset is not implemented")
+    
     # Load config
     config = OmegaConf.load(os.path.join(args.log_dir, "config.yaml"))
     assert len(config.dataset.groupings) == 1, \
@@ -159,7 +172,7 @@ def main():
     logger.info("Best validation checkpoint: %s", ckpt_num)
 
     # Call test.py 39 times. Generate JSON files if not already present
-    for attr in ATTRIBUTES:
+    for attr in attributes:
         save_json = os.path.join(json_dir, f"{task_label}:{attr}.json")
         if os.path.exists(save_json):
             continue
@@ -175,8 +188,8 @@ def main():
 
     # Some checks before we aggregate JSON files
     spurious_regex = re.compile(fr"{task_label}:.*\.json")
-    assert len(list(filter(lambda f: spurious_regex.match(f), os.listdir(json_dir)))) == len(ATTRIBUTES), \
-        f"There should be {len(ATTRIBUTES)} JSON files"
+    assert len(list(filter(lambda f: spurious_regex.match(f), os.listdir(json_dir)))) == len(attributes), \
+        f"There should be {len(attributes)} JSON files"
 
     class_accuracies = None
 
@@ -184,7 +197,7 @@ def main():
     group_acc_dict = defaultdict(list)
     group_size_dict = defaultdict(list)
     avg_task_acc = None
-    for attr in tqdm(ATTRIBUTES, desc="Aggregating test.py JSON files", total=len(ATTRIBUTES)):
+    for attr in tqdm(attributes, desc="Aggregating test.py JSON files", total=len(attributes)):
         group_sizes = get_group_sizes(config, task_label, attr)
 
         with open(os.path.join(json_dir, f"{task_label}:{attr}.json"), "r") as f:
@@ -222,9 +235,9 @@ def main():
                 group_size_dict[f"Group {i}"].append(group_sizes[i])
 
     # Create and save heatmaps
-    create_group_acc_heatmap(group_acc_dict, json_dir, task_label, class_accuracies)
-    create_group_size_heatmap(group_size_dict, json_dir, task_label)
-    create_spurious_eval_heatmap(group_acc_dict, group_size_dict, avg_task_acc, json_dir, task_label)
+    create_group_acc_heatmap(group_acc_dict, json_dir, task_label, class_accuracies, attributes)
+    create_group_size_heatmap(group_size_dict, json_dir, task_label, attributes)
+    create_spurious_eval_heatmap(group_acc_dict, group_size_dict, avg_task_acc, json_dir, task_label, attributes)
 
 
 if __name__ == "__main__":
